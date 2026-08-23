@@ -13,7 +13,6 @@ import { TenantsPage } from './pages/TenantsPage'
 import { TenantDetailPage } from './pages/TenantDetailPage'
 import { BillingPage } from './pages/BillingPage'
 import { PaymentsPage } from './pages/PaymentsPage'
-import { ElectricityPage } from './pages/ElectricityPage'
 import { LedgerPage } from './pages/LedgerPage'
 import { ReceiptsPage } from './pages/ReceiptsPage'
 import { ReportsPage } from './pages/ReportsPage'
@@ -55,7 +54,6 @@ export default function App() {
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/billing/:id" element={<BillingPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
-          <Route path="/electricity" element={<ElectricityPage />} />
           <Route path="/ledger" element={<LedgerPage />} />
           <Route path="/receipts" element={<ReceiptsPage />} />
           <Route path="/reports" element={<ReportsPage />} />

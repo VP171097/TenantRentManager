@@ -7,7 +7,6 @@ const OWNER_NAV = [
   { to: '/tenants', label: 'Tenants', icon: '👥' },
   { to: '/billing', label: 'Billing', icon: '🧾' },
   { to: '/payments', label: 'Payments', icon: '💳' },
-  { to: '/electricity', label: 'Electricity', icon: '⚡' },
   { to: '/ledger', label: 'Ledger', icon: '📒' },
   { to: '/receipts', label: 'Receipts', icon: '🧻' },
   { to: '/reports', label: 'Reports', icon: '📊' },

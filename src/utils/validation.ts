@@ -40,27 +40,6 @@ export const tenantSchema = z.object({
 })
 export type TenantFormValues = z.infer<typeof tenantSchema>
 
-export const electricitySchema = z
-  .object({
-    tenant_id: z.string().uuid('Select a tenant'),
-    room_id: z.string().uuid(),
-    billing_month: z.string().min(1, 'Billing month is required'),
-    previous_reading: z.coerce.number().min(0, 'Cannot be negative'),
-    current_reading: z.coerce.number().min(0, 'Cannot be negative'),
-    rate_per_unit: z.coerce.number().min(0, 'Rate cannot be negative'),
-    is_meter_reset: z.boolean(),
-    reset_explanation: z.string().trim().optional(),
-  })
-  .refine((v) => v.is_meter_reset || v.current_reading >= v.previous_reading, {
-    message: 'Current reading cannot be lower than previous reading unless this is a meter reset',
-    path: ['current_reading'],
-  })
-  .refine((v) => !v.is_meter_reset || (v.reset_explanation && v.reset_explanation.length > 0), {
-    message: 'Please explain the meter reset',
-    path: ['reset_explanation'],
-  })
-export type ElectricityFormValues = z.infer<typeof electricitySchema>
-
 export const paymentSchema = z.object({
   bill_id: z.string().uuid('Select a bill'),
   amount: z.coerce.number().positive('Amount must be greater than zero'),

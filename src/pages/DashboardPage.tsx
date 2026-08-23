@@ -86,7 +86,6 @@ export function DashboardPage() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           <QuickAction to="/tenants" label="Add Tenant" icon="👤" />
           <QuickAction to="/payments" label="Add Payment" icon="💳" />
-          <QuickAction to="/electricity" label="Enter Electricity" icon="⚡" />
           <QuickAction to="/billing" label="Generate Bills" icon="🧾" />
           <QuickAction to="/ledger" label="View Ledger" icon="📒" />
           <QuickAction to="/receipts" label="Generate Receipt" icon="🧻" />
