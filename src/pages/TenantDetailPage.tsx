@@ -27,7 +27,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { friendlyError } from '../utils/errors'
 import { applicableRent } from '../utils/billing'
 import { formatINR } from '../utils/money'
-import { downloadReceiptPdf } from '../services/receiptPdf'
+import { downloadReceiptPdf, receiptPdfBase64 } from '../services/receiptPdf'
 import { downloadBillPdf, billPdfBase64 } from '../services/billPdf'
 import { CreateTenantLoginForm } from '../components/CreateTenantLoginForm'
 import type { TenantDocument, Bill } from '../types/database'
@@ -118,13 +118,48 @@ export function TenantDetailPage() {
       const payment = await recordPayment({ ...values, tenant_id: id!, recorded_by: profile?.id })
       return payment
     },
-    onSuccess: () => {
+    onSuccess: (payment) => {
       queryClient.invalidateQueries({ queryKey: ['bills', id] })
       queryClient.invalidateQueries({ queryKey: ['payments', id] })
       setShowPaymentForm(false)
+      // Best-effort: email/WhatsApp a payment confirmation with the receipt
+      // attached. This must never surface as a payment-recording failure —
+      // the payment itself already succeeded — so failures here only show
+      // a soft status note, same spot as the manual Send Bill status.
+      void sendPaymentConfirmation(payment.id)
     },
     onError: (err) => setError(friendlyError(err)),
   })
+
+  async function sendPaymentConfirmation(paymentId: string) {
+    try {
+      const receipt = await generateReceipt(paymentId)
+      const freshPayments = await listPayments({ tenantId: id! })
+      const payment = freshPayments.find((p) => p.id === paymentId)
+      const freshBills = await listBills({ tenantId: id! })
+      const bill = freshBills.find((b) => b.id === payment?.bill_id)
+      if (!payment || !bill || !tenant) return
+
+      const { data: property } = await supabase.from('properties').select('*').eq('id', tenant.property_id).single()
+      if (!property) return
+
+      const pdfBase64 = receiptPdfBase64({ receipt, payment, bill, tenant, property })
+      const { data, error: fnError } = await supabase.functions.invoke('send-bill', {
+        body: { billId: bill.id, mode: 'receipt', paymentId: payment.id, pdfBase64 },
+      })
+      if (fnError) throw fnError
+      const result = data as { whatsapp?: string; email?: string; error?: string }
+      if (result?.error) {
+        setSendStatus(`Payment confirmation not sent: ${result.error}`)
+      } else if (result) {
+        const emailPart = result.email && !result.email.startsWith('skipped') ? `, Email: ${result.email}` : ''
+        setSendStatus(`Payment confirmation — WhatsApp: ${result.whatsapp}${emailPart}`)
+      }
+    } catch (err) {
+      // Non-fatal: the payment is already saved. Just note it quietly.
+      setSendStatus(`Payment confirmation not sent: ${friendlyError(err)}`)
+    }
+  }
 
   const moveOutMutation = useMutation({
     mutationFn: (values: { move_out_date: string; final_current_reading: number; deposit_deduction: number; deduction_reason: string }) =>

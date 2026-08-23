@@ -62,3 +62,10 @@ export function downloadReceiptPdf(input: ReceiptPdfInput) {
   const doc = buildReceiptPdf(input)
   doc.save(`${input.receipt.receipt_number}.pdf`)
 }
+
+/** Returns the receipt PDF as a base64 string (no data: prefix) for emailing. */
+export function receiptPdfBase64(input: ReceiptPdfInput): string {
+  const doc = buildReceiptPdf(input)
+  const dataUri = doc.output('datauristring')
+  return dataUri.split(',')[1]
+}

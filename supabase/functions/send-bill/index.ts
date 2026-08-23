@@ -2,6 +2,9 @@
 //
 // Sends a tenant's bill via WhatsApp (always) and, if the tenant has an
 // email on file, also via email (Resend) with the bill PDF attached.
+// Also supports mode: 'reminder' (lighter nudge, no PDF) and
+// mode: 'receipt' (payment confirmation with the receipt PDF attached,
+// sent automatically right after a payment is recorded).
 //
 // SECRETS (set via `supabase secrets set NAME=value`, never as VITE_
 // frontend env vars — see supabase/functions/README.md):
@@ -11,18 +14,20 @@
 //   WHATSAPP_PHONE_NUMBER_ID - Meta WhatsApp Cloud API phone number id
 //   WHATSAPP_API_VERSION  - optional, defaults to 'v20.0'
 //
-// The frontend generates the bill PDF client-side (src/services/billPdf.ts,
-// reusing the same jsPDF + qrcode logic used for the manual "Download Bill
-// PDF" button) and passes it here as base64 (`pdfBase64`) rather than this
-// function regenerating it — PDF/QR generation is far simpler with the
-// existing browser-side libraries than reimplementing it in Deno.
+// The frontend generates the bill/receipt PDF client-side (src/services/
+// billPdf.ts, src/services/receiptPdf.ts) and passes it here as base64
+// (`pdfBase64`) rather than this function regenerating it — PDF/QR
+// generation is far simpler with the existing browser-side libraries than
+// reimplementing it in Deno.
 //
 // This function uses the SERVICE ROLE key to bypass RLS for the lookups
 // and the WhatsApp/email sends, but ONLY after verifying (via the caller's
 // own JWT, against a request-scoped anon client) that the caller is
-// authorized to send bills for this tenant's property — either the owner,
-// or a manager with `can_generate_receipts` on that property. Do not widen
-// this authorization check without re-reading it carefully.
+// authorized for this tenant's property. For mode 'bill'/'reminder' that
+// means owner or a manager with can_generate_receipts; for mode 'receipt'
+// (sent right after recording a payment) it's owner or a manager with
+// can_generate_receipts OR can_record_payments — do not widen either check
+// without re-reading it carefully.
 
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.112.3'
@@ -35,7 +40,8 @@ const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 interface SendBillBody {
   billId: string
   pdfBase64?: string
-  mode?: 'bill' | 'reminder'
+  mode?: 'bill' | 'reminder' | 'receipt'
+  paymentId?: string
 }
 
 Deno.serve(async (req) => {
@@ -48,6 +54,9 @@ Deno.serve(async (req) => {
 
     const body = (await req.json().catch(() => null)) as SendBillBody | null
     if (!body?.billId) return jsonResponse({ error: 'billId is required' }, 400)
+
+    const isReceipt = body.mode === 'receipt'
+    if (isReceipt && !body.paymentId) return jsonResponse({ error: 'paymentId is required for mode: receipt' }, 400)
 
     // Request-scoped client: runs AS the caller, so RLS applies. Used only
     // to authenticate the caller and to check they can actually see this
@@ -66,7 +75,9 @@ Deno.serve(async (req) => {
     // authorized (owner_all policy, or manager with can_view_ledger, etc).
     // We additionally require can_generate_receipts-equivalent access by
     // checking the bill is visible AND the caller is owner or a manager
-    // with can_generate_receipts on that property.
+    // with can_generate_receipts on that property (or, for a receipt sent
+    // right after a payment, can_record_payments also qualifies — they
+    // just made that exact write themselves).
     const { data: visibleBill, error: billErr } = await callerClient
       .from('bills')
       .select('id, property_id, tenant_id')
@@ -80,10 +91,13 @@ Deno.serve(async (req) => {
     if (role === 'manager') {
       const { data: perm } = await callerClient
         .from('manager_permissions')
-        .select('can_generate_receipts, manager_id, managers!inner(profile_id)')
+        .select('can_generate_receipts, can_record_payments, manager_id, managers!inner(profile_id)')
         .eq('property_id', (visibleBill as any).property_id)
         .maybeSingle()
-      if (!perm || !(perm as any).can_generate_receipts) {
+      const allowed = isReceipt
+        ? (perm as any)?.can_generate_receipts || (perm as any)?.can_record_payments
+        : (perm as any)?.can_generate_receipts
+      if (!perm || !allowed) {
         return jsonResponse({ error: 'You do not have permission to send bills for this property.' }, 403)
       }
     } else if (role !== 'owner') {
@@ -111,6 +125,15 @@ Deno.serve(async (req) => {
 
     const isReminder = body.mode === 'reminder'
 
+    let paymentAmount = ''
+    let receiptNumber = ''
+    if (isReceipt) {
+      const { data: payment } = await admin.from('payments').select('amount').eq('id', body.paymentId).maybeSingle()
+      paymentAmount = payment ? Number((payment as any).amount).toFixed(2) : ''
+      const { data: receipt } = await admin.from('receipts').select('receipt_number').eq('payment_id', body.paymentId).maybeSingle()
+      receiptNumber = (receipt as any)?.receipt_number ?? ''
+    }
+
     const result: { whatsapp?: string; email?: string } = {}
 
     // ---- WhatsApp (always attempted) ----
@@ -123,6 +146,9 @@ Deno.serve(async (req) => {
         balanceStr,
         upiId,
         isReminder,
+        isReceipt,
+        paymentAmount,
+        receiptNumber,
       })
       result.whatsapp = 'sent'
     } catch (err) {
@@ -141,8 +167,12 @@ Deno.serve(async (req) => {
           balanceStr,
           upiId,
           // Reminders are a lighter, faster nudge — no PDF attachment.
+          // Bills and receipts both attach their respective PDF.
           pdfBase64: isReminder ? undefined : body.pdfBase64,
           isReminder,
+          isReceipt,
+          paymentAmount,
+          receiptNumber,
         })
         result.email = 'sent'
       } catch (err) {
@@ -166,6 +196,9 @@ async function sendWhatsApp(opts: {
   balanceStr: string
   upiId: string | null
   isReminder?: boolean
+  isReceipt?: boolean
+  paymentAmount?: string
+  receiptNumber?: string
 }) {
   const token = Deno.env.get('WHATSAPP_ACCESS_TOKEN')
   const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID')
@@ -176,17 +209,23 @@ async function sendWhatsApp(opts: {
   if (!to.startsWith('+')) to = `+91${to.replace(/\D/g, '')}`
   to = to.replace(/[^\d+]/g, '')
 
-  const lines = opts.isReminder
+  const lines = opts.isReceipt
     ? [
-        `Hi ${opts.tenantName}, this is a reminder: your rent for ${opts.monthLabel} is still due.`,
-        `Outstanding: ₹${opts.balanceStr}`,
-      ]
-    : [
-        `Hi ${opts.tenantName}, here is your rent bill for ${opts.monthLabel}.`,
-        `Total due: ₹${opts.totalDue}`,
+        `Hi ${opts.tenantName}, we've received your payment of ₹${opts.paymentAmount} for ${opts.monthLabel}. Thank you!`,
+        ...(opts.receiptNumber ? [`Receipt #: ${opts.receiptNumber}`] : []),
         `Outstanding balance: ₹${opts.balanceStr}`,
       ]
-  if (opts.upiId) lines.push(`Pay via UPI: ${opts.upiId}`)
+    : opts.isReminder
+      ? [
+          `Hi ${opts.tenantName}, this is a reminder: your rent for ${opts.monthLabel} is still due.`,
+          `Outstanding: ₹${opts.balanceStr}`,
+        ]
+      : [
+          `Hi ${opts.tenantName}, here is your rent bill for ${opts.monthLabel}.`,
+          `Total due: ₹${opts.totalDue}`,
+          `Outstanding balance: ₹${opts.balanceStr}`,
+        ]
+  if (!opts.isReceipt && opts.upiId) lines.push(`Pay via UPI: ${opts.upiId}`)
 
   // NOTE: sending free-form text messages outside a 24-hour customer-
   // initiated conversation window is only permitted by Meta for
@@ -223,13 +262,29 @@ async function sendEmail(opts: {
   upiId: string | null
   pdfBase64?: string
   isReminder?: boolean
+  isReceipt?: boolean
+  paymentAmount?: string
+  receiptNumber?: string
 }) {
   const apiKey = Deno.env.get('RESEND_API_KEY')
   const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')
   if (!apiKey || !fromEmail) throw new Error('Email is not configured (missing secrets).')
 
-  const html = opts.isReminder
+  const html = opts.isReceipt
     ? `
+    <div style="font-family:sans-serif;max-width:480px">
+      <h2>${opts.propertyName}</h2>
+      <p>Hi ${opts.tenantName},</p>
+      <p>We've received your payment of <strong>₹${opts.paymentAmount}</strong> for <strong>${opts.monthLabel}</strong>. Thank you!</p>
+      <table style="width:100%;border-collapse:collapse">
+        ${opts.receiptNumber ? `<tr><td style="padding:4px 0">Receipt #</td><td style="text-align:right">${opts.receiptNumber}</td></tr>` : ''}
+        <tr><td style="padding:4px 0">Outstanding balance</td><td style="text-align:right">₹${opts.balanceStr}</td></tr>
+      </table>
+      <p>Your receipt is attached to this email.</p>
+      <p style="color:#888;font-size:12px">This is a computer-generated payment confirmation.</p>
+    </div>`
+    : opts.isReminder
+      ? `
     <div style="font-family:sans-serif;max-width:480px">
       <h2>${opts.propertyName}</h2>
       <p>Hi ${opts.tenantName},</p>
@@ -240,7 +295,7 @@ async function sendEmail(opts: {
       ${opts.upiId ? `<p>Pay via UPI: <strong>${opts.upiId}</strong></p>` : ''}
       <p style="color:#888;font-size:12px">This is a computer-generated reminder.</p>
     </div>`
-    : `
+      : `
     <div style="font-family:sans-serif;max-width:480px">
       <h2>${opts.propertyName}</h2>
       <p>Hi ${opts.tenantName},</p>
@@ -253,9 +308,16 @@ async function sendEmail(opts: {
       <p style="color:#888;font-size:12px">This is a computer-generated bill.</p>
     </div>`
 
-  const attachments = opts.pdfBase64
-    ? [{ filename: `Bill-${opts.monthLabel.replace(/\s+/g, '_')}.pdf`, content: opts.pdfBase64 }]
-    : undefined
+  const attachmentName = opts.isReceipt
+    ? `Receipt-${opts.receiptNumber || opts.monthLabel.replace(/\s+/g, '_')}.pdf`
+    : `Bill-${opts.monthLabel.replace(/\s+/g, '_')}.pdf`
+  const attachments = opts.pdfBase64 ? [{ filename: attachmentName, content: opts.pdfBase64 }] : undefined
+
+  const subject = opts.isReceipt
+    ? `Payment received for ${opts.monthLabel} - ${opts.propertyName}`
+    : opts.isReminder
+      ? `Reminder: rent due for ${opts.monthLabel} - ${opts.propertyName}`
+      : `Rent bill for ${opts.monthLabel} - ${opts.propertyName}`
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -263,9 +325,7 @@ async function sendEmail(opts: {
     body: JSON.stringify({
       from: fromEmail,
       to: opts.toEmail,
-      subject: opts.isReminder
-        ? `Reminder: rent due for ${opts.monthLabel} - ${opts.propertyName}`
-        : `Rent bill for ${opts.monthLabel} - ${opts.propertyName}`,
+      subject,
       html,
       attachments,
     }),
