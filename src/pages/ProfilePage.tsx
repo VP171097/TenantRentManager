@@ -3,17 +3,26 @@ import { useMutation } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { friendlyError } from '../utils/errors'
+import { isValidUpiId } from '../utils/upi'
 
 export function ProfilePage() {
   const { profile, refreshProfile } = useAuth()
   const [fullName, setFullName] = useState(profile?.full_name ?? '')
   const [phone, setPhone] = useState(profile?.phone ?? '')
+  const [upiId, setUpiId] = useState(profile?.upi_id ?? '')
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const { error: err } = await supabase.from('profiles').update({ full_name: fullName, phone }).eq('id', profile!.id)
+      const trimmedUpi = upiId.trim()
+      if (trimmedUpi && !isValidUpiId(trimmedUpi)) {
+        throw new Error('Please enter a valid UPI ID, e.g. yourname@okhdfcbank')
+      }
+      const { error: err } = await supabase
+        .from('profiles')
+        .update({ full_name: fullName, phone, upi_id: trimmedUpi || null })
+        .eq('id', profile!.id)
       if (err) throw err
     },
     onSuccess: async () => {
@@ -42,6 +51,20 @@ export function ProfilePage() {
           <label className="block text-sm font-semibold text-slate-700">Role</label>
           <p className="mt-1 text-slate-600 capitalize">{profile.role}</p>
         </div>
+        {profile.role === 'owner' && (
+          <div>
+            <label className="block text-sm font-semibold text-slate-700">UPI ID (for rent payments)</label>
+            <input
+              value={upiId}
+              onChange={(e) => setUpiId(e.target.value)}
+              placeholder="yourname@okhdfcbank"
+              className="input mt-1"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              This is shown as a QR code on bills and to tenants so they can pay you directly via any UPI app.
+            </p>
+          </div>
+        )}
         {message && <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>}
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         <button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="btn-primary w-full">

@@ -12,6 +12,7 @@ export interface Profile {
   email: string | null
   phone: string | null
   owner_id: string | null // for managers/tenants: the owner they belong to
+  upi_id: string | null // owner's UPI ID for collecting rent payments (only meaningful on owner rows)
   created_at: string
 }
 
