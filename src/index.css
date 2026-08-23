@@ -3,6 +3,7 @@
 @theme {
   --color-brand-50: #eef2ff;
   --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
   --color-brand-500: #4f46e5;
   --color-brand-600: #4338ca;
   --color-brand-700: #3730a3;
@@ -26,4 +27,20 @@ body {
 
 button, a, input, select {
   min-height: 2.5rem;
+}
+
+.input {
+  @apply w-full rounded-xl border border-slate-300 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200;
+}
+
+.btn-primary {
+  @apply rounded-xl bg-brand-600 py-3 text-base font-bold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60;
+}
+
+.btn-secondary {
+  @apply rounded-xl border border-slate-300 py-3 text-base font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60;
+}
+
+.card {
+  @apply rounded-2xl bg-white p-5 shadow-sm border border-slate-100;
 }
