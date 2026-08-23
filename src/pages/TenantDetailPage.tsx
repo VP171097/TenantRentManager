@@ -16,7 +16,9 @@ import { friendlyError } from '../utils/errors'
 import { applicableRent } from '../utils/billing'
 import { formatINR } from '../utils/money'
 import { downloadReceiptPdf } from '../services/receiptPdf'
-import type { TenantDocument } from '../types/database'
+import { downloadBillPdf, billPdfBase64 } from '../services/billPdf'
+import { CreateTenantLoginForm } from '../components/CreateTenantLoginForm'
+import type { TenantDocument, Bill } from '../types/database'
 
 export function TenantDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -27,6 +29,8 @@ export function TenantDetailPage() {
   const [showMoveOut, setShowMoveOut] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [docs, setDocs] = useState<TenantDocument[]>([])
+  const [sendingBillId, setSendingBillId] = useState<string | null>(null)
+  const [sendStatus, setSendStatus] = useState<string | null>(null)
 
   const { data: tenant, isLoading, error: loadError, refetch } = useQuery({
     queryKey: ['tenant', id],
@@ -98,6 +102,47 @@ export function TenantDetailPage() {
     }
   }
 
+  async function handleDownloadBill(bill: Bill) {
+    try {
+      const { data: property } = await supabase.from('properties').select('*').eq('id', tenant!.property_id).single()
+      const { data: ownerProfile } = await supabase.from('profiles').select('upi_id').eq('id', tenant!.owner_id).maybeSingle()
+      if (property) {
+        await downloadBillPdf({ bill, tenant: tenant!, property, upiId: (ownerProfile as { upi_id?: string } | null)?.upi_id })
+      }
+    } catch (err) {
+      setError(friendlyError(err))
+    }
+  }
+
+  async function handleSendBill(bill: Bill) {
+    setSendingBillId(bill.id)
+    setSendStatus(null)
+    try {
+      const { data: property } = await supabase.from('properties').select('*').eq('id', tenant!.property_id).single()
+      const { data: ownerProfile } = await supabase.from('profiles').select('upi_id').eq('id', tenant!.owner_id).maybeSingle()
+      let pdfBase64: string | undefined
+      if (property) {
+        pdfBase64 = await billPdfBase64({ bill, tenant: tenant!, property, upiId: (ownerProfile as { upi_id?: string } | null)?.upi_id })
+      }
+      const { data, error: fnError } = await supabase.functions.invoke('send-bill', {
+        body: { billId: bill.id, pdfBase64 },
+      })
+      if (fnError) throw fnError
+      const result = data as { whatsapp?: string; email?: string; error?: string }
+      if (result.error) {
+        setSendStatus(`Could not send bill: ${result.error}`)
+      } else {
+        const waOk = result.whatsapp === 'sent'
+        const emailPart = result.email && !result.email.startsWith('skipped') ? `, Email: ${result.email}` : ''
+        setSendStatus(`WhatsApp: ${waOk ? 'sent' : result.whatsapp}${emailPart}`)
+      }
+    } catch (err) {
+      setSendStatus(friendlyError(err))
+    } finally {
+      setSendingBillId(null)
+    }
+  }
+
   if (isLoading) return <LoadingState />
   if (loadError || !tenant) return <ErrorState message="Could not load tenant." onRetry={() => refetch()} />
 
@@ -154,6 +199,30 @@ export function TenantDetailPage() {
       <section>
         <h2 className="mb-3 text-lg font-bold text-slate-900">Billing history</h2>
         {bills && bills.length > 0 ? <LedgerTable bills={bills} /> : <p className="text-slate-500">No bills yet.</p>}
+        {bills && bills.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {sendStatus && <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{sendStatus}</p>}
+            {bills.slice(0, 1).map((b) => (
+              <div key={b.id} className="flex flex-wrap gap-2">
+                <button onClick={() => handleDownloadBill(b)} className="btn-secondary px-4">
+                  Download Bill PDF
+                </button>
+                <button
+                  onClick={() => handleSendBill(b)}
+                  disabled={sendingBillId === b.id}
+                  className="btn-primary px-4"
+                >
+                  {sendingBillId === b.id ? 'Sending…' : 'Send Bill (WhatsApp/Email)'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-lg font-bold text-slate-900">Tenant Login</h2>
+        <CreateTenantLoginForm tenant={tenant} />
       </section>
 
       <section>

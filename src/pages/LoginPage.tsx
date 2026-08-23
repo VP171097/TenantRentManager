@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { friendlyError } from '../utils/errors'
 import { useAuth } from '../hooks/useAuth'
+import { isEmailIdentifier, normalizePhoneIdentifier } from '../utils/upi'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -20,7 +21,10 @@ export function LoginPage() {
     setLoading(true)
     try {
       if (mode === 'signin') {
-        const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+        const identifier = email.trim()
+        const { error: err } = isEmailIdentifier(identifier)
+          ? await supabase.auth.signInWithPassword({ email: identifier, password })
+          : await supabase.auth.signInWithPassword({ phone: normalizePhoneIdentifier(identifier), password })
         if (err) throw err
       } else {
         const { error: err } = await supabase.auth.signUp({
@@ -60,9 +64,11 @@ export function LoginPage() {
             </div>
           )}
           <div>
-            <label className="block text-sm font-semibold text-slate-700">Email</label>
+            <label className="block text-sm font-semibold text-slate-700">
+              {mode === 'signin' ? 'Email or Mobile Number' : 'Email'}
+            </label>
             <input
-              type="email"
+              type={mode === 'signin' ? 'text' : 'email'}
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}

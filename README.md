@@ -58,6 +58,12 @@ npm run dev
 | `VITE_SUPABASE_URL` | Your Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Your Supabase anon/public key (never the service-role key) |
 
+## New: UPI payments, bill delivery, and phone-based tenant logins
+
+- Owners can set a **UPI ID** on their profile (Settings → My Profile). Bills and the tenant portal then show a scannable UPI QR code for rent payments.
+- **"Download Bill PDF"** and **"Send Bill"** (WhatsApp always, email if the tenant has one on file) are available on each tenant's page — sending is powered by two Supabase Edge Functions (`send-bill`, `create-tenant-login`) that hold the real secrets server-side. See [SETUP.md](./SETUP.md#9-set-up-send-bill-whatsapp--email-and-tenant-logins-phoneemail) for deployment steps.
+- Owners can create a **tenant login** with just a phone number (no email, no SMS OTP) via "Create Tenant Login" on the tenant's page — tenants then sign in at `/login` with either their email or mobile number.
+
 ## Database, storage, and auth setup
 
 See [SETUP.md](./SETUP.md) for the full step-by-step guide: creating a Supabase project, running migrations, configuring auth, storage policies, creating the first owner account, and optional demo data.
