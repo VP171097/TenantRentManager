@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getTenant, moveOutTenant } from '../services/tenants'
-import { listBills, generateBill, listRentRevisions, addRentRevision } from '../services/billing'
+import { getTenant, moveOutTenant, updateTenant, deleteTenant } from '../services/tenants'
+import { listBills, generateBill, listRentRevisions, addRentRevision, deleteBill, updateBillCharges } from '../services/billing'
 import { listPayments, recordPayment, generateReceipt } from '../services/payments'
 import { getLatestReading, recordElectricityReading } from '../services/electricity'
 import { supabase } from '../lib/supabase'
@@ -11,7 +11,9 @@ import { LoadingState, ErrorState } from '../components/States'
 import { LedgerTable } from '../components/LedgerTable'
 import { RentRevisionModal } from '../components/forms/RentRevisionModal'
 import { GenerateBillModal } from '../components/forms/GenerateBillModal'
+import { EditBillModal } from '../components/forms/EditBillModal'
 import { PaymentForm } from '../components/forms/PaymentForm'
+import { TenantForm } from '../components/forms/TenantForm'
 import { DocumentUploader } from '../components/DocumentUploader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { friendlyError } from '../utils/errors'
@@ -21,10 +23,12 @@ import { downloadReceiptPdf } from '../services/receiptPdf'
 import { downloadBillPdf, billPdfBase64 } from '../services/billPdf'
 import { CreateTenantLoginForm } from '../components/CreateTenantLoginForm'
 import type { TenantDocument, Bill } from '../types/database'
+import type { TenantFormValues } from '../utils/validation'
 
 export function TenantDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { profile } = useAuth()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [showRentModal, setShowRentModal] = useState(false)
   const [showPaymentForm, setShowPaymentForm] = useState(false)
@@ -34,6 +38,10 @@ export function TenantDetailPage() {
   const [sendingBillId, setSendingBillId] = useState<string | null>(null)
   const [sendStatus, setSendStatus] = useState<string | null>(null)
   const [showGenerateBill, setShowGenerateBill] = useState(false)
+  const [showEditTenant, setShowEditTenant] = useState(false)
+  const [showDeleteTenant, setShowDeleteTenant] = useState(false)
+  const [editingBill, setEditingBill] = useState<Bill | null>(null)
+  const [deletingBill, setDeletingBill] = useState<Bill | null>(null)
 
   const { data: tenant, isLoading, error: loadError, refetch } = useQuery({
     queryKey: ['tenant', id],
@@ -121,6 +129,53 @@ export function TenantDetailPage() {
     onError: (err) => setError(friendlyError(err)),
   })
 
+  const editTenantMutation = useMutation({
+    mutationFn: (values: TenantFormValues) =>
+      updateTenant(id!, {
+        full_name: values.full_name,
+        phone: values.phone,
+        email: values.email || undefined,
+        property_id: values.property_id,
+        room_id: values.room_id,
+        security_deposit: values.security_deposit,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tenant', id] })
+      queryClient.invalidateQueries({ queryKey: ['tenants'] })
+      setShowEditTenant(false)
+    },
+    onError: (err) => setError(friendlyError(err)),
+  })
+
+  const deleteTenantMutation = useMutation({
+    mutationFn: () => deleteTenant(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tenants'] })
+      navigate('/tenants')
+    },
+    onError: (err) => setError(friendlyError(err)),
+  })
+
+  const editBillMutation = useMutation({
+    mutationFn: (values: { other_charges: number; late_fee: number; notes: string }) =>
+      updateBillCharges({ bill_id: editingBill!.id, ...values }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills', id] })
+      setEditingBill(null)
+    },
+    onError: (err) => setError(friendlyError(err)),
+  })
+
+  const deleteBillMutation = useMutation({
+    mutationFn: () => deleteBill(deletingBill!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills', id] })
+      queryClient.invalidateQueries({ queryKey: ['payments', id] })
+      setDeletingBill(null)
+    },
+    onError: (err) => setError(friendlyError(err)),
+  })
+
   async function handleReceipt(paymentId: string) {
     try {
       const receipt = await generateReceipt(paymentId)
@@ -191,12 +246,43 @@ export function TenantDetailPage() {
             {tenant.phone} {tenant.email && `· ${tenant.email}`}
           </p>
         </div>
-        {tenant.status === 'active' && (
-          <button onClick={() => setShowMoveOut(true)} className="btn-secondary px-4">
-            Move Out
+        <div className="flex flex-wrap gap-3">
+          <button onClick={() => setShowEditTenant(true)} className="btn-secondary px-4">
+            Edit
           </button>
-        )}
+          {tenant.status === 'active' && (
+            <button onClick={() => setShowMoveOut(true)} className="btn-secondary px-4">
+              Move Out
+            </button>
+          )}
+          <button onClick={() => setShowDeleteTenant(true)} className="btn-secondary px-4 text-red-600">
+            Delete Tenant
+          </button>
+        </div>
       </div>
+
+      {showEditTenant && (
+        <div className="card max-w-md">
+          <h2 className="mb-3 text-lg font-bold text-slate-900">Edit Tenant</h2>
+          <TenantForm
+            defaultValues={{
+              full_name: tenant.full_name,
+              phone: tenant.phone,
+              email: tenant.email ?? '',
+              property_id: tenant.property_id,
+              room_id: tenant.room_id ?? '',
+              move_in_date: tenant.move_in_date,
+              security_deposit: tenant.security_deposit,
+              initial_rent: currentRent,
+            }}
+            onSubmit={(v) => editTenantMutation.mutateAsync(v)}
+            submitLabel="Save Changes"
+          />
+          <button onClick={() => setShowEditTenant(false)} className="btn-secondary mt-3 w-full">
+            Cancel
+          </button>
+        </div>
+      )}
 
       {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
@@ -231,7 +317,15 @@ export function TenantDetailPage() {
 
       <section>
         <h2 className="mb-3 text-lg font-bold text-slate-900">Billing history</h2>
-        {bills && bills.length > 0 ? <LedgerTable bills={bills} /> : <p className="text-slate-500">No bills yet.</p>}
+        {bills && bills.length > 0 ? (
+          <LedgerTable
+            bills={bills}
+            onEdit={profile?.role === 'owner' ? (b) => setEditingBill(b) : undefined}
+            onDelete={(b) => setDeletingBill(b)}
+          />
+        ) : (
+          <p className="text-slate-500">No bills yet.</p>
+        )}
         {bills && bills.length > 0 && (
           <div className="mt-3 space-y-2">
             {sendStatus && <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{sendStatus}</p>}
@@ -319,6 +413,33 @@ export function TenantDetailPage() {
         open={showMoveOut}
         onCancel={() => setShowMoveOut(false)}
         onConfirm={(values) => moveOutMutation.mutateAsync(values)}
+      />
+
+      <EditBillModal
+        open={!!editingBill}
+        bill={editingBill}
+        onClose={() => setEditingBill(null)}
+        onSubmit={(values) => editBillMutation.mutateAsync(values)}
+      />
+
+      <ConfirmDialog
+        open={!!deletingBill}
+        title="Delete bill"
+        message="This will permanently delete this bill and any payments/receipts recorded against it. This cannot be undone."
+        confirmLabel="Delete Bill"
+        danger
+        onCancel={() => setDeletingBill(null)}
+        onConfirm={() => deleteBillMutation.mutate()}
+      />
+
+      <ConfirmDialog
+        open={showDeleteTenant}
+        title="Delete tenant"
+        message="This will permanently delete this tenant AND all their bills, payments, and history. This cannot be undone. Consider using 'Move Out' instead if you just want to mark them inactive."
+        confirmLabel="Delete Tenant"
+        danger
+        onCancel={() => setShowDeleteTenant(false)}
+        onConfirm={() => deleteTenantMutation.mutate()}
       />
     </div>
   )

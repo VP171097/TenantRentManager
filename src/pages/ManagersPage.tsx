@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listManagers, listManagerPermissions, upsertManagerPermission, removeManager } from '../services/managers'
+import { listManagers, listManagerPermissions, upsertManagerPermission, removeManager, updateManager } from '../services/managers'
 import { listProperties } from '../services/properties'
 import { LoadingState, ErrorState, EmptyState } from '../components/States'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -22,6 +22,7 @@ export function ManagersPage() {
   const { data: managers, isLoading, error, refetch } = useQuery({ queryKey: ['managers'], queryFn: listManagers })
   const { data: properties } = useQuery({ queryKey: ['properties'], queryFn: listProperties })
   const [expandedManagerId, setExpandedManagerId] = useState<string | null>(null)
+  const [editingManagerId, setEditingManagerId] = useState<string | null>(null)
   const [toRemove, setToRemove] = useState<string | null>(null)
 
   const removeMutation = useMutation({
@@ -52,7 +53,10 @@ export function ManagersPage() {
                 <p className="font-bold text-slate-900">{m.full_name}</p>
                 <p className="text-sm text-slate-500">{m.email}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setEditingManagerId(editingManagerId === m.id ? null : m.id)} className="btn-secondary px-4">
+                  {editingManagerId === m.id ? 'Close' : 'Edit'}
+                </button>
                 <button
                   onClick={() => setExpandedManagerId(expandedManagerId === m.id ? null : m.id)}
                   className="btn-secondary px-4"
@@ -64,6 +68,7 @@ export function ManagersPage() {
                 </button>
               </div>
             </div>
+            {editingManagerId === m.id && <ManagerProfileEditor manager={m} onDone={() => setEditingManagerId(null)} />}
             {expandedManagerId === m.id && properties && (
               <ManagerPermissionsEditor managerId={m.id} properties={properties} />
             )}
@@ -74,12 +79,45 @@ export function ManagersPage() {
       <ConfirmDialog
         open={!!toRemove}
         title="Remove manager"
-        message="This manager will lose access to all properties. This cannot be undone."
+        message="This revokes their access to all properties (their login itself is not deleted, just their manager profile and permissions). This cannot be undone."
         confirmLabel="Remove"
         danger
         onCancel={() => setToRemove(null)}
         onConfirm={() => toRemove && removeMutation.mutate(toRemove)}
       />
+    </div>
+  )
+}
+
+function ManagerProfileEditor({ manager, onDone }: { manager: { id: string; full_name: string; phone: string | null }; onDone: () => void }) {
+  const queryClient = useQueryClient()
+  const [fullName, setFullName] = useState(manager.full_name)
+  const [phone, setPhone] = useState(manager.phone ?? '')
+  const [error, setError] = useState<string | null>(null)
+
+  const mutation = useMutation({
+    mutationFn: () => updateManager(manager.id, { full_name: fullName, phone }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['managers'] })
+      onDone()
+    },
+    onError: (err) => setError(friendlyError(err)),
+  })
+
+  return (
+    <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      <div>
+        <label className="block text-sm font-semibold text-slate-700">Full name</label>
+        <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="input mt-1" />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-slate-700">Mobile number</label>
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} className="input mt-1" />
+      </div>
+      <button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="btn-primary w-full">
+        {mutation.isPending ? 'Saving…' : 'Save Changes'}
+      </button>
     </div>
   )
 }
