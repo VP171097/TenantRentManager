@@ -56,6 +56,15 @@ export async function updateTenant(id: string, input: Partial<Tenant>): Promise<
   return data as Tenant
 }
 
+/** Permanently deletes a tenant. Cascades (per schema FKs) to their bills,
+ * payments, receipts, rent revisions, electricity readings, documents and
+ * room-transfer history. Callers MUST confirm with the user before calling
+ * this — it destroys financial history and cannot be undone. */
+export async function deleteTenant(id: string): Promise<void> {
+  const { error } = await supabase.from('tenants').delete().eq('id', id)
+  if (error) throw error
+}
+
 export async function moveOutTenant(params: {
   tenant_id: string
   move_out_date: string

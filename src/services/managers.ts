@@ -39,6 +39,12 @@ export async function upsertManagerPermission(input: {
   return data as ManagerPermission
 }
 
+export async function updateManager(managerId: string, input: { full_name?: string; phone?: string }): Promise<Manager> {
+  const { data, error } = await supabase.from('managers').update(input).eq('id', managerId).select().single()
+  if (error) throw error
+  return data as Manager
+}
+
 export async function removeManager(managerId: string): Promise<void> {
   const { error } = await supabase.from('managers').delete().eq('id', managerId)
   if (error) throw error

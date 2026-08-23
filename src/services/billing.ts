@@ -46,6 +46,33 @@ export async function generateBillsForProperty(propertyId: string, billingMonth:
   return results
 }
 
+/** Permanently deletes a bill. Cascades (per schema FKs) to any payments and
+ * receipts recorded against it. Callers MUST confirm with the user before
+ * calling this — it destroys payment history and cannot be undone. */
+export async function deleteBill(id: string): Promise<void> {
+  const { error } = await supabase.from('bills').delete().eq('id', id)
+  if (error) throw error
+}
+
+/** Updates only the editable parts of a bill (other charges, late fee, notes)
+ * via the DB function so total_due/balance/status are recomputed
+ * consistently instead of drifting from the payments-trigger-driven total_paid. */
+export async function updateBillCharges(input: {
+  bill_id: string
+  other_charges: number
+  late_fee: number
+  notes?: string
+}): Promise<Bill> {
+  const { data, error } = await supabase.rpc('fn_update_bill_charges', {
+    p_bill_id: input.bill_id,
+    p_other_charges: input.other_charges,
+    p_late_fee: input.late_fee,
+    p_notes: input.notes ?? null,
+  })
+  if (error) throw error
+  return data as Bill
+}
+
 export async function listRentRevisions(tenantId: string): Promise<RentRevision[]> {
   const { data, error } = await supabase
     .from('rent_revisions')
