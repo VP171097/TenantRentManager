@@ -219,8 +219,15 @@ export function TenantDetailPage() {
     try {
       const { data: property } = await supabase.from('properties').select('*').eq('id', tenant!.property_id).single()
       const { data: ownerProfile } = await supabase.from('profiles').select('upi_id').eq('id', tenant!.owner_id).maybeSingle()
+      const { data: room } = await supabase.from('rooms').select('room_number').eq('id', bill.room_id).maybeSingle()
       if (property) {
-        await downloadBillPdf({ bill, tenant: tenant!, property, upiId: (ownerProfile as { upi_id?: string } | null)?.upi_id })
+        await downloadBillPdf({
+          bill,
+          tenant: tenant!,
+          property,
+          upiId: (ownerProfile as { upi_id?: string } | null)?.upi_id,
+          roomNumber: (room as { room_number?: string } | null)?.room_number,
+        })
       }
     } catch (err) {
       setError(friendlyError(err))
@@ -233,9 +240,16 @@ export function TenantDetailPage() {
     try {
       const { data: property } = await supabase.from('properties').select('*').eq('id', tenant!.property_id).single()
       const { data: ownerProfile } = await supabase.from('profiles').select('upi_id').eq('id', tenant!.owner_id).maybeSingle()
+      const { data: room } = await supabase.from('rooms').select('room_number').eq('id', bill.room_id).maybeSingle()
       let pdfBase64: string | undefined
       if (property) {
-        pdfBase64 = await billPdfBase64({ bill, tenant: tenant!, property, upiId: (ownerProfile as { upi_id?: string } | null)?.upi_id })
+        pdfBase64 = await billPdfBase64({
+          bill,
+          tenant: tenant!,
+          property,
+          upiId: (ownerProfile as { upi_id?: string } | null)?.upi_id,
+          roomNumber: (room as { room_number?: string } | null)?.room_number,
+        })
       }
       const { data, error: fnError } = await supabase.functions.invoke('send-bill', {
         body: { billId: bill.id, pdfBase64 },

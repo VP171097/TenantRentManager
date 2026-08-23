@@ -26,14 +26,3 @@ export function formatINR(amount: number): string {
   const abs = Math.abs(amount)
   return `${sign}₹${abs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
-
-/** Same as formatINR, but for jsPDF output. jsPDF's built-in fonts
- * (Helvetica/Times/Courier) don't include the ₹ glyph — it silently
- * renders as "1" (a fallback character) instead of failing loudly, so use
- * "Rs." in any PDF instead of the ₹ symbol. formatINR itself stays as-is
- * for on-screen HTML/React, which renders ₹ correctly in any browser. */
-export function formatINRPdf(amount: number): string {
-  const sign = amount < 0 ? '-' : ''
-  const abs = Math.abs(amount)
-  return `${sign}Rs. ${abs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}

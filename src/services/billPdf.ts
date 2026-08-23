@@ -1,7 +1,8 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import QRCode from 'qrcode'
-import { formatINRPdf } from '../utils/money'
+import { formatINR } from '../utils/money'
+import { applyRupeeFont, RUPEE_FONT_STYLES } from '../utils/pdfFont'
 import { buildUpiLink } from '../utils/upi'
 import type { Bill, Property, Tenant } from '../types/database'
 
@@ -11,12 +12,15 @@ export interface BillPdfInput {
   property: Property
   /** Owner's UPI ID, if configured. When absent the QR/UPI section is omitted. */
   upiId?: string | null
+  /** Room number/name, if known — shown as "Room: <roomNumber>". */
+  roomNumber?: string | null
 }
 
 // NOTE: this is a separate generator from receiptPdf.ts by design — bills
 // show a payment QR code, receipts (proof of a completed payment) never do.
-export async function buildBillPdf({ bill, tenant, property, upiId }: BillPdfInput): Promise<jsPDF> {
+export async function buildBillPdf({ bill, tenant, property, upiId, roomNumber }: BillPdfInput): Promise<jsPDF> {
   const doc = new jsPDF({ unit: 'pt', format: 'a5' })
+  applyRupeeFont(doc)
 
   doc.setFontSize(16)
   doc.text(property.name, 40, 40)
@@ -31,7 +35,7 @@ export async function buildBillPdf({ bill, tenant, property, upiId }: BillPdfInp
   doc.text(`Billing month: ${monthLabel}`, 40, 118)
   doc.text(`Tenant: ${tenant.full_name}`, 40, 132)
   doc.text(`Phone: ${tenant.phone}`, 40, 146)
-  doc.text(`Room: ${property.name}`, 40, 160)
+  doc.text(`Room: ${roomNumber ?? '—'}`, 40, 160)
 
   const balance = bill.balance > 0 ? bill.balance : 0
 
@@ -39,18 +43,19 @@ export async function buildBillPdf({ bill, tenant, property, upiId }: BillPdfInp
     startY: 178,
     head: [['Description', 'Amount']],
     body: [
-      ['Rent', formatINRPdf(bill.rent_amount)],
+      ['Rent', formatINR(bill.rent_amount)],
       ['Electricity units', String(bill.electricity_units)],
-      ['Electricity charge', formatINRPdf(bill.electricity_charge)],
-      ['Other charges', formatINRPdf(bill.other_charges)],
-      ['Late fee', formatINRPdf(bill.late_fee)],
-      ['Previous balance', formatINRPdf(bill.previous_balance)],
-      ['Previous credit', formatINRPdf(-bill.previous_credit)],
-      ['Total due (this bill)', formatINRPdf(bill.total_due)],
-      ['Amount paid so far', formatINRPdf(bill.total_paid)],
-      ['Outstanding balance', formatINRPdf(balance)],
+      ['Electricity charge', formatINR(bill.electricity_charge)],
+      ['Other charges', formatINR(bill.other_charges)],
+      ['Late fee', formatINR(bill.late_fee)],
+      ['Previous balance', formatINR(bill.previous_balance)],
+      ['Previous credit', formatINR(-bill.previous_credit)],
+      ['Total due (this bill)', formatINR(bill.total_due)],
+      ['Amount paid so far', formatINR(bill.total_paid)],
+      ['Outstanding balance', formatINR(balance)],
     ],
-    styles: { fontSize: 9 },
+    styles: { fontSize: 9, ...RUPEE_FONT_STYLES },
+    headStyles: RUPEE_FONT_STYLES,
     theme: 'grid',
   })
 
