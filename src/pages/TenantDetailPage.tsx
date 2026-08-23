@@ -2,9 +2,17 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getTenant, moveOutTenant, updateTenant, deleteTenant } from '../services/tenants'
-import { listBills, generateBill, listRentRevisions, addRentRevision, deleteBill, updateBillCharges } from '../services/billing'
+import {
+  listBills,
+  generateBill,
+  listRentRevisions,
+  addRentRevision,
+  deleteBill,
+  updateBillFull,
+  dismissTenantPaidFlag,
+} from '../services/billing'
 import { listPayments, recordPayment, generateReceipt } from '../services/payments'
-import { getLatestReading, recordElectricityReading } from '../services/electricity'
+import { getLatestReading, listElectricityReadings, recordElectricityReading } from '../services/electricity'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { LoadingState, ErrorState } from '../components/States'
@@ -37,6 +45,8 @@ export function TenantDetailPage() {
   const [docs, setDocs] = useState<TenantDocument[]>([])
   const [sendingBillId, setSendingBillId] = useState<string | null>(null)
   const [sendStatus, setSendStatus] = useState<string | null>(null)
+  const [reminderBillId, setReminderBillId] = useState<string | null>(null)
+  const [prefillBillId, setPrefillBillId] = useState<string | null>(null)
   const [showGenerateBill, setShowGenerateBill] = useState(false)
   const [showEditTenant, setShowEditTenant] = useState(false)
   const [showDeleteTenant, setShowDeleteTenant] = useState(false)
@@ -54,6 +64,11 @@ export function TenantDetailPage() {
   const { data: latestReading } = useQuery({
     queryKey: ['latest-reading', id],
     queryFn: () => getLatestReading(id!),
+    enabled: !!id,
+  })
+  const { data: readings } = useQuery({
+    queryKey: ['electricity-readings', id],
+    queryFn: () => listElectricityReadings({ tenantId: id }),
     enabled: !!id,
   })
 
@@ -157,10 +172,20 @@ export function TenantDetailPage() {
   })
 
   const editBillMutation = useMutation({
-    mutationFn: (values: { other_charges: number; late_fee: number; notes: string }) =>
-      updateBillCharges({ bill_id: editingBill!.id, ...values }),
+    mutationFn: (values: {
+      rent_amount: number
+      previous_reading: number
+      current_reading: number
+      rate_per_unit: number
+      is_meter_reset: boolean
+      other_charges: number
+      late_fee: number
+      notes: string
+    }) => updateBillFull({ bill_id: editingBill!.id, ...values }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills', id] })
+      queryClient.invalidateQueries({ queryKey: ['electricity-readings', id] })
+      queryClient.invalidateQueries({ queryKey: ['latest-reading', id] })
       setEditingBill(null)
     },
     onError: (err) => setError(friendlyError(err)),
@@ -231,11 +256,44 @@ export function TenantDetailPage() {
     }
   }
 
+  // Lighter nudge — no PDF attachment, reminder wording server-side. See
+  // supabase/functions/send-bill/index.ts's `mode: 'reminder'` branch.
+  async function handleSendReminder(bill: Bill) {
+    setReminderBillId(bill.id)
+    setSendStatus(null)
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('send-bill', {
+        body: { billId: bill.id, mode: 'reminder' },
+      })
+      if (fnError) throw fnError
+      const result = data as { whatsapp?: string; email?: string; error?: string }
+      if (result.error) {
+        setSendStatus(`Could not send reminder: ${result.error}`)
+      } else {
+        const waOk = result.whatsapp === 'sent'
+        const emailPart = result.email && !result.email.startsWith('skipped') ? `, Email: ${result.email}` : ''
+        setSendStatus(`Reminder — WhatsApp: ${waOk ? 'sent' : result.whatsapp}${emailPart}`)
+      }
+    } catch (err) {
+      setSendStatus(friendlyError(err))
+    } finally {
+      setReminderBillId(null)
+    }
+  }
+
+  const dismissFlagMutation = useMutation({
+    mutationFn: (billId: string) => dismissTenantPaidFlag(billId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bills', id] }),
+    onError: (err) => setError(friendlyError(err)),
+  })
+
   if (isLoading) return <LoadingState />
   if (loadError || !tenant) return <ErrorState message="Could not load tenant." onRetry={() => refetch()} />
 
   const currentRent = revisions && revisions.length > 0 ? applicableRent(revisions, new Date().toISOString().slice(0, 10)) : 0
   const outstandingBills = (bills ?? []).filter((b) => b.balance > 0)
+  const thisMonth = new Date().toISOString().slice(0, 7) + '-01'
+  const thisMonthBill = (bills ?? []).find((b) => b.billing_month === thisMonth)
 
   return (
     <div className="space-y-6">
@@ -301,19 +359,70 @@ export function TenantDetailPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <button onClick={() => setShowGenerateBill(true)} className="btn-primary px-4">
-          Generate This Month's Bill
-        </button>
+        {thisMonthBill ? (
+          <button
+            onClick={() => (profile?.role === 'owner' ? setEditingBill(thisMonthBill) : undefined)}
+            disabled={profile?.role !== 'owner'}
+            className="btn-primary px-4 disabled:opacity-60"
+          >
+            This Month's Bill Already Exists{profile?.role === 'owner' ? ' — Edit It' : ''}
+          </button>
+        ) : (
+          <button onClick={() => setShowGenerateBill(true)} className="btn-primary px-4">
+            Generate This Month's Bill
+          </button>
+        )}
         <button onClick={() => setShowPaymentForm((s) => !s)} className="btn-secondary px-4">
           {showPaymentForm ? 'Close' : 'Record Payment'}
         </button>
       </div>
+      {thisMonthBill && (
+        <p className="text-sm text-slate-500">
+          A bill for this month already exists — use "Edit It" above (or Edit on that row below) to update the
+          electricity reading, rent, or charges instead of generating again.
+        </p>
+      )}
 
       {showPaymentForm && (
         <div className="card max-w-md">
-          <PaymentForm bills={outstandingBills.length ? outstandingBills : bills ?? []} onSubmit={(v) => paymentMutation.mutateAsync(v)} />
+          <PaymentForm
+            bills={outstandingBills.length ? outstandingBills : bills ?? []}
+            defaultBillId={prefillBillId ?? undefined}
+            onSubmit={(v) => paymentMutation.mutateAsync(v)}
+          />
         </div>
       )}
+
+      {outstandingBills
+        .filter((b) => b.tenant_marked_paid)
+        .map((b) => (
+          <div key={b.id} className="card border-amber-200 bg-amber-50">
+            <p className="font-semibold text-amber-800">
+              Tenant says this is paid ({formatINR(b.balance)} still shows as due) — please confirm.
+            </p>
+            {b.tenant_marked_paid_note && (
+              <p className="mt-1 text-sm text-amber-700">Reference/note: {b.tenant_marked_paid_note}</p>
+            )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  setPrefillBillId(b.id)
+                  setShowPaymentForm(true)
+                }}
+                className="btn-primary px-4"
+              >
+                Confirm & Record Payment
+              </button>
+              <button
+                onClick={() => dismissFlagMutation.mutate(b.id)}
+                disabled={dismissFlagMutation.isPending}
+                className="btn-secondary px-4"
+              >
+                Not Received / Dismiss
+              </button>
+            </div>
+          </div>
+        ))}
 
       <section>
         <h2 className="mb-3 text-lg font-bold text-slate-900">Billing history</h2>
@@ -341,6 +450,15 @@ export function TenantDetailPage() {
                 >
                   {sendingBillId === b.id ? 'Sending…' : 'Send Bill (WhatsApp/Email)'}
                 </button>
+                {b.balance > 0 && (
+                  <button
+                    onClick={() => handleSendReminder(b)}
+                    disabled={reminderBillId === b.id}
+                    className="btn-secondary px-4"
+                  >
+                    {reminderBillId === b.id ? 'Sending…' : 'Send Reminder'}
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -418,6 +536,7 @@ export function TenantDetailPage() {
       <EditBillModal
         open={!!editingBill}
         bill={editingBill}
+        reading={readings?.find((r) => r.billing_month === editingBill?.billing_month) ?? null}
         onClose={() => setEditingBill(null)}
         onSubmit={(values) => editBillMutation.mutateAsync(values)}
       />

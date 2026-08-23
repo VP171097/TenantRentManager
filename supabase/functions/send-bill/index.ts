@@ -35,6 +35,7 @@ const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 interface SendBillBody {
   billId: string
   pdfBase64?: string
+  mode?: 'bill' | 'reminder'
 }
 
 Deno.serve(async (req) => {
@@ -108,6 +109,8 @@ Deno.serve(async (req) => {
     const totalDue = Number(bill.total_due).toFixed(2)
     const balanceStr = Number(balance).toFixed(2)
 
+    const isReminder = body.mode === 'reminder'
+
     const result: { whatsapp?: string; email?: string } = {}
 
     // ---- WhatsApp (always attempted) ----
@@ -119,6 +122,7 @@ Deno.serve(async (req) => {
         totalDue,
         balanceStr,
         upiId,
+        isReminder,
       })
       result.whatsapp = 'sent'
     } catch (err) {
@@ -136,7 +140,9 @@ Deno.serve(async (req) => {
           totalDue,
           balanceStr,
           upiId,
-          pdfBase64: body.pdfBase64,
+          // Reminders are a lighter, faster nudge — no PDF attachment.
+          pdfBase64: isReminder ? undefined : body.pdfBase64,
+          isReminder,
         })
         result.email = 'sent'
       } catch (err) {
@@ -159,6 +165,7 @@ async function sendWhatsApp(opts: {
   totalDue: string
   balanceStr: string
   upiId: string | null
+  isReminder?: boolean
 }) {
   const token = Deno.env.get('WHATSAPP_ACCESS_TOKEN')
   const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID')
@@ -169,11 +176,16 @@ async function sendWhatsApp(opts: {
   if (!to.startsWith('+')) to = `+91${to.replace(/\D/g, '')}`
   to = to.replace(/[^\d+]/g, '')
 
-  const lines = [
-    `Hi ${opts.tenantName}, here is your rent bill for ${opts.monthLabel}.`,
-    `Total due: ₹${opts.totalDue}`,
-    `Outstanding balance: ₹${opts.balanceStr}`,
-  ]
+  const lines = opts.isReminder
+    ? [
+        `Hi ${opts.tenantName}, this is a reminder: your rent for ${opts.monthLabel} is still due.`,
+        `Outstanding: ₹${opts.balanceStr}`,
+      ]
+    : [
+        `Hi ${opts.tenantName}, here is your rent bill for ${opts.monthLabel}.`,
+        `Total due: ₹${opts.totalDue}`,
+        `Outstanding balance: ₹${opts.balanceStr}`,
+      ]
   if (opts.upiId) lines.push(`Pay via UPI: ${opts.upiId}`)
 
   // NOTE: sending free-form text messages outside a 24-hour customer-
@@ -210,12 +222,25 @@ async function sendEmail(opts: {
   balanceStr: string
   upiId: string | null
   pdfBase64?: string
+  isReminder?: boolean
 }) {
   const apiKey = Deno.env.get('RESEND_API_KEY')
   const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')
   if (!apiKey || !fromEmail) throw new Error('Email is not configured (missing secrets).')
 
-  const html = `
+  const html = opts.isReminder
+    ? `
+    <div style="font-family:sans-serif;max-width:480px">
+      <h2>${opts.propertyName}</h2>
+      <p>Hi ${opts.tenantName},</p>
+      <p>This is a reminder that your rent for <strong>${opts.monthLabel}</strong> is still due.</p>
+      <table style="width:100%;border-collapse:collapse">
+        <tr><td style="padding:4px 0">Outstanding</td><td style="text-align:right">₹${opts.balanceStr}</td></tr>
+      </table>
+      ${opts.upiId ? `<p>Pay via UPI: <strong>${opts.upiId}</strong></p>` : ''}
+      <p style="color:#888;font-size:12px">This is a computer-generated reminder.</p>
+    </div>`
+    : `
     <div style="font-family:sans-serif;max-width:480px">
       <h2>${opts.propertyName}</h2>
       <p>Hi ${opts.tenantName},</p>
@@ -238,7 +263,9 @@ async function sendEmail(opts: {
     body: JSON.stringify({
       from: fromEmail,
       to: opts.toEmail,
-      subject: `Rent bill for ${opts.monthLabel} - ${opts.propertyName}`,
+      subject: opts.isReminder
+        ? `Reminder: rent due for ${opts.monthLabel} - ${opts.propertyName}`
+        : `Rent bill for ${opts.monthLabel} - ${opts.propertyName}`,
       html,
       attachments,
     }),

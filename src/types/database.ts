@@ -112,6 +112,9 @@ export interface Bill {
   status: BillStatus
   generated_at: string
   notes: string | null
+  tenant_marked_paid: boolean
+  tenant_marked_paid_at: string | null
+  tenant_marked_paid_note: string | null
 }
 
 export type PaymentMethod = 'cash' | 'upi' | 'bank_transfer' | 'cheque' | 'other'

@@ -5,6 +5,7 @@ const NAV = [
   { to: '/tenant/dashboard', label: 'Home', icon: '🏠' },
   { to: '/tenant/ledger', label: 'Ledger', icon: '📒' },
   { to: '/tenant/receipts', label: 'Receipts', icon: '🧻' },
+  { to: '/tenant/profile', label: 'Profile', icon: '👤' },
 ]
 
 export function TenantLayout() {

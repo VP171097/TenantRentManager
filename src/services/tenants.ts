@@ -65,6 +65,19 @@ export async function deleteTenant(id: string): Promise<void> {
   if (error) throw error
 }
 
+/** Tenant self-service: updates just their own phone/email, via a
+ * SECURITY DEFINER RPC that verifies auth.uid() owns the tenant row —
+ * tenants cannot use this to change rent, deposit, property, room, or
+ * status. */
+export async function updateOwnTenantProfile(phone: string, email: string | null): Promise<Tenant> {
+  const { data, error } = await supabase.rpc('fn_tenant_update_own_profile', {
+    p_phone: phone,
+    p_email: email,
+  })
+  if (error) throw error
+  return data as Tenant
+}
+
 export async function moveOutTenant(params: {
   tenant_id: string
   move_out_date: string

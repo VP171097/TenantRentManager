@@ -22,6 +22,7 @@ import { ProfilePage } from './pages/ProfilePage'
 import { TenantDashboardPage } from './pages/tenant/TenantDashboardPage'
 import { TenantLedgerPage } from './pages/tenant/TenantLedgerPage'
 import { TenantReceiptsPage } from './pages/tenant/TenantReceiptsPage'
+import { TenantProfilePage } from './pages/tenant/TenantProfilePage'
 
 function RootRedirect() {
   const { session, profile, loading } = useAuth()
@@ -72,6 +73,7 @@ export default function App() {
           <Route path="/tenant/dashboard" element={<TenantDashboardPage />} />
           <Route path="/tenant/ledger" element={<TenantLedgerPage />} />
           <Route path="/tenant/receipts" element={<TenantReceiptsPage />} />
+          <Route path="/tenant/profile" element={<TenantProfilePage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
