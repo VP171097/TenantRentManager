@@ -4,11 +4,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getTenant, moveOutTenant } from '../services/tenants'
 import { listBills, generateBill, listRentRevisions, addRentRevision } from '../services/billing'
 import { listPayments, recordPayment, generateReceipt } from '../services/payments'
+import { getLatestReading, recordElectricityReading } from '../services/electricity'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { LoadingState, ErrorState } from '../components/States'
 import { LedgerTable } from '../components/LedgerTable'
 import { RentRevisionModal } from '../components/forms/RentRevisionModal'
+import { GenerateBillModal } from '../components/forms/GenerateBillModal'
 import { PaymentForm } from '../components/forms/PaymentForm'
 import { DocumentUploader } from '../components/DocumentUploader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -31,6 +33,7 @@ export function TenantDetailPage() {
   const [docs, setDocs] = useState<TenantDocument[]>([])
   const [sendingBillId, setSendingBillId] = useState<string | null>(null)
   const [sendStatus, setSendStatus] = useState<string | null>(null)
+  const [showGenerateBill, setShowGenerateBill] = useState(false)
 
   const { data: tenant, isLoading, error: loadError, refetch } = useQuery({
     queryKey: ['tenant', id],
@@ -40,10 +43,40 @@ export function TenantDetailPage() {
   const { data: bills } = useQuery({ queryKey: ['bills', id], queryFn: () => listBills({ tenantId: id }), enabled: !!id })
   const { data: revisions } = useQuery({ queryKey: ['rent-revisions', id], queryFn: () => listRentRevisions(id!), enabled: !!id })
   const { data: payments } = useQuery({ queryKey: ['payments', id], queryFn: () => listPayments({ tenantId: id }), enabled: !!id })
+  const { data: latestReading } = useQuery({
+    queryKey: ['latest-reading', id],
+    queryFn: () => getLatestReading(id!),
+    enabled: !!id,
+  })
 
   const generateBillMutation = useMutation({
-    mutationFn: () => generateBill(id!, new Date().toISOString().slice(0, 7) + '-01'),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bills', id] }),
+    mutationFn: async (values: {
+      previous_reading: number
+      current_reading: number
+      rate_per_unit: number
+      is_meter_reset: boolean
+      reset_explanation?: string
+      other_charges: number
+      late_fee: number
+    }) => {
+      const billingMonth = new Date().toISOString().slice(0, 7) + '-01'
+      await recordElectricityReading({
+        room_id: tenant!.room_id!,
+        tenant_id: id!,
+        billing_month: billingMonth,
+        previous_reading: values.previous_reading,
+        current_reading: values.current_reading,
+        rate_per_unit: values.rate_per_unit,
+        is_meter_reset: values.is_meter_reset,
+        reset_explanation: values.reset_explanation,
+      })
+      return generateBill(id!, billingMonth, values.other_charges, values.late_fee)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills', id] })
+      queryClient.invalidateQueries({ queryKey: ['latest-reading', id] })
+      setShowGenerateBill(false)
+    },
     onError: (err) => setError(friendlyError(err)),
   })
 
@@ -182,7 +215,7 @@ export function TenantDetailPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <button onClick={() => generateBillMutation.mutate()} disabled={generateBillMutation.isPending} className="btn-primary px-4">
+        <button onClick={() => setShowGenerateBill(true)} className="btn-primary px-4">
           Generate This Month's Bill
         </button>
         <button onClick={() => setShowPaymentForm((s) => !s)} className="btn-secondary px-4">
@@ -270,6 +303,16 @@ export function TenantDetailPage() {
         tenantId={tenant.id}
         onClose={() => setShowRentModal(false)}
         onSubmit={(values) => revisionMutation.mutateAsync(values)}
+      />
+
+      <GenerateBillModal
+        open={showGenerateBill}
+        monthLabel={new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+        currentRent={currentRent}
+        defaultPreviousReading={latestReading?.current_reading ?? 0}
+        defaultRatePerUnit={latestReading?.rate_per_unit ?? 0}
+        onClose={() => setShowGenerateBill(false)}
+        onSubmit={(values) => generateBillMutation.mutateAsync(values)}
       />
 
       <MoveOutDialog

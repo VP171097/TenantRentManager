@@ -78,6 +78,26 @@ export const rentRevisionSchema = z.object({
 })
 export type RentRevisionFormValues = z.infer<typeof rentRevisionSchema>
 
+export const generateBillSchema = z
+  .object({
+    previous_reading: z.coerce.number().min(0, 'Cannot be negative'),
+    current_reading: z.coerce.number().min(0, 'Cannot be negative'),
+    rate_per_unit: z.coerce.number().min(0, 'Rate cannot be negative'),
+    is_meter_reset: z.boolean(),
+    reset_explanation: z.string().trim().optional(),
+    other_charges: z.coerce.number().min(0, 'Cannot be negative'),
+    late_fee: z.coerce.number().min(0, 'Cannot be negative'),
+  })
+  .refine((v) => v.is_meter_reset || v.current_reading >= v.previous_reading, {
+    message: 'Current reading cannot be lower than previous reading unless this is a meter reset',
+    path: ['current_reading'],
+  })
+  .refine((v) => !v.is_meter_reset || (v.reset_explanation && v.reset_explanation.length > 0), {
+    message: 'Please explain the meter reset',
+    path: ['reset_explanation'],
+  })
+export type GenerateBillFormValues = z.infer<typeof generateBillSchema>
+
 export const managerSchema = z.object({
   full_name: z.string().trim().min(2, 'Name is required'),
   email: z.string().trim().email('Enter a valid email address'),
