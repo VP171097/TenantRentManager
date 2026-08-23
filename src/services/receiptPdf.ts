@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { formatINR } from '../utils/money'
+import { formatINRPdf } from '../utils/money'
 import type { Bill, Payment, Property, Receipt, Tenant } from '../types/database'
 
 export interface ReceiptPdfInput {
@@ -34,14 +34,14 @@ export function buildReceiptPdf({ receipt, payment, bill, tenant, property }: Re
     startY: 200,
     head: [['Description', 'Amount']],
     body: [
-      ['Rent', formatINR(bill.rent_amount)],
-      ['Electricity', formatINR(bill.electricity_charge)],
-      ['Other charges', formatINR(bill.other_charges)],
-      ['Late fee', formatINR(bill.late_fee)],
-      ['Previous balance', formatINR(bill.previous_balance)],
-      ['Previous credit', formatINR(-bill.previous_credit)],
-      ['Total due (this bill)', formatINR(bill.total_due)],
-      ['This payment', formatINR(payment.amount)],
+      ['Rent', formatINRPdf(bill.rent_amount)],
+      ['Electricity', formatINRPdf(bill.electricity_charge)],
+      ['Other charges', formatINRPdf(bill.other_charges)],
+      ['Late fee', formatINRPdf(bill.late_fee)],
+      ['Previous balance', formatINRPdf(bill.previous_balance)],
+      ['Previous credit', formatINRPdf(-bill.previous_credit)],
+      ['Total due (this bill)', formatINRPdf(bill.total_due)],
+      ['This payment', formatINRPdf(payment.amount)],
       ['Payment method', payment.method.toUpperCase()],
     ],
     styles: { fontSize: 9 },

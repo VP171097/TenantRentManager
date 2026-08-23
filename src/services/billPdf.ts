@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import QRCode from 'qrcode'
-import { formatINR } from '../utils/money'
+import { formatINRPdf } from '../utils/money'
 import { buildUpiLink } from '../utils/upi'
 import type { Bill, Property, Tenant } from '../types/database'
 
@@ -39,16 +39,16 @@ export async function buildBillPdf({ bill, tenant, property, upiId }: BillPdfInp
     startY: 178,
     head: [['Description', 'Amount']],
     body: [
-      ['Rent', formatINR(bill.rent_amount)],
+      ['Rent', formatINRPdf(bill.rent_amount)],
       ['Electricity units', String(bill.electricity_units)],
-      ['Electricity charge', formatINR(bill.electricity_charge)],
-      ['Other charges', formatINR(bill.other_charges)],
-      ['Late fee', formatINR(bill.late_fee)],
-      ['Previous balance', formatINR(bill.previous_balance)],
-      ['Previous credit', formatINR(-bill.previous_credit)],
-      ['Total due (this bill)', formatINR(bill.total_due)],
-      ['Amount paid so far', formatINR(bill.total_paid)],
-      ['Outstanding balance', formatINR(balance)],
+      ['Electricity charge', formatINRPdf(bill.electricity_charge)],
+      ['Other charges', formatINRPdf(bill.other_charges)],
+      ['Late fee', formatINRPdf(bill.late_fee)],
+      ['Previous balance', formatINRPdf(bill.previous_balance)],
+      ['Previous credit', formatINRPdf(-bill.previous_credit)],
+      ['Total due (this bill)', formatINRPdf(bill.total_due)],
+      ['Amount paid so far', formatINRPdf(bill.total_paid)],
+      ['Outstanding balance', formatINRPdf(balance)],
     ],
     styles: { fontSize: 9 },
     theme: 'grid',
