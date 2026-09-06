@@ -32,6 +32,7 @@ import { downloadReceiptPdf, receiptPdfBase64 } from '../services/receiptPdf'
 import { downloadBillPdf, billPdfBase64 } from '../services/billPdf'
 import { downloadLeasePdf } from '../services/leasePdf'
 import { CreateTenantLoginForm } from '../components/CreateTenantLoginForm'
+import { InviteTenantForm } from '../components/InviteTenantForm'
 import type { TenantDocument, Bill } from '../types/database'
 import type { TenantFormValues } from '../utils/validation'
 
@@ -553,9 +554,10 @@ export function TenantDetailPage() {
         )}
       </section>
 
-      <section>
-        <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Tenant Login</h2>
+      <section className="space-y-4">
+        <h2 className="mb-1 text-lg font-bold text-slate-900 dark:text-slate-100">Tenant Login</h2>
         <CreateTenantLoginForm tenant={tenant} />
+        <InviteTenantForm tenant={tenant} />
       </section>
 
       <section>

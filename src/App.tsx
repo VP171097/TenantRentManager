@@ -1,9 +1,12 @@
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { useEffect } from 'react'
+import { HashRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AppLayout } from './layouts/AppLayout'
 import { TenantLayout } from './layouts/TenantLayout'
 import { ProtectedRoute } from './layouts/ProtectedRoute'
 import { useAuth } from './hooks/useAuth'
 import { LoginPage } from './pages/LoginPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
+import { JoinPage } from './pages/JoinPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { PropertiesPage } from './pages/PropertiesPage'
 import { PropertyDetailPage } from './pages/PropertyDetailPage'
@@ -33,12 +36,41 @@ function RootRedirect() {
   return <Navigate to={profile?.role === 'tenant' ? '/tenant/dashboard' : '/dashboard'} replace />
 }
 
+/** Redirects to /reset-password the moment Supabase detects a password-
+ * recovery link, regardless of which route the browser happened to land
+ * on when the link was clicked. */
+function RecoveryWatcher() {
+  const { passwordRecovery } = useAuth()
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (passwordRecovery) navigate('/reset-password')
+  }, [passwordRecovery, navigate])
+  return null
+}
+
+/** Supabase's auth redirect appends recovery tokens as a URL hash
+ * (`#access_token=...&type=recovery`), which HashRouter would otherwise
+ * immediately try (and fail) to match as a route and bounce to "/" before
+ * the auth client has a chance to parse and consume those tokens. If the
+ * hash looks like an in-flight auth callback, wait instead of redirecting
+ * away — RecoveryWatcher takes over once Supabase finishes and fires the
+ * PASSWORD_RECOVERY event. */
+function CatchAll() {
+  const { passwordRecovery } = useAuth()
+  const looksLikeAuthCallback = /access_token|type=recovery/.test(window.location.hash)
+  if (looksLikeAuthCallback && !passwordRecovery) return null
+  return <Navigate to="/" replace />
+}
+
 export default function App() {
   return (
     <HashRouter>
+      <RecoveryWatcher />
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/join" element={<JoinPage />} />
 
         <Route
           element={
@@ -80,7 +112,7 @@ export default function App() {
           <Route path="/tenant/profile" element={<TenantProfilePage />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<CatchAll />} />
       </Routes>
     </HashRouter>
   )

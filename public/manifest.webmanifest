@@ -1,7 +1,7 @@
 {
-  "name": "Room Rent Manager",
-  "short_name": "Rent Manager",
-  "description": "Manage rental properties, tenants, rent, and payments.",
+  "name": "RentBook",
+  "short_name": "RentBook",
+  "description": "RentBook — simple rent, electricity, and tenant management for landlords.",
   "start_url": "/TenantRentManager/",
   "scope": "/TenantRentManager/",
   "display": "standalone",

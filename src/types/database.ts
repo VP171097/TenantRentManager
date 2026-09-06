@@ -56,6 +56,8 @@ export interface Tenant {
   move_in_date: string
   move_out_date: string | null
   security_deposit: number
+  invite_token: string | null
+  invite_token_expires_at: string | null
   created_at: string
 }
 

@@ -78,6 +78,22 @@ export async function updateOwnTenantProfile(phone: string, email: string | null
   return data as Tenant
 }
 
+/** Generates (or regenerates) a shareable invite link for this tenant to
+ * self-register — the owner can send it via WhatsApp, SMS, email, or
+ * hand it over in person, any channel. Returns the updated tenant row
+ * (invite_token/invite_token_expires_at). */
+export async function generateTenantInvite(tenantId: string): Promise<Tenant> {
+  const { data, error } = await supabase.rpc('fn_generate_tenant_invite', { p_tenant_id: tenantId })
+  if (error) throw error
+  return data as Tenant
+}
+
+/** Revokes an outstanding invite link (e.g. sent to the wrong number). */
+export async function revokeTenantInvite(tenantId: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_revoke_tenant_invite', { p_tenant_id: tenantId })
+  if (error) throw error
+}
+
 export async function moveOutTenant(params: {
   tenant_id: string
   move_out_date: string
