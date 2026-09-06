@@ -2,7 +2,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { formatINR } from '../utils/money'
 import { applyRupeeFont, RUPEE_FONT_STYLES } from '../utils/pdfFont'
-import { loadImageForPdf } from '../utils/pdfImage'
+import { drawLetterhead } from '../utils/pdfLetterhead'
 import type { Bill, ElectricityReading, Payment, Property, Receipt, Tenant } from '../types/database'
 
 export interface ReceiptPdfInput {
@@ -11,7 +11,8 @@ export interface ReceiptPdfInput {
   bill: Bill
   tenant: Tenant
   property: Property
-  /** Owner's branding logo (public URL), if configured. Drawn top-right. */
+  /** Owner's branding logo (public URL), if configured. Drawn top-left on
+   * the letterhead band. */
   logoUrl?: string | null
   /** The electricity_readings row matching this bill's tenant + billing
    * month, if one exists. Omitted gracefully (no rows added) when absent. */
@@ -19,7 +20,8 @@ export interface ReceiptPdfInput {
   /** Owner's display name, for the "Contact the owner" line. */
   ownerName?: string | null
   /** Owner's phone, for the "Contact the owner" line. Omitted gracefully
-   * when absent. */
+   * when absent — requires the owner to have a phone saved on their own
+   * Profile page; it is not fabricated. */
   ownerPhone?: string | null
 }
 
@@ -37,29 +39,19 @@ export async function buildReceiptPdf({
   const doc = new jsPDF({ unit: 'pt', format: 'a5' })
   applyRupeeFont(doc)
 
-  if (logoUrl) {
-    const logo = await loadImageForPdf(logoUrl, 70, 36)
-    if (logo) {
-      const format = logo.dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG'
-      doc.addImage(logo.dataUrl, format, doc.internal.pageSize.getWidth() - 40 - logo.w, 20, logo.w, logo.h)
-    }
-  }
+  const bodyTop = await drawLetterhead(doc, {
+    logoUrl,
+    propertyName: property.name,
+    address: property.address,
+    city: property.city,
+    docTitle: 'PAYMENT RECEIPT',
+    metaLines: [`Receipt #: ${receipt.receipt_number}`, `Date: ${new Date(payment.payment_date).toLocaleDateString('en-IN')}`],
+  })
 
-  doc.setFontSize(16)
-  doc.text(property.name, 40, 40)
   doc.setFontSize(10)
-  doc.text(property.address ?? '', 40, 58)
-  doc.text(property.city ?? '', 40, 72)
-
-  doc.setFontSize(14)
-  doc.text('Rent Receipt', 40, 100)
-  doc.setFontSize(10)
-  doc.text(`Receipt #: ${receipt.receipt_number}`, 40, 118)
-  doc.text(`Date: ${new Date(payment.payment_date).toLocaleDateString('en-IN')}`, 40, 132)
-
-  doc.text(`Tenant: ${tenant.full_name}`, 40, 154)
-  doc.text(`Phone: ${tenant.phone || 'No phone on file'}`, 40, 168)
-  doc.text(`Billing month: ${new Date(bill.billing_month).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}`, 40, 182)
+  doc.text(`Tenant: ${tenant.full_name}`, 20, bodyTop + 20)
+  doc.text(`Phone: ${tenant.phone || 'No phone on file'}`, 20, bodyTop + 34)
+  doc.text(`Billing month: ${new Date(bill.billing_month).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}`, 20, bodyTop + 48)
 
   const readingRows =
     reading != null
@@ -71,7 +63,7 @@ export async function buildReceiptPdf({
       : []
 
   autoTable(doc, {
-    startY: 200,
+    startY: bodyTop + 66,
     head: [['Description', 'Amount']],
     body: [
       ['Rent', formatINR(bill.rent_amount)],
@@ -87,17 +79,19 @@ export async function buildReceiptPdf({
       ['Payment method', payment.method.toUpperCase()],
     ],
     styles: { fontSize: 9, ...RUPEE_FONT_STYLES },
-    headStyles: RUPEE_FONT_STYLES,
+    headStyles: { ...RUPEE_FONT_STYLES, fillColor: [30, 58, 138] },
     theme: 'grid',
   })
 
   let finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY
   doc.setFontSize(9)
   if (ownerPhone) {
-    doc.text(`Questions about this bill? Contact ${ownerName || 'the owner'}: ${ownerPhone}`, 40, finalY + 24)
+    doc.text(`Questions about this bill? Contact ${ownerName || 'the owner'}: ${ownerPhone}`, 20, finalY + 24)
     finalY += 14
   }
-  doc.text('This is a computer-generated receipt.', 40, finalY + 24)
+  doc.setTextColor(130, 130, 130)
+  doc.text('This is a computer-generated receipt.', 20, finalY + 24)
+  doc.setTextColor(0, 0, 0)
 
   return doc
 }
