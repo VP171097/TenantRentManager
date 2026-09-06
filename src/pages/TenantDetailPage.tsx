@@ -30,6 +30,7 @@ import { applicableRent } from '../utils/billing'
 import { formatINR } from '../utils/money'
 import { downloadReceiptPdf, receiptPdfBase64 } from '../services/receiptPdf'
 import { downloadBillPdf, billPdfBase64 } from '../services/billPdf'
+import { downloadLeasePdf } from '../services/leasePdf'
 import { CreateTenantLoginForm } from '../components/CreateTenantLoginForm'
 import type { TenantDocument, Bill } from '../types/database'
 import type { TenantFormValues } from '../utils/validation'
@@ -262,6 +263,27 @@ export function TenantDetailPage() {
     }
   }
 
+  async function handleGenerateLease() {
+    try {
+      const { data: property } = await supabase.from('properties').select('*').eq('id', tenant!.property_id).single()
+      const { data: ownerProfile } = await supabase.from('profiles').select('full_name').eq('id', tenant!.owner_id).maybeSingle()
+      const { data: room } = tenant!.room_id
+        ? await supabase.from('rooms').select('room_number').eq('id', tenant!.room_id).maybeSingle()
+        : { data: null }
+      if (property) {
+        await downloadLeasePdf({
+          tenant: tenant!,
+          property,
+          ownerName: (ownerProfile as { full_name?: string } | null)?.full_name ?? 'Owner',
+          roomNumber: (room as { room_number?: string } | null)?.room_number,
+          currentRent,
+        })
+      }
+    } catch (err) {
+      setError(friendlyError(err))
+    }
+  }
+
   async function handleDownloadBill(bill: Bill) {
     try {
       const { data: property } = await supabase.from('properties').select('*').eq('id', tenant!.property_id).single()
@@ -370,6 +392,9 @@ export function TenantDetailPage() {
         <div className="flex flex-wrap gap-3">
           <button onClick={() => setShowEditTenant(true)} className="btn-secondary px-4">
             Edit
+          </button>
+          <button onClick={handleGenerateLease} className="btn-secondary px-4">
+            Generate Lease Agreement
           </button>
           {tenant.status === 'active' && (
             <button onClick={() => setShowMoveOut(true)} className="btn-secondary px-4">
