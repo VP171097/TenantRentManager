@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 const NAV = [
@@ -11,6 +11,7 @@ const NAV = [
 export function TenantLayout() {
   const { signOut } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   async function handleSignOut() {
     await signOut()
@@ -18,24 +19,26 @@ export function TenantLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-        <p className="text-lg font-extrabold text-brand-700">My Rent</p>
-        <button onClick={handleSignOut} className="text-sm font-semibold text-slate-600">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-24">
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3">
+        <p className="text-lg font-extrabold text-brand-700 dark:text-brand-200">My Rent</p>
+        <button onClick={handleSignOut} className="text-sm font-semibold text-slate-600 dark:text-slate-300">
           Sign out
         </button>
       </header>
       <main className="mx-auto max-w-2xl px-4 py-6">
-        <Outlet />
+        <div key={location.pathname} className="page-fade-in">
+          <Outlet />
+        </div>
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 z-20 flex border-t border-slate-200 bg-white">
+      <nav className="fixed bottom-0 left-0 right-0 z-20 flex border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         {NAV.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center gap-1 py-2 text-xs font-semibold ${
-                isActive ? 'text-brand-700' : 'text-slate-500'
+                isActive ? 'text-brand-700 dark:text-brand-200' : 'text-slate-500 dark:text-slate-400'
               }`
             }
           >

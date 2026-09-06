@@ -10,6 +10,35 @@ import { downloadCsv, toCsv } from '../utils/csv'
 
 type SortKey = 'month' | 'due' | 'paid'
 
+function SortTh({
+  label,
+  k,
+  sortKey,
+  sortDir,
+  onSort,
+}: {
+  label: string
+  k: SortKey
+  sortKey: SortKey
+  sortDir: 'asc' | 'desc'
+  onSort: (k: SortKey) => void
+}) {
+  const active = sortKey === k
+  return (
+    <th className="px-4 py-3">
+      <button
+        onClick={() => onSort(k)}
+        className="flex items-center gap-1 font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+      >
+        {label}
+        <span className={`text-[10px] ${active ? 'opacity-100' : 'opacity-30'}`} aria-hidden>
+          {active && sortDir === 'desc' ? '▼' : '▲'}
+        </span>
+      </button>
+    </th>
+  )
+}
+
 export function ReportsPage() {
   const { data: bills, isLoading, error, refetch } = useQuery({ queryKey: ['bills'], queryFn: () => listBills() })
   const { data: tenants } = useQuery({ queryKey: ['tenants'], queryFn: () => listTenants() })
@@ -77,23 +106,6 @@ export function ReportsPage() {
     return factor * (a[1].paid - b[1].paid)
   })
 
-  function SortTh({ label, k }: { label: string; k: SortKey }) {
-    const active = sortKey === k
-    return (
-      <th className="px-4 py-3">
-        <button
-          onClick={() => handleSort(k)}
-          className="flex items-center gap-1 font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
-        >
-          {label}
-          <span className={`text-[10px] ${active ? 'opacity-100' : 'opacity-30'}`} aria-hidden>
-            {active && sortDir === 'desc' ? '▼' : '▲'}
-          </span>
-        </button>
-      </th>
-    )
-  }
-
   return (
     <div className="space-y-6 page-fade-in">
       <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Reports</h1>
@@ -115,9 +127,9 @@ export function ReportsPage() {
           <table className="w-full min-w-[420px] text-sm">
             <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 text-left text-slate-600 dark:text-slate-300">
               <tr>
-                <SortTh label="Month" k="month" />
-                <SortTh label="Total Due" k="due" />
-                <SortTh label="Total Paid" k="paid" />
+                <SortTh label="Month" k="month" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                <SortTh label="Total Due" k="due" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                <SortTh label="Total Paid" k="paid" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
               </tr>
             </thead>
             <tbody>

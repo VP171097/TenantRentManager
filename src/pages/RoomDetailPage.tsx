@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getRoom, updateRoom, deleteRoom } from '../services/rooms'
 import { listTenants } from '../services/tenants'
-import { LoadingState, ErrorState } from '../components/States'
+import { ErrorState } from '../components/States'
+import { SkeletonCardGrid } from '../components/Skeleton'
 import { TenantCard } from '../components/Cards'
 import { RoomForm } from '../components/forms/RoomForm'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -44,7 +45,7 @@ export function RoomDetailPage() {
     onError: (err) => setError(friendlyError(err)),
   })
 
-  if (isLoading) return <LoadingState />
+  if (isLoading) return <SkeletonCardGrid count={2} />
   if (loadError || !room) return <ErrorState message="Could not load room." onRetry={() => refetch()} />
 
   const occupant = tenants?.find((t) => t.room_id === room.id && t.status === 'active')
@@ -53,24 +54,24 @@ export function RoomDetailPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900">Room {room.room_number}</h1>
-          <p className="text-slate-500">{room.status === 'occupied' ? 'Occupied' : 'Vacant'}</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Room {room.room_number}</h1>
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">{room.status === 'occupied' ? 'Occupied' : 'Vacant'}</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button onClick={() => setShowEdit((s) => !s)} className="btn-secondary px-4">
             {showEdit ? 'Close' : 'Edit'}
           </button>
-          <button onClick={() => setShowDelete(true)} className="btn-secondary px-4 text-red-600">
+          <button onClick={() => setShowDelete(true)} className="btn-secondary px-4 text-red-600 dark:text-red-400">
             Delete Room
           </button>
         </div>
       </div>
 
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
 
       {showEdit && (
         <div className="card max-w-sm">
-          <h2 className="mb-3 text-lg font-bold text-slate-900">Edit Room</h2>
+          <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Edit Room</h2>
           <RoomForm
             defaultValues={{
               room_number: room.room_number,
@@ -86,7 +87,7 @@ export function RoomDetailPage() {
 
       {occupant && (
         <div>
-          <h2 className="mb-3 text-lg font-bold text-slate-900">Current tenant</h2>
+          <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Current tenant</h2>
           <div className="max-w-sm">
             <TenantCard tenant={occupant} />
           </div>

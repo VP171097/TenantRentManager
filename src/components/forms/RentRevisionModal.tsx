@@ -37,9 +37,9 @@ export function RentRevisionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-        <h2 className="text-lg font-bold text-slate-900">Revise Rent</h2>
-        <p className="mt-1 text-sm text-slate-500">Current rent: {formatINR(currentRent)}</p>
+      <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Revise Rent</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">Current rent: {formatINR(currentRent)}</p>
         <form
           onSubmit={handleSubmit((values) =>
             onSubmit({ ...values, rent_amount: computeRevisedRent(currentRent, values.change_type, values.change_value) })
@@ -58,7 +58,7 @@ export function RentRevisionModal({
           <Field label="Effective date" error={errors.effective_date?.message}>
             <input type="date" {...register('effective_date')} className="input" />
           </Field>
-          {preview !== null && <p className="text-sm text-slate-600">New rent will be {formatINR(preview)}</p>}
+          {preview !== null && <p className="text-sm text-slate-600 dark:text-slate-300">New rent will be {formatINR(preview)}</p>}
           <div className="flex gap-3">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">
               Cancel

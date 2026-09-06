@@ -11,7 +11,7 @@ export function CreateTenantLoginForm({ tenant }: { tenant: Tenant }) {
   const [success, setSuccess] = useState<{ identifier: string; password: string } | null>(null)
 
   if (tenant.profile_id) {
-    return <p className="text-sm text-slate-500">This tenant already has a login set up.</p>
+    return <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">This tenant already has a login set up.</p>
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -35,9 +35,9 @@ export function CreateTenantLoginForm({ tenant }: { tenant: Tenant }) {
 
   if (success) {
     return (
-      <div className="card max-w-md space-y-2 bg-green-50">
+      <div className="card max-w-md space-y-2 bg-green-50 dark:bg-green-950/40">
         <p className="font-semibold text-green-800">Login created.</p>
-        <p className="text-sm text-slate-700">Share these details with the tenant — this password will not be shown again:</p>
+        <p className="text-sm text-slate-700 dark:text-slate-200">Share these details with the tenant — this password will not be shown again:</p>
         <p className="text-sm">
           <span className="font-semibold">Username:</span> {success.identifier}
         </p>
@@ -51,11 +51,11 @@ export function CreateTenantLoginForm({ tenant }: { tenant: Tenant }) {
   return (
     <form onSubmit={handleCreate} className="card max-w-md space-y-3">
       <div>
-        <label className="block text-sm font-semibold text-slate-700">Email or mobile number</label>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Email or mobile number</label>
         <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} required className="input mt-1" />
       </div>
       <div>
-        <label className="block text-sm font-semibold text-slate-700">Set a password for the tenant</label>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Set a password for the tenant</label>
         <input
           type="text"
           value={password}
@@ -65,7 +65,7 @@ export function CreateTenantLoginForm({ tenant }: { tenant: Tenant }) {
           className="input mt-1"
         />
       </div>
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
       <button type="submit" disabled={loading} className="btn-primary w-full">
         {loading ? 'Creating…' : 'Create Tenant Login'}
       </button>

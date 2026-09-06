@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { LoadingState, ErrorState } from '../../components/States'
+import { ErrorState } from '../../components/States'
+import { SkeletonStatGrid } from '../../components/Skeleton'
 import { BillSummary } from '../../components/BillSummary'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { markBillAsPaidByTenant } from '../../services/billing'
@@ -82,18 +83,18 @@ export function TenantDashboardPage() {
       .catch(() => setQrDataUrl(null))
   }, [showPay, data?.upiId, data?.property?.name, totalOutstanding])
 
-  if (isLoading) return <LoadingState />
+  if (isLoading) return <SkeletonStatGrid count={4} />
   if (error || !data) return <ErrorState message="Could not load your account." onRetry={() => refetch()} />
 
   const latestBill = data.bills[0]
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-extrabold text-slate-900">Hi, {data.tenant.full_name}</h1>
+      <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Hi, {data.tenant.full_name}</h1>
       <div className="card space-y-3">
         <div>
-          <p className="text-sm text-slate-500">Payment Due</p>
-          <p className={`text-2xl font-bold ${totalOutstanding > 0 ? 'text-red-600' : 'text-green-600'}`}>
+          <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">Payment Due</p>
+          <p className={`text-2xl font-bold ${totalOutstanding > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
             {formatINR(totalOutstanding)}
           </p>
         </div>
@@ -112,31 +113,31 @@ export function TenantDashboardPage() {
           </button>
         )}
         {latestBill?.tenant_marked_paid && (
-          <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+          <p className="rounded-lg bg-green-50 dark:bg-green-950/40 px-3 py-2 text-sm text-green-700 dark:text-green-400">
             You told your landlord you've paid this — they'll confirm it shortly.
           </p>
         )}
         {markPaidDone && !latestBill?.tenant_marked_paid && (
-          <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">Thanks — your landlord has been notified.</p>
+          <p className="rounded-lg bg-green-50 dark:bg-green-950/40 px-3 py-2 text-sm text-green-700 dark:text-green-400">Thanks — your landlord has been notified.</p>
         )}
         {showPay && (
-          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-center">
-            <p className="mb-2 font-semibold text-slate-700">Amount due: {formatINR(totalOutstanding)}</p>
+          <div className="rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 text-center">
+            <p className="mb-2 font-semibold text-slate-700 dark:text-slate-200">Amount due: {formatINR(totalOutstanding)}</p>
             {data.upiId ? (
               <>
                 {qrDataUrl && <img src={qrDataUrl} alt="UPI payment QR code" className="mx-auto h-52 w-52" />}
-                <p className="mt-2 text-sm text-slate-600">UPI ID: {data.upiId}</p>
-                <p className="mt-1 text-xs text-slate-500">Scan to pay via any UPI app, then inform your landlord.</p>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">UPI ID: {data.upiId}</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Scan to pay via any UPI app, then inform your landlord.</p>
               </>
             ) : (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Your landlord hasn't set up UPI payment yet — please contact them directly.
               </p>
             )}
           </div>
         )}
       </div>
-      {latestBill ? <BillSummary bill={latestBill} /> : <p className="text-slate-500">No bills yet.</p>}
+      {latestBill ? <BillSummary bill={latestBill} /> : <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">No bills yet.</p>}
 
       <ConfirmDialog
         open={showMarkPaid}
@@ -154,7 +155,7 @@ export function TenantDashboardPage() {
             onChange={(e) => setPaidNote(e.target.value)}
             className="input"
           />
-          {markPaidError && <p className="text-sm text-red-600">{markPaidError}</p>}
+          {markPaidError && <p className="text-sm text-red-600 dark:text-red-400">{markPaidError}</p>}
         </div>
       </ConfirmDialog>
     </div>

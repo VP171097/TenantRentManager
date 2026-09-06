@@ -70,9 +70,9 @@ export function GenerateBillModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-        <h2 className="text-lg font-bold text-slate-900">Generate Bill — {monthLabel}</h2>
-        <p className="mt-1 text-sm text-slate-500">Rent for this month: {formatINR(currentRent)}</p>
+      <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Generate Bill — {monthLabel}</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">Rent for this month: {formatINR(currentRent)}</p>
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
           <Field label="Previous meter reading" error={errors.previous_reading?.message}>
             <input type="number" step="0.01" min="0" inputMode="decimal" {...register('previous_reading')} className="input" />
@@ -83,7 +83,7 @@ export function GenerateBillModal({
           <Field label="Rate per unit (₹)" error={errors.rate_per_unit?.message}>
             <input type="number" step="0.01" min="0" inputMode="decimal" {...register('rate_per_unit')} className="input" />
           </Field>
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
             <input type="checkbox" {...register('is_meter_reset')} />
             Meter was reset / replaced
           </label>
@@ -99,7 +99,7 @@ export function GenerateBillModal({
             <input type="number" step="0.01" min="0" inputMode="decimal" {...register('late_fee')} className="input" />
           </Field>
 
-          <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+          <div className="rounded-lg bg-slate-50 dark:bg-slate-900 p-3 text-sm text-slate-600 dark:text-slate-300">
             <div className="flex justify-between">
               <span>Units used</span>
               <span>{units}</span>
@@ -108,7 +108,7 @@ export function GenerateBillModal({
               <span>Electricity charge</span>
               <span>{formatINR(electricityCharge)}</span>
             </div>
-            <div className="mt-1 flex justify-between font-semibold text-slate-900">
+            <div className="mt-1 flex justify-between font-semibold text-slate-900 dark:text-slate-100">
               <span>Estimated total (before previous balance)</span>
               <span>{formatINR(estimatedTotal)}</span>
             </div>

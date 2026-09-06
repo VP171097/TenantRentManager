@@ -62,9 +62,9 @@ function EditBillModalContent({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
-        <h2 className="text-lg font-bold text-slate-900">Edit Bill</h2>
-        <p className="mt-1 text-sm text-slate-500">
+      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Edit Bill</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
           {new Date(bill.billing_month).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}. Use this to
           correct mistakes on this month's bill — the billing month itself, and the previous balance/credit carried
           in from last month, cannot be changed here.
@@ -93,7 +93,7 @@ function EditBillModalContent({
           <Field label="Rent amount (₹) — manual correction for this bill only">
             <input type="number" step="0.01" min="0" value={rentAmount} onChange={(e) => setRentAmount(Number(e.target.value))} className="input" />
           </Field>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
             To change rent going forward, use "Revise Rent" instead — this field only corrects this one bill.
           </p>
 
@@ -106,7 +106,7 @@ function EditBillModalContent({
           <Field label="Rate per unit (₹)">
             <input type="number" step="0.01" min="0" value={ratePerUnit} onChange={(e) => setRatePerUnit(Number(e.target.value))} className="input" />
           </Field>
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
             <input type="checkbox" checked={isMeterReset} onChange={(e) => setIsMeterReset(e.target.checked)} />
             Meter was reset / replaced
           </label>
@@ -128,7 +128,7 @@ function EditBillModalContent({
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="input" rows={3} />
           </Field>
 
-          <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+          <div className="rounded-lg bg-slate-50 dark:bg-slate-900 p-3 text-sm text-slate-600 dark:text-slate-300">
             <div className="flex justify-between">
               <span>Units used</span>
               <span>{units}</span>
@@ -137,7 +137,7 @@ function EditBillModalContent({
               <span>Electricity charge</span>
               <span>{formatINR(electricityCharge)}</span>
             </div>
-            <div className="mt-1 flex justify-between font-semibold text-slate-900">
+            <div className="mt-1 flex justify-between font-semibold text-slate-900 dark:text-slate-100">
               <span>New total due</span>
               <span>{formatINR(estimatedTotal)}</span>
             </div>

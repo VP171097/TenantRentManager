@@ -15,7 +15,8 @@ import { listPayments, recordPayment, generateReceipt } from '../services/paymen
 import { getLatestReading, listElectricityReadings, recordElectricityReading } from '../services/electricity'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { LoadingState, ErrorState } from '../components/States'
+import { ErrorState } from '../components/States'
+import { SkeletonCardGrid } from '../components/Skeleton'
 import { LedgerTable } from '../components/LedgerTable'
 import { RentRevisionModal } from '../components/forms/RentRevisionModal'
 import { GenerateBillModal } from '../components/forms/GenerateBillModal'
@@ -336,7 +337,7 @@ export function TenantDetailPage() {
     onError: (err) => setError(friendlyError(err)),
   })
 
-  if (isLoading) return <LoadingState />
+  if (isLoading) return <SkeletonCardGrid count={3} />
   if (loadError || !tenant) return <ErrorState message="Could not load tenant." onRetry={() => refetch()} />
 
   const currentRent = revisions && revisions.length > 0 ? applicableRent(revisions, new Date().toISOString().slice(0, 10)) : 0
@@ -348,8 +349,8 @@ export function TenantDetailPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900">{tenant.full_name}</h1>
-          <p className="text-slate-500">
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">{tenant.full_name}</h1>
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">
             {tenant.phone} {tenant.email && `· ${tenant.email}`}
           </p>
         </div>
@@ -362,7 +363,7 @@ export function TenantDetailPage() {
               Move Out
             </button>
           )}
-          <button onClick={() => setShowDeleteTenant(true)} className="btn-secondary px-4 text-red-600">
+          <button onClick={() => setShowDeleteTenant(true)} className="btn-secondary px-4 text-red-600 dark:text-red-400">
             Delete Tenant
           </button>
         </div>
@@ -370,7 +371,7 @@ export function TenantDetailPage() {
 
       {showEditTenant && (
         <div className="card max-w-md">
-          <h2 className="mb-3 text-lg font-bold text-slate-900">Edit Tenant</h2>
+          <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Edit Tenant</h2>
           <TenantForm
             defaultValues={{
               full_name: tenant.full_name,
@@ -391,15 +392,15 @@ export function TenantDetailPage() {
         </div>
       )}
 
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
 
       <div className="card max-w-sm space-y-2">
         <div className="flex justify-between">
-          <span className="text-slate-500">Current rent</span>
+          <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500">Current rent</span>
           <span className="font-semibold">{formatINR(currentRent)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-slate-500">Security deposit</span>
+          <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500">Security deposit</span>
           <span className="font-semibold">{formatINR(tenant.security_deposit)}</span>
         </div>
         <button onClick={() => setShowRentModal(true)} className="btn-secondary mt-2 w-full">
@@ -426,7 +427,7 @@ export function TenantDetailPage() {
         </button>
       </div>
       {thisMonthBill && (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
           A bill for this month already exists — use "Edit It" above (or Edit on that row below) to update the
           electricity reading, rent, or charges instead of generating again.
         </p>
@@ -474,7 +475,7 @@ export function TenantDetailPage() {
         ))}
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-slate-900">Billing history</h2>
+        <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Billing history</h2>
         {bills && bills.length > 0 ? (
           <LedgerTable
             bills={bills}
@@ -482,11 +483,11 @@ export function TenantDetailPage() {
             onDelete={(b) => setDeletingBill(b)}
           />
         ) : (
-          <p className="text-slate-500">No bills yet.</p>
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">No bills yet.</p>
         )}
         {bills && bills.length > 0 && (
           <div className="mt-3 space-y-2">
-            {sendStatus && <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{sendStatus}</p>}
+            {sendStatus && <p className="rounded-lg bg-slate-50 dark:bg-slate-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-200">{sendStatus}</p>}
             {bills.slice(0, 1).map((b) => (
               <div key={b.id} className="flex flex-wrap gap-2">
                 <button onClick={() => handleDownloadBill(b)} className="btn-secondary px-4">
@@ -515,18 +516,18 @@ export function TenantDetailPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-slate-900">Tenant Login</h2>
+        <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Tenant Login</h2>
         <CreateTenantLoginForm tenant={tenant} />
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-slate-900">Payments & Receipts</h2>
+        <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Payments & Receipts</h2>
         <div className="space-y-2">
           {payments?.map((p) => (
             <div key={p.id} className="card flex items-center justify-between">
               <div>
                 <p className="font-semibold">{formatINR(p.amount)}</p>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                   {new Date(p.payment_date).toLocaleDateString('en-IN')} · {p.method.toUpperCase()}
                 </p>
               </div>
@@ -535,12 +536,12 @@ export function TenantDetailPage() {
               </button>
             </div>
           ))}
-          {(!payments || payments.length === 0) && <p className="text-slate-500">No payments recorded yet.</p>}
+          {(!payments || payments.length === 0) && <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">No payments recorded yet.</p>}
         </div>
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-slate-900">Documents</h2>
+        <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Documents</h2>
         {profile && (
           <DocumentUploader
             ownerId={tenant.owner_id}
@@ -551,7 +552,7 @@ export function TenantDetailPage() {
         )}
         <ul className="mt-3 space-y-1">
           {docs.map((d) => (
-            <li key={d.id} className="text-sm text-slate-600">
+            <li key={d.id} className="text-sm text-slate-600 dark:text-slate-300">
               {d.file_name}
             </li>
           ))}

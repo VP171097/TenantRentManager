@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listManagers, listManagerPermissions, upsertManagerPermission, removeManager, updateManager } from '../services/managers'
 import { listProperties } from '../services/properties'
-import { LoadingState, ErrorState, EmptyState } from '../components/States'
+import { ErrorState, EmptyState } from '../components/States'
+import { SkeletonList } from '../components/Skeleton'
+import { ManagerEmptyIcon } from '../components/EmptyIcons'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { friendlyError } from '../utils/errors'
 
@@ -33,25 +35,32 @@ export function ManagersPage() {
     },
   })
 
-  if (isLoading) return <LoadingState />
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Managers</h1>
+        <SkeletonList />
+      </div>
+    )
+  }
   if (error) return <ErrorState message="Could not load managers." onRetry={() => refetch()} />
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-extrabold text-slate-900">Managers</h1>
-      <p className="text-slate-500">
+    <div className="space-y-6 page-fade-in">
+      <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Managers</h1>
+      <p className="text-slate-500 dark:text-slate-400">
         Managers sign up separately using the standard login screen with the "manager" role assigned by you, or via
         an invite flow set up by your admin. Once a manager account exists, set what they can access here.
       </p>
 
-      {managers && managers.length === 0 && <EmptyState title="No managers added yet" />}
+      {managers && managers.length === 0 && <EmptyState title="No managers added yet" icon={<ManagerEmptyIcon className="h-full w-full" />} />}
       <div className="space-y-3">
         {managers?.map((m) => (
           <div key={m.id} className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-bold text-slate-900">{m.full_name}</p>
-                <p className="text-sm text-slate-500">{m.email}</p>
+                <p className="font-bold text-slate-900 dark:text-slate-100">{m.full_name}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{m.email}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button onClick={() => setEditingManagerId(editingManagerId === m.id ? null : m.id)} className="btn-secondary px-4">
@@ -63,7 +72,7 @@ export function ManagersPage() {
                 >
                   Permissions
                 </button>
-                <button onClick={() => setToRemove(m.id)} className="btn-secondary px-4 text-red-600">
+                <button onClick={() => setToRemove(m.id)} className="btn-secondary px-4 text-red-600 dark:text-red-400">
                   Remove
                 </button>
               </div>
@@ -105,14 +114,14 @@ function ManagerProfileEditor({ manager, onDone }: { manager: { id: string; full
   })
 
   return (
-    <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+    <div className="mt-4 space-y-3 border-t border-slate-100 dark:border-slate-700 pt-4">
+      {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
       <div>
-        <label className="block text-sm font-semibold text-slate-700">Full name</label>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Full name</label>
         <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="input mt-1" />
       </div>
       <div>
-        <label className="block text-sm font-semibold text-slate-700">Mobile number</label>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Mobile number</label>
         <input value={phone} onChange={(e) => setPhone(e.target.value)} className="input mt-1" />
       </div>
       <button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="btn-primary w-full">
@@ -134,16 +143,16 @@ function ManagerPermissionsEditor({ managerId, properties }: { managerId: string
   })
 
   return (
-    <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+    <div className="mt-4 space-y-4 border-t border-slate-100 dark:border-slate-700 pt-4">
+      {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
       {properties.map((p) => {
         const perm = perms?.find((x) => x.property_id === p.id)
         return (
           <div key={p.id}>
-            <p className="mb-2 font-semibold text-slate-800">{p.name}</p>
+            <p className="mb-2 font-semibold text-slate-800 dark:text-slate-200">{p.name}</p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {PERMISSION_FIELDS.map((f) => (
-                <label key={f.key} className="flex items-center gap-2 text-sm text-slate-600">
+                <label key={f.key} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                   <input
                     type="checkbox"
                     checked={Boolean(perm?.[f.key as keyof typeof perm])}

@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { listBills } from '../services/billing'
 import { listTenants } from '../services/tenants'
-import { LoadingState, ErrorState, EmptyState } from '../components/States'
+import { ErrorState, EmptyState } from '../components/States'
+import { SkeletonTable } from '../components/Skeleton'
+import { BillEmptyIcon } from '../components/EmptyIcons'
 import { LedgerTable } from '../components/LedgerTable'
 import { SearchBar } from '../components/SearchFilterBar'
 import { downloadCsv, toCsv } from '../utils/csv'
@@ -46,19 +48,26 @@ export function LedgerPage() {
     downloadCsv('ledger.csv', csv)
   }
 
-  if (isLoading) return <LoadingState />
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Ledger</h1>
+        <SkeletonTable cols={7} />
+      </div>
+    )
+  }
   if (error) return <ErrorState message="Could not load ledger." onRetry={() => refetch()} />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-extrabold text-slate-900">Ledger</h1>
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Ledger</h1>
         <button onClick={handleExport} className="btn-secondary px-4">
           Export CSV
         </button>
       </div>
       <SearchBar value={search} onChange={setSearch} placeholder="Search by tenant name…" />
-      {filtered.length === 0 ? <EmptyState title="No bills found" /> : <LedgerTable bills={filtered} />}
+      {filtered.length === 0 ? <EmptyState title="No bills found" icon={<BillEmptyIcon className="h-full w-full" />} /> : <LedgerTable bills={filtered} />}
     </div>
   )
 }

@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { listTenants, createTenant } from '../services/tenants'
 import { useAuth } from '../hooks/useAuth'
 import { TenantCard } from '../components/Cards'
-import { LoadingState, ErrorState, EmptyState } from '../components/States'
+import { ErrorState, EmptyState } from '../components/States'
+import { SkeletonCardGrid } from '../components/Skeleton'
+import { TenantEmptyIcon } from '../components/EmptyIcons'
 import { TenantForm } from '../components/forms/TenantForm'
 import { SearchBar, FilterBar } from '../components/SearchFilterBar'
 import { friendlyError } from '../utils/errors'
@@ -47,9 +49,9 @@ export function TenantsPage() {
   }, [data, filter, search])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-fade-in">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-slate-900">Tenants</h1>
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Tenants</h1>
         <button onClick={() => setShowForm((s) => !s)} className="btn-primary px-5">
           {showForm ? 'Close' : '+ Add Tenant'}
         </button>
@@ -57,7 +59,7 @@ export function TenantsPage() {
 
       {showForm && (
         <div className="card max-w-md">
-          {formError && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>}
+          {formError && <p className="mb-3 rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{formError}</p>}
           <TenantForm onSubmit={(v) => createMutation.mutateAsync(v)} submitLabel="Add Tenant" />
         </div>
       )}
@@ -73,9 +75,9 @@ export function TenantsPage() {
         onChange={setFilter}
       />
 
-      {isLoading && <LoadingState />}
+      {isLoading && <SkeletonCardGrid />}
       {error && <ErrorState message="Could not load tenants." onRetry={() => refetch()} />}
-      {filtered.length === 0 && !isLoading && <EmptyState title="No tenants found" />}
+      {filtered.length === 0 && !isLoading && <EmptyState title="No tenants found" icon={<TenantEmptyIcon className="h-full w-full" />} />}
       {filtered.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((t) => (

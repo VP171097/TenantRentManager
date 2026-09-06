@@ -44,27 +44,27 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-sm border border-slate-100">
-        <h1 className="text-2xl font-extrabold text-brand-700">Room Rent Manager</h1>
-        <p className="mt-1 text-slate-500">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900 px-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-800 p-8 shadow-sm border border-slate-100 dark:border-slate-700">
+        <h1 className="text-2xl font-extrabold text-brand-700 dark:text-brand-200">Room Rent Manager</h1>
+        <p className="mt-1 text-slate-500 dark:text-slate-400 dark:text-slate-500">
           {mode === 'signin' ? 'Sign in to manage your properties' : 'Create your owner account'}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           {mode === 'signup' && (
             <div>
-              <label className="block text-sm font-semibold text-slate-700">Full name</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Full name</label>
               <input
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
               />
             </div>
           )}
           <div>
-            <label className="block text-sm font-semibold text-slate-700">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
               {mode === 'signin' ? 'Email or Mobile Number' : 'Email'}
             </label>
             <input
@@ -72,22 +72,22 @@ export function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+              className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700">Password</label>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Password</label>
             <input
               type="password"
               required
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+              className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
           </div>
 
-          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
 
           <button
             type="submit"

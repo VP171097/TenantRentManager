@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { listProperties } from '../services/properties'
 import { generateBillsForProperty } from '../services/billing'
-import { LoadingState, ErrorState } from '../components/States'
+import { ErrorState } from '../components/States'
+import { Skeleton } from '../components/Skeleton'
 import { friendlyError } from '../utils/errors'
 
 export function BillingPage() {
@@ -27,20 +28,32 @@ export function BillingPage() {
     },
   })
 
-  if (isLoading) return <LoadingState />
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-72" />
+        <Skeleton className="h-4 w-full max-w-xl" />
+        <div className="card max-w-md space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </div>
+    )
+  }
   if (loadError) return <ErrorState message="Could not load properties." onRetry={() => refetch()} />
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-extrabold text-slate-900">Generate Monthly Bills</h1>
-      <p className="text-slate-500">
+    <div className="space-y-6 page-fade-in">
+      <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Generate Monthly Bills</h1>
+      <p className="text-slate-500 dark:text-slate-400">
         This creates a bill for every active tenant in the selected property for the chosen month. It's safe to click
         more than once — bills already generated for that month won't be duplicated.
       </p>
 
       <div className="card max-w-md space-y-4">
         <div>
-          <label className="block text-sm font-semibold text-slate-700">Property</label>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Property</label>
           <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)} className="input mt-1">
             <option value="">Select a property</option>
             {properties?.map((p) => (
@@ -51,11 +64,11 @@ export function BillingPage() {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-slate-700">Billing month</label>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Billing month</label>
           <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="input mt-1" />
         </div>
-        {result && <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{result}</p>}
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        {result && <p className="rounded-lg bg-green-50 dark:bg-green-950/40 px-3 py-2 text-sm text-green-700 dark:text-green-400">{result}</p>}
+        {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
         <button
           onClick={() => mutation.mutate()}
           disabled={!propertyId || mutation.isPending}

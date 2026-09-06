@@ -49,7 +49,7 @@ export function DocumentUploader({
         {uploading ? 'Uploading…' : 'Upload document'}
         <input type="file" className="hidden" onChange={handleFile} disabled={uploading} />
       </label>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
     </div>
   )
 }

@@ -15,14 +15,14 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', 
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-        <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-        <p className="mt-2 text-slate-600">{message}</p>
+      <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h2>
+        <p className="mt-2 text-slate-600 dark:text-slate-300">{message}</p>
         {children}
         <div className="mt-6 flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 rounded-xl border border-slate-300 py-3 font-semibold text-slate-700 hover:bg-slate-50"
+            className="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 py-3 font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50"
           >
             Cancel
           </button>

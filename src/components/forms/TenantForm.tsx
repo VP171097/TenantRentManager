@@ -64,7 +64,7 @@ export function TenantForm({
               </option>
             ))}
         </select>
-        <label className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+        <label className="mt-1 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
           <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
           Show occupied rooms too
         </label>

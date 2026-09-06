@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { LoadingState, ErrorState, EmptyState } from '../../components/States'
+import { ErrorState, EmptyState } from '../../components/States'
+import { SkeletonList } from '../../components/Skeleton'
+import { ReceiptEmptyIcon } from '../../components/EmptyIcons'
 import { downloadReceiptPdf } from '../../services/receiptPdf'
 import type { Receipt, Tenant } from '../../types/database'
 
@@ -36,19 +38,19 @@ export function TenantReceiptsPage() {
     if (payment && bill && property) downloadReceiptPdf({ receipt, payment, bill, tenant: data.tenant, property })
   }
 
-  if (isLoading) return <LoadingState />
+  if (isLoading) return <SkeletonList />
   if (error) return <ErrorState message="Could not load your receipts." onRetry={() => refetch()} />
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-extrabold text-slate-900">My Receipts</h1>
+      <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">My Receipts</h1>
       {data && data.receipts.length > 0 ? (
         <div className="space-y-2">
           {data.receipts.map((r) => (
             <div key={r.id} className="card flex items-center justify-between">
               <div>
                 <p className="font-semibold">{r.receipt_number}</p>
-                <p className="text-sm text-slate-500">{new Date(r.generated_at).toLocaleDateString('en-IN')}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">{new Date(r.generated_at).toLocaleDateString('en-IN')}</p>
               </div>
               <button onClick={() => handleDownload(r.id)} className="btn-secondary px-4">
                 Download
@@ -57,7 +59,7 @@ export function TenantReceiptsPage() {
           ))}
         </div>
       ) : (
-        <EmptyState title="No receipts yet" />
+        <EmptyState title="No receipts yet" icon={<ReceiptEmptyIcon className="h-full w-full" />} />
       )}
     </div>
   )

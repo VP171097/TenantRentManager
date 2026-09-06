@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { LoadingState, ErrorState, EmptyState } from '../../components/States'
+import { ErrorState, EmptyState } from '../../components/States'
+import { SkeletonTable } from '../../components/Skeleton'
+import { BillEmptyIcon } from '../../components/EmptyIcons'
 import { LedgerTable } from '../../components/LedgerTable'
 import type { Bill, Tenant } from '../../types/database'
 
@@ -25,13 +27,13 @@ export function TenantLedgerPage() {
     enabled: !!profile,
   })
 
-  if (isLoading) return <LoadingState />
+  if (isLoading) return <SkeletonTable cols={7} />
   if (error) return <ErrorState message="Could not load your ledger." onRetry={() => refetch()} />
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-extrabold text-slate-900">My Ledger</h1>
-      {data && data.length > 0 ? <LedgerTable bills={data} /> : <EmptyState title="No bills yet" />}
+      <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">My Ledger</h1>
+      {data && data.length > 0 ? <LedgerTable bills={data} /> : <EmptyState title="No bills yet" icon={<BillEmptyIcon className="h-full w-full" />} />}
     </div>
   )
 }

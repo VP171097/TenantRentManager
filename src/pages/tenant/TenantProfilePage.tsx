@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { LoadingState, ErrorState } from '../../components/States'
+import { ErrorState } from '../../components/States'
+import { SkeletonCardGrid } from '../../components/Skeleton'
 import { DocumentUploader } from '../../components/DocumentUploader'
 import { updateOwnTenantProfile } from '../../services/tenants'
 import { friendlyError } from '../../utils/errors'
@@ -44,28 +45,28 @@ export function TenantProfilePage() {
     onError: (err) => setMessage(friendlyError(err)),
   })
 
-  if (isLoading) return <LoadingState />
+  if (isLoading) return <SkeletonCardGrid count={1} />
   if (error || !tenant) return <ErrorState message="Could not load your profile." onRetry={() => refetch()} />
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-extrabold text-slate-900">My Profile</h1>
+      <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">My Profile</h1>
 
       <div className="card space-y-4">
         <div>
-          <label className="block text-sm font-semibold text-slate-700">Full name</label>
-          <p className="mt-1 text-slate-600">{tenant.full_name}</p>
-          <p className="text-xs text-slate-400">To change your name, contact your landlord.</p>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Full name</label>
+          <p className="mt-1 text-slate-600 dark:text-slate-300">{tenant.full_name}</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">To change your name, contact your landlord.</p>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-slate-700">Phone</label>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Phone</label>
           <input value={phone} onChange={(e) => setPhone(e.target.value)} className="input mt-1" />
         </div>
         <div>
-          <label className="block text-sm font-semibold text-slate-700">Email</label>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Email</label>
           <input value={email} onChange={(e) => setEmail(e.target.value)} className="input mt-1" />
         </div>
-        {message && <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{message}</p>}
+        {message && <p className="rounded-lg bg-slate-50 dark:bg-slate-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-200">{message}</p>}
         <button
           onClick={() => mutation.mutate()}
           disabled={mutation.isPending}
@@ -76,8 +77,8 @@ export function TenantProfilePage() {
       </div>
 
       <div className="card space-y-3">
-        <h2 className="text-lg font-bold text-slate-900">My Documents</h2>
-        <p className="text-sm text-slate-500">Upload ID proof or other documents for your landlord.</p>
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">My Documents</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">Upload ID proof or other documents for your landlord.</p>
         <DocumentUploader
           ownerId={tenant.owner_id}
           propertyId={tenant.property_id}
@@ -86,7 +87,7 @@ export function TenantProfilePage() {
         />
         <ul className="space-y-1">
           {docs.map((d) => (
-            <li key={d.id} className="text-sm text-slate-600">
+            <li key={d.id} className="text-sm text-slate-600 dark:text-slate-300">
               {d.file_name}
             </li>
           ))}
