@@ -30,12 +30,21 @@ export function TenantReceiptsPage() {
   async function handleDownload(receiptId: string) {
     const receipt = data?.receipts.find((r) => r.id === receiptId)
     if (!receipt || !data) return
-    const [{ data: payment }, { data: bill }, { data: property }] = await Promise.all([
+    const [{ data: payment }, { data: bill }, { data: property }, { data: ownerProfile }] = await Promise.all([
       supabase.from('payments').select('*').eq('id', receipt.payment_id).single(),
       supabase.from('bills').select('*').eq('tenant_id', receipt.tenant_id).order('billing_month', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('properties').select('*').eq('id', receipt.property_id).single(),
+      supabase.from('profiles').select('logo_url').eq('id', data.tenant.owner_id).maybeSingle(),
     ])
-    if (payment && bill && property) downloadReceiptPdf({ receipt, payment, bill, tenant: data.tenant, property })
+    if (payment && bill && property)
+      downloadReceiptPdf({
+        receipt,
+        payment,
+        bill,
+        tenant: data.tenant,
+        property,
+        logoUrl: (ownerProfile as { logo_url?: string } | null)?.logo_url,
+      })
   }
 
   if (isLoading) return <SkeletonList />

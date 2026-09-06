@@ -2,6 +2,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { formatINR } from '../utils/money'
 import { applyRupeeFont, RUPEE_FONT_STYLES } from '../utils/pdfFont'
+import { loadImageForPdf } from '../utils/pdfImage'
 import type { Bill, Payment, Property, Receipt, Tenant } from '../types/database'
 
 export interface ReceiptPdfInput {
@@ -10,11 +11,21 @@ export interface ReceiptPdfInput {
   bill: Bill
   tenant: Tenant
   property: Property
+  /** Owner's branding logo (public URL), if configured. Drawn top-right. */
+  logoUrl?: string | null
 }
 
-export function buildReceiptPdf({ receipt, payment, bill, tenant, property }: ReceiptPdfInput): jsPDF {
+export async function buildReceiptPdf({ receipt, payment, bill, tenant, property, logoUrl }: ReceiptPdfInput): Promise<jsPDF> {
   const doc = new jsPDF({ unit: 'pt', format: 'a5' })
   applyRupeeFont(doc)
+
+  if (logoUrl) {
+    const logo = await loadImageForPdf(logoUrl, 70, 36)
+    if (logo) {
+      const format = logo.dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+      doc.addImage(logo.dataUrl, format, doc.internal.pageSize.getWidth() - 40 - logo.w, 20, logo.w, logo.h)
+    }
+  }
 
   doc.setFontSize(16)
   doc.text(property.name, 40, 40)
@@ -58,14 +69,14 @@ export function buildReceiptPdf({ receipt, payment, bill, tenant, property }: Re
   return doc
 }
 
-export function downloadReceiptPdf(input: ReceiptPdfInput) {
-  const doc = buildReceiptPdf(input)
+export async function downloadReceiptPdf(input: ReceiptPdfInput) {
+  const doc = await buildReceiptPdf(input)
   doc.save(`${input.receipt.receipt_number}.pdf`)
 }
 
 /** Returns the receipt PDF as a base64 string (no data: prefix) for emailing. */
-export function receiptPdfBase64(input: ReceiptPdfInput): string {
-  const doc = buildReceiptPdf(input)
+export async function receiptPdfBase64(input: ReceiptPdfInput): Promise<string> {
+  const doc = await buildReceiptPdf(input)
   const dataUri = doc.output('datauristring')
   return dataUri.split(',')[1]
 }

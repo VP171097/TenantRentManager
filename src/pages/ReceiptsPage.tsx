@@ -8,10 +8,12 @@ import { ReceiptEmptyIcon } from '../components/EmptyIcons'
 import { SearchBar } from '../components/SearchFilterBar'
 import { useState } from 'react'
 import { downloadReceiptPdf } from '../services/receiptPdf'
+import { useOwnerLogoUrl } from '../hooks/useOwnerBranding'
 
 export function ReceiptsPage() {
   const { data: receipts, isLoading, error, refetch } = useQuery({ queryKey: ['receipts'], queryFn: () => listReceipts() })
   const { data: tenants } = useQuery({ queryKey: ['tenants'], queryFn: () => listTenants() })
+  const logoUrl = useOwnerLogoUrl()
   const [search, setSearch] = useState('')
 
   async function handleDownload(receiptId: string) {
@@ -23,7 +25,7 @@ export function ReceiptsPage() {
       supabase.from('tenants').select('*').eq('id', receipt.tenant_id).single(),
       supabase.from('properties').select('*').eq('id', receipt.property_id).single(),
     ])
-    if (payment && bill && tenant && property) downloadReceiptPdf({ receipt, payment, bill, tenant, property })
+    if (payment && bill && tenant && property) downloadReceiptPdf({ receipt, payment, bill, tenant, property, logoUrl })
   }
 
   const filtered = (receipts ?? []).filter(

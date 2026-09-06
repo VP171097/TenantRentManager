@@ -144,7 +144,15 @@ export function TenantDetailPage() {
       const { data: property } = await supabase.from('properties').select('*').eq('id', tenant.property_id).single()
       if (!property) return
 
-      const pdfBase64 = receiptPdfBase64({ receipt, payment, bill, tenant, property })
+      const { data: ownerProfileForReceipt } = await supabase.from('profiles').select('logo_url').eq('id', tenant.owner_id).maybeSingle()
+      const pdfBase64 = await receiptPdfBase64({
+        receipt,
+        payment,
+        bill,
+        tenant,
+        property,
+        logoUrl: (ownerProfileForReceipt as { logo_url?: string } | null)?.logo_url,
+      })
       const { data, error: fnError } = await supabase.functions.invoke('send-bill', {
         body: { billId: bill.id, mode: 'receipt', paymentId: payment.id, pdfBase64 },
       })
@@ -243,8 +251,11 @@ export function TenantDetailPage() {
       const payment = payments?.find((p) => p.id === paymentId)
       const bill = bills?.find((b) => b.id === payment?.bill_id)
       if (payment && bill && tenant) {
-        const { data: property } = await supabase.from('properties').select('*').eq('id', tenant.property_id).single()
-        if (property) downloadReceiptPdf({ receipt, payment, bill, tenant, property })
+        const [{ data: property }, { data: ownerProfile }] = await Promise.all([
+          supabase.from('properties').select('*').eq('id', tenant.property_id).single(),
+          supabase.from('profiles').select('logo_url').eq('id', tenant.owner_id).maybeSingle(),
+        ])
+        if (property) downloadReceiptPdf({ receipt, payment, bill, tenant, property, logoUrl: (ownerProfile as { logo_url?: string } | null)?.logo_url })
       }
     } catch (err) {
       setError(friendlyError(err))
@@ -254,15 +265,16 @@ export function TenantDetailPage() {
   async function handleDownloadBill(bill: Bill) {
     try {
       const { data: property } = await supabase.from('properties').select('*').eq('id', tenant!.property_id).single()
-      const { data: ownerProfile } = await supabase.from('profiles').select('upi_id').eq('id', tenant!.owner_id).maybeSingle()
+      const { data: ownerProfile } = await supabase.from('profiles').select('upi_id, logo_url').eq('id', tenant!.owner_id).maybeSingle()
       const { data: room } = await supabase.from('rooms').select('room_number').eq('id', bill.room_id).maybeSingle()
       if (property) {
         await downloadBillPdf({
           bill,
           tenant: tenant!,
           property,
-          upiId: (ownerProfile as { upi_id?: string } | null)?.upi_id,
+          upiId: (ownerProfile as { upi_id?: string; logo_url?: string } | null)?.upi_id,
           roomNumber: (room as { room_number?: string } | null)?.room_number,
+          logoUrl: (ownerProfile as { upi_id?: string; logo_url?: string } | null)?.logo_url,
         })
       }
     } catch (err) {
@@ -275,7 +287,7 @@ export function TenantDetailPage() {
     setSendStatus(null)
     try {
       const { data: property } = await supabase.from('properties').select('*').eq('id', tenant!.property_id).single()
-      const { data: ownerProfile } = await supabase.from('profiles').select('upi_id').eq('id', tenant!.owner_id).maybeSingle()
+      const { data: ownerProfile } = await supabase.from('profiles').select('upi_id, logo_url').eq('id', tenant!.owner_id).maybeSingle()
       const { data: room } = await supabase.from('rooms').select('room_number').eq('id', bill.room_id).maybeSingle()
       let pdfBase64: string | undefined
       if (property) {
@@ -283,8 +295,9 @@ export function TenantDetailPage() {
           bill,
           tenant: tenant!,
           property,
-          upiId: (ownerProfile as { upi_id?: string } | null)?.upi_id,
+          upiId: (ownerProfile as { upi_id?: string; logo_url?: string } | null)?.upi_id,
           roomNumber: (room as { room_number?: string } | null)?.room_number,
+          logoUrl: (ownerProfile as { upi_id?: string; logo_url?: string } | null)?.logo_url,
         })
       }
       const { data, error: fnError } = await supabase.functions.invoke('send-bill', {

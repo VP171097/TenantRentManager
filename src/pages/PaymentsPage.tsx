@@ -12,6 +12,7 @@ import { PaymentEmptyIcon } from '../components/EmptyIcons'
 import { friendlyError } from '../utils/errors'
 import { formatINR } from '../utils/money'
 import { downloadReceiptPdf } from '../services/receiptPdf'
+import { useOwnerLogoUrl } from '../hooks/useOwnerBranding'
 
 type SortKey = 'date' | 'amount'
 
@@ -25,6 +26,7 @@ export function PaymentsPage() {
   const { data: bills, isLoading, error: loadError, refetch } = useQuery({ queryKey: ['bills'], queryFn: () => listBills() })
   const { data: tenants } = useQuery({ queryKey: ['tenants'], queryFn: () => listTenants() })
   const { data: payments } = useQuery({ queryKey: ['payments'], queryFn: () => listPayments() })
+  const logoUrl = useOwnerLogoUrl()
 
   const outstanding = useMemo(() => (bills ?? []).filter((b) => b.balance > 0), [bills])
   const tenantName = (tid: string) => tenants?.find((t) => t.id === tid)?.full_name ?? '—'
@@ -53,7 +55,7 @@ export function PaymentsPage() {
           supabase.from('tenants').select('*').eq('id', bill.tenant_id).single(),
           supabase.from('properties').select('*').eq('id', bill.property_id).single(),
         ])
-        if (tenant && property) downloadReceiptPdf({ receipt, payment, bill, tenant, property })
+        if (tenant && property) downloadReceiptPdf({ receipt, payment, bill, tenant, property, logoUrl })
       }
     } catch (err) {
       setError(friendlyError(err))

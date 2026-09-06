@@ -4,6 +4,7 @@ import QRCode from 'qrcode'
 import { formatINR } from '../utils/money'
 import { applyRupeeFont, RUPEE_FONT_STYLES } from '../utils/pdfFont'
 import { buildUpiLink } from '../utils/upi'
+import { loadImageForPdf } from '../utils/pdfImage'
 import type { Bill, Property, Tenant } from '../types/database'
 
 export interface BillPdfInput {
@@ -14,13 +15,23 @@ export interface BillPdfInput {
   upiId?: string | null
   /** Room number/name, if known — shown as "Room: <roomNumber>". */
   roomNumber?: string | null
+  /** Owner's branding logo (public URL), if configured. Drawn top-right. */
+  logoUrl?: string | null
 }
 
 // NOTE: this is a separate generator from receiptPdf.ts by design — bills
 // show a payment QR code, receipts (proof of a completed payment) never do.
-export async function buildBillPdf({ bill, tenant, property, upiId, roomNumber }: BillPdfInput): Promise<jsPDF> {
+export async function buildBillPdf({ bill, tenant, property, upiId, roomNumber, logoUrl }: BillPdfInput): Promise<jsPDF> {
   const doc = new jsPDF({ unit: 'pt', format: 'a5' })
   applyRupeeFont(doc)
+
+  if (logoUrl) {
+    const logo = await loadImageForPdf(logoUrl, 70, 36)
+    if (logo) {
+      const format = logo.dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+      doc.addImage(logo.dataUrl, format, doc.internal.pageSize.getWidth() - 40 - logo.w, 20, logo.w, logo.h)
+    }
+  }
 
   doc.setFontSize(16)
   doc.text(property.name, 40, 40)
