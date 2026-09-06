@@ -6,7 +6,14 @@ import { ErrorState } from '../components/States'
 import { SkeletonStatGrid } from '../components/Skeleton'
 import { formatINR } from '../utils/money'
 import { listProperties } from '../services/properties'
-import { loadDashboardStats, loadMonthlyTrend, loadYoyComparison, loadActivityFeed } from '../services/dashboard'
+import {
+  loadDashboardStats,
+  loadMonthlyTrend,
+  loadYoyComparison,
+  loadActivityFeed,
+  loadExpiringDocuments,
+  loadMonthlyExpenseTotal,
+} from '../services/dashboard'
 import { CollectionTrendChart } from '../components/charts/CollectionTrendChart'
 import { OccupancyDonut } from '../components/charts/OccupancyDonut'
 import { ActivityFeed } from '../components/ActivityFeed'
@@ -52,11 +59,23 @@ export function DashboardPage() {
     enabled: !!ownerId,
   })
 
+  const { data: expiringDocs } = useQuery({
+    queryKey: ['dashboard-expiring-docs', ownerId, propertyId],
+    queryFn: () => loadExpiringDocuments(ownerId, propertyId),
+    enabled: !!ownerId,
+  })
+
+  const { data: monthlyExpenses } = useQuery({
+    queryKey: ['dashboard-monthly-expenses', ownerId, propertyId],
+    queryFn: () => loadMonthlyExpenseTotal(ownerId, propertyId),
+    enabled: !!ownerId,
+  })
+
   if (statsLoading) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Welcome</h1>
-        <SkeletonStatGrid count={9} />
+        <SkeletonStatGrid count={10} />
       </div>
     )
   }
@@ -100,6 +119,13 @@ export function DashboardPage() {
         <DashboardCard label="Collected" value={formatINR(stats.collected)} tone="good" countTo={stats.collected} format={formatINR} />
         <DashboardCard label="Outstanding" value={formatINR(stats.outstanding)} tone="bad" countTo={stats.outstanding} format={formatINR} />
         <DashboardCard label="Credit Held" value={formatINR(stats.credit)} tone="warn" countTo={stats.credit} format={formatINR} />
+        <DashboardCard
+          label="Expenses (This Month)"
+          value={formatINR(monthlyExpenses ?? 0)}
+          tone="bad"
+          countTo={monthlyExpenses ?? 0}
+          format={formatINR}
+        />
       </div>
 
       {yoy && (
@@ -135,7 +161,7 @@ export function DashboardPage() {
         <ActivityFeed items={activity ?? []} />
       </div>
 
-      {(stats.unpaidBillsCount > 0 || stats.vacant > 0) && (
+      {(stats.unpaidBillsCount > 0 || stats.vacant > 0 || (expiringDocs && expiringDocs.length > 0)) && (
         <div>
           <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Alerts</h2>
           <div className="space-y-2">
@@ -150,6 +176,21 @@ export function DashboardPage() {
             {stats.vacant > 0 && (
               <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-700 dark:text-slate-300">
                 {stats.vacant} room(s) vacant: {stats.vacantRoomsList.map((r) => r.room_number).join(', ')}
+              </div>
+            )}
+            {expiringDocs && expiringDocs.length > 0 && (
+              <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-amber-800 dark:text-amber-300">
+                <p className="font-semibold">{expiringDocs.length} document(s) expiring within 30 days:</p>
+                <ul className="mt-1 list-inside list-disc">
+                  {expiringDocs.map((d) => (
+                    <li key={d.id}>
+                      <Link to={`/tenants/${d.tenant_id}`} className="underline">
+                        {d.tenant_name}
+                      </Link>{' '}
+                      — {d.file_name} (expires {new Date(d.expires_at).toLocaleDateString('en-IN')})
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>

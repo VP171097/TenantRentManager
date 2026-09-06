@@ -65,6 +65,49 @@ export async function loadDashboardStats(ownerId: string, propertyId?: string): 
   }
 }
 
+export interface ExpiringDocument {
+  id: string
+  tenant_id: string
+  tenant_name: string
+  file_name: string
+  expires_at: string
+}
+
+/** Documents (of any tenant belonging to this owner) expiring within the
+ * next 30 days, for the dashboard alert. */
+export async function loadExpiringDocuments(ownerId: string, propertyId?: string): Promise<ExpiringDocument[]> {
+  const today = new Date().toISOString().slice(0, 10)
+  const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+  let query = supabase
+    .from('tenant_documents')
+    .select('id, tenant_id, file_name, expires_at, tenants!inner(full_name, owner_id, property_id)')
+    .eq('owner_id', ownerId)
+    .not('expires_at', 'is', null)
+    .gte('expires_at', today)
+    .lte('expires_at', in30Days)
+  if (propertyId) query = query.eq('tenants.property_id', propertyId)
+
+  const { data, error } = await query
+  if (error) throw error
+
+  return ((data ?? []) as unknown as { id: string; tenant_id: string; file_name: string; expires_at: string; tenants: { full_name: string } | null }[]).map(
+    (d) => ({ id: d.id, tenant_id: d.tenant_id, tenant_name: d.tenants?.full_name ?? 'Unknown tenant', file_name: d.file_name, expires_at: d.expires_at })
+  )
+}
+
+/** Total expenses recorded for the current calendar month, for the
+ * dashboard's expense stat card. */
+export async function loadMonthlyExpenseTotal(ownerId: string, propertyId?: string): Promise<number> {
+  const now = new Date()
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  let query = supabase.from('expenses').select('amount').eq('owner_id', ownerId).gte('expense_date', monthStart)
+  if (propertyId) query = query.eq('property_id', propertyId)
+  const { data, error } = await query
+  if (error) throw error
+  return ((data ?? []) as { amount: number }[]).reduce((s, e) => s + (e.amount || 0), 0)
+}
+
 export interface MonthlyTrendPoint {
   month: string // YYYY-MM-01
   label: string // "Jan '25"

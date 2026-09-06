@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { listBills } from '../services/billing'
 import { listTenants } from '../services/tenants'
+import { listExpenses } from '../services/expenses'
 import { ErrorState } from '../components/States'
 import { SkeletonStatGrid, SkeletonTable } from '../components/Skeleton'
 import { DashboardCard } from '../components/DashboardCard'
@@ -42,6 +43,7 @@ function SortTh({
 export function ReportsPage() {
   const { data: bills, isLoading, error, refetch } = useQuery({ queryKey: ['bills'], queryFn: () => listBills() })
   const { data: tenants } = useQuery({ queryKey: ['tenants'], queryFn: () => listTenants() })
+  const { data: expenses } = useQuery({ queryKey: ['expenses'], queryFn: () => listExpenses() })
   const [sortKey, setSortKey] = useState<SortKey>('month')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
@@ -72,6 +74,15 @@ export function ReportsPage() {
   const monthly = Array.from(byMonth.entries())
     .sort((a, b) => (a[0] < b[0] ? 1 : -1))
     .slice(0, 12)
+
+  const expenseList = expenses ?? []
+  const totalExpenses = expenseList.reduce((s, e) => s + e.amount, 0)
+  const netIncome = totalCollected - totalExpenses
+  const byCategory = new Map<string, number>()
+  for (const e of expenseList) {
+    byCategory.set(e.category, (byCategory.get(e.category) ?? 0) + e.amount)
+  }
+  const categoryBreakdown = Array.from(byCategory.entries()).sort((a, b) => b[1] - a[1])
 
   function exportOutstanding() {
     const rows = list
@@ -115,6 +126,41 @@ export function ReportsPage() {
         <DashboardCard label="Total Outstanding" value={formatINR(totalOutstanding)} tone="bad" countTo={totalOutstanding} format={formatINR} />
         <DashboardCard label="Total Credit Held" value={formatINR(totalCredit)} tone="warn" countTo={totalCredit} format={formatINR} />
       </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <DashboardCard label="Total Expenses" value={formatINR(totalExpenses)} tone="bad" countTo={totalExpenses} format={formatINR} />
+        <DashboardCard
+          label="Net Income (Collected − Expenses)"
+          value={formatINR(netIncome)}
+          tone={netIncome >= 0 ? 'good' : 'bad'}
+          countTo={netIncome}
+          format={formatINR}
+        />
+      </div>
+
+      {categoryBreakdown.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Expenses by category</h2>
+          <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
+            <table className="w-full min-w-[300px] text-sm">
+              <thead className="bg-slate-50 dark:bg-slate-900 text-left text-slate-600 dark:text-slate-300">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Category</th>
+                  <th className="px-4 py-3 font-semibold">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categoryBreakdown.map(([category, amount], i) => (
+                  <tr key={category} className={`border-t border-slate-100 dark:border-slate-700 ${i % 2 === 1 ? 'bg-slate-50/60 dark:bg-slate-900/40' : ''}`}>
+                    <td className="px-4 py-3 capitalize dark:text-slate-200">{category}</td>
+                    <td className="px-4 py-3 dark:text-slate-200">{formatINR(amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div>
         <div className="mb-3 flex items-center justify-between">
