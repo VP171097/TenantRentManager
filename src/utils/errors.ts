@@ -24,6 +24,12 @@ export function friendlyError(error: unknown): string {
   if (/JWT|not authenticated|401/i.test(message)) return 'Your session has expired. Please log in again.'
   if (/permission denied|row-level security/i.test(message)) return "You don't have permission to do this."
   if (/network/i.test(message)) return 'Network error. Please check your connection and try again.'
+  if (/invalid login credentials/i.test(message)) return 'Incorrect email/mobile number or password. Please try again.'
+  if (/email not confirmed/i.test(message)) return 'Please confirm your email address before signing in.'
+  if (/user already registered/i.test(message)) return 'An account with this email already exists. Try signing in instead.'
+  if (/password should be at least/i.test(message)) return 'Password must be at least 6 characters.'
+  if (/unable to validate email address/i.test(message)) return 'Please enter a valid email address.'
+  if (/rate limit/i.test(message)) return 'Too many attempts. Please wait a moment and try again.'
 
   return 'Something went wrong. Please try again, or contact support if this continues.'
 }
