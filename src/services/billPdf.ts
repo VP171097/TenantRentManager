@@ -48,16 +48,20 @@ export async function buildBillPdf({
   applyRupeeFont(doc)
   const pageWidth = doc.internal.pageSize.getWidth()
 
-  const monthLabel = new Date(bill.billing_month).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+  const billDate = new Date(bill.billing_month)
+  const monthLabel = billDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
   const balance = bill.balance > 0 ? bill.balance : 0
+
+  // Bill number: month + year + room number, e.g. "SEP2026-101".
+  const monthCode = billDate.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()
+  const billNumber = `${monthCode}${billDate.getFullYear()}-${roomNumber ?? tenant.id.slice(0, 4).toUpperCase()}`
 
   const bodyTop = await drawLetterhead(doc, {
     logoUrl,
     propertyName: property.name,
-    address: property.address,
     city: property.city,
     docTitle: 'RENT BILL',
-    metaLines: [`Billing month: ${monthLabel}`],
+    metaLines: [`Bill #: ${billNumber}`, `Billing month: ${monthLabel}`],
   })
 
   // Left: tenant info block.
@@ -65,6 +69,17 @@ export async function buildBillPdf({
   doc.text(`Tenant: ${tenant.full_name}`, 20, bodyTop + 20)
   doc.text(`Phone: ${tenant.phone || 'No phone on file'}`, 20, bodyTop + 34)
   doc.text(`Room: ${roomNumber ?? '—'}`, 20, bodyTop + 48)
+
+  // Property name/address block — fills the whitespace below the tenant
+  // info block, left-aligned, clearly labeled.
+  doc.setFontSize(9)
+  doc.setTextColor(90, 90, 90)
+  doc.text(`Property name: ${property.name}`, 20, bodyTop + 66)
+  const addressText = property.address || '—'
+  const wrappedAddress = doc.splitTextToSize(`Property Address: ${addressText}`, pageWidth - 40)
+  doc.text(wrappedAddress, 20, bodyTop + 78)
+  doc.setTextColor(0, 0, 0)
+  const propertyBlockBottom = bodyTop + 78 + wrappedAddress.length * 11
 
   // Right: UPI QR block, positioned in the body (not the header band) so
   // it sits above the charges table, alongside the tenant info block.
@@ -95,7 +110,7 @@ export async function buildBillPdf({
         ]
       : []
 
-  const tableStartY = Math.max(bodyTop + 62, qrBottom) + 12
+  const tableStartY = Math.max(propertyBlockBottom, qrBottom) + 12
 
   autoTable(doc, {
     startY: tableStartY,

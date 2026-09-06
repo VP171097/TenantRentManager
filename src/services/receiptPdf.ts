@@ -39,10 +39,11 @@ export async function buildReceiptPdf({
   const doc = new jsPDF({ unit: 'pt', format: 'a5' })
   applyRupeeFont(doc)
 
+  const pageWidth = doc.internal.pageSize.getWidth()
+
   const bodyTop = await drawLetterhead(doc, {
     logoUrl,
     propertyName: property.name,
-    address: property.address,
     city: property.city,
     docTitle: 'PAYMENT RECEIPT',
     metaLines: [`Receipt #: ${receipt.receipt_number}`, `Date: ${new Date(payment.payment_date).toLocaleDateString('en-IN')}`],
@@ -52,6 +53,17 @@ export async function buildReceiptPdf({
   doc.text(`Tenant: ${tenant.full_name}`, 20, bodyTop + 20)
   doc.text(`Phone: ${tenant.phone || 'No phone on file'}`, 20, bodyTop + 34)
   doc.text(`Billing month: ${new Date(bill.billing_month).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}`, 20, bodyTop + 48)
+
+  // Property name/address block — fills the whitespace below the tenant
+  // info block, left-aligned, clearly labeled.
+  doc.setFontSize(9)
+  doc.setTextColor(90, 90, 90)
+  doc.text(`Property name: ${property.name}`, 20, bodyTop + 66)
+  const addressText = property.address || '—'
+  const wrappedAddress = doc.splitTextToSize(`Property Address: ${addressText}`, pageWidth - 40)
+  doc.text(wrappedAddress, 20, bodyTop + 78)
+  doc.setTextColor(0, 0, 0)
+  const propertyBlockBottom = bodyTop + 78 + wrappedAddress.length * 11
 
   const readingRows =
     reading != null
@@ -63,7 +75,7 @@ export async function buildReceiptPdf({
       : []
 
   autoTable(doc, {
-    startY: bodyTop + 66,
+    startY: propertyBlockBottom + 12,
     head: [['Description', 'Amount']],
     body: [
       ['Rent', formatINR(bill.rent_amount)],

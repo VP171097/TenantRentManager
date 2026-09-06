@@ -49,8 +49,7 @@ export async function drawLetterhead(doc: jsPDF, opts: LetterheadOptions): Promi
 
   doc.setFontSize(9)
   doc.setTextColor(...BLUE_LIGHT)
-  const addressLine = [opts.address, opts.city].filter(Boolean).join(', ')
-  if (addressLine) doc.text(addressLine, textX, 54)
+  if (opts.city) doc.text(opts.city, textX, 54)
 
   doc.setTextColor(...BLUE)
   doc.setFontSize(13)
