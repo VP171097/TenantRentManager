@@ -54,3 +54,20 @@ export function useTheme() {
 
   return { theme: preference, setTheme }
 }
+
+/** Resolved light/dark boolean (following `<html class="dark">`, which
+ * `applyTheme` keeps in sync with the user's preference and OS setting).
+ * Used by chart components, which need explicit colors rather than
+ * Tailwind's `dark:` variants. */
+export function useIsDarkMode(): boolean {
+  const [isDark, setIsDark] = useState(() => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
+
+  useEffect(() => {
+    const el = document.documentElement
+    const observer = new MutationObserver(() => setIsDark(el.classList.contains('dark')))
+    observer.observe(el, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+
+  return isDark
+}

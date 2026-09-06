@@ -1,68 +1,58 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { DashboardCard } from '../components/DashboardCard'
 import { ErrorState } from '../components/States'
 import { SkeletonStatGrid } from '../components/Skeleton'
 import { formatINR } from '../utils/money'
-
-interface DashboardStats {
-  properties: number
-  rooms: number
-  occupied: number
-  vacant: number
-  activeTenants: number
-  expectedRent: number
-  collected: number
-  outstanding: number
-  credit: number
-  unpaidBillsCount: number
-  vacantRoomsList: { id: string; room_number: string }[]
-}
-
-async function loadStats(ownerId: string): Promise<DashboardStats> {
-  const [{ data: properties }, { data: rooms }, { data: tenants }, { data: bills }] = await Promise.all([
-    supabase.from('properties').select('id').eq('owner_id', ownerId),
-    supabase.from('rooms').select('id, room_number, status, base_rent, property_id, properties!inner(owner_id)').eq('properties.owner_id', ownerId),
-    supabase.from('tenants').select('id, status').eq('owner_id', ownerId),
-    supabase.from('bills').select('total_due, total_paid, balance, status, property_id, properties!inner(owner_id)').eq('properties.owner_id', ownerId),
-  ])
-
-  const roomsList = (rooms ?? []) as unknown as { id: string; room_number: string; status: string; base_rent: number }[]
-  const tenantsList = (tenants ?? []) as { id: string; status: string }[]
-  const billsList = (bills ?? []) as unknown as { total_due: number; total_paid: number; balance: number; status: string }[]
-
-  const collected = billsList.reduce((s, b) => s + (b.total_paid || 0), 0)
-  const outstanding = billsList.reduce((s, b) => s + (b.balance > 0 ? b.balance : 0), 0)
-  const credit = billsList.reduce((s, b) => s + (b.balance < 0 ? Math.abs(b.balance) : 0), 0)
-  const expectedRent = roomsList.filter((r) => r.status === 'occupied').reduce((s, r) => s + (r.base_rent || 0), 0)
-
-  return {
-    properties: properties?.length ?? 0,
-    rooms: roomsList.length,
-    occupied: roomsList.filter((r) => r.status === 'occupied').length,
-    vacant: roomsList.filter((r) => r.status === 'vacant').length,
-    activeTenants: tenantsList.filter((t) => t.status === 'active').length,
-    expectedRent,
-    collected,
-    outstanding,
-    credit,
-    unpaidBillsCount: billsList.filter((b) => b.status === 'unpaid' || b.status === 'overdue').length,
-    vacantRoomsList: roomsList.filter((r) => r.status === 'vacant').map((r) => ({ id: r.id, room_number: r.room_number })),
-  }
-}
+import { listProperties } from '../services/properties'
+import { loadDashboardStats, loadMonthlyTrend, loadYoyComparison, loadActivityFeed } from '../services/dashboard'
+import { CollectionTrendChart } from '../components/charts/CollectionTrendChart'
+import { OccupancyDonut } from '../components/charts/OccupancyDonut'
+import { ActivityFeed } from '../components/ActivityFeed'
 
 export function DashboardPage() {
   const { profile } = useAuth()
   const ownerId = profile?.role === 'owner' ? profile.id : profile?.owner_id ?? ''
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['dashboard-stats', ownerId],
-    queryFn: () => loadStats(ownerId),
+  const [searchParams, setSearchParams] = useSearchParams()
+  const propertyId = searchParams.get('property') || undefined
+
+  const { data: properties } = useQuery({
+    queryKey: ['properties', ownerId],
+    queryFn: () => listProperties(),
     enabled: !!ownerId,
   })
 
-  if (isLoading) {
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError,
+    refetch: refetchStats,
+  } = useQuery({
+    queryKey: ['dashboard-stats', ownerId, propertyId],
+    queryFn: () => loadDashboardStats(ownerId, propertyId),
+    enabled: !!ownerId,
+  })
+
+  const { data: trend } = useQuery({
+    queryKey: ['dashboard-trend', ownerId, propertyId],
+    queryFn: () => loadMonthlyTrend(ownerId, propertyId),
+    enabled: !!ownerId,
+  })
+
+  const { data: yoy } = useQuery({
+    queryKey: ['dashboard-yoy', ownerId, propertyId],
+    queryFn: () => loadYoyComparison(ownerId, propertyId),
+    enabled: !!ownerId,
+  })
+
+  const { data: activity } = useQuery({
+    queryKey: ['dashboard-activity', ownerId, propertyId],
+    queryFn: () => loadActivityFeed(ownerId, propertyId),
+    enabled: !!ownerId,
+  })
+
+  if (statsLoading) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Welcome</h1>
@@ -70,51 +60,96 @@ export function DashboardPage() {
       </div>
     )
   }
-  if (error) return <ErrorState message="Could not load dashboard." onRetry={() => refetch()} />
-  if (!data) return null
+  if (statsError) return <ErrorState message="Could not load dashboard." onRetry={() => refetchStats()} />
+  if (!stats) return null
+
+  const showSwitcher = (properties?.length ?? 0) > 1
 
   return (
     <div className="space-y-6 page-fade-in">
-      <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Welcome{profile ? `, ${profile.full_name}` : ''}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Welcome{profile ? `, ${profile.full_name}` : ''}</h1>
+        {showSwitcher && (
+          <select
+            className="input w-auto py-2"
+            value={propertyId ?? ''}
+            onChange={(e) => {
+              const next = new URLSearchParams(searchParams)
+              if (e.target.value) next.set('property', e.target.value)
+              else next.delete('property')
+              setSearchParams(next, { replace: true })
+            }}
+          >
+            <option value="">All Properties</option>
+            {properties?.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <DashboardCard label="Properties" value={data.properties} countTo={data.properties} />
-        <DashboardCard label="Rooms" value={data.rooms} countTo={data.rooms} />
-        <DashboardCard label="Occupied" value={data.occupied} tone="good" countTo={data.occupied} />
-        <DashboardCard label="Vacant" value={data.vacant} tone="warn" countTo={data.vacant} />
-        <DashboardCard label="Active Tenants" value={data.activeTenants} countTo={data.activeTenants} />
-        <DashboardCard label="Expected Rent" value={formatINR(data.expectedRent)} countTo={data.expectedRent} format={formatINR} />
-        <DashboardCard label="Collected" value={formatINR(data.collected)} tone="good" countTo={data.collected} format={formatINR} />
-        <DashboardCard label="Outstanding" value={formatINR(data.outstanding)} tone="bad" countTo={data.outstanding} format={formatINR} />
-        <DashboardCard label="Credit Held" value={formatINR(data.credit)} tone="warn" countTo={data.credit} format={formatINR} />
+        <DashboardCard label="Properties" value={stats.properties} countTo={stats.properties} />
+        <DashboardCard label="Rooms" value={stats.rooms} countTo={stats.rooms} />
+        <DashboardCard label="Occupied" value={stats.occupied} tone="good" countTo={stats.occupied} />
+        <DashboardCard label="Vacant" value={stats.vacant} tone="warn" countTo={stats.vacant} />
+        <DashboardCard label="Active Tenants" value={stats.activeTenants} countTo={stats.activeTenants} />
+        <DashboardCard label="Expected Rent" value={formatINR(stats.expectedRent)} countTo={stats.expectedRent} format={formatINR} />
+        <DashboardCard label="Collected" value={formatINR(stats.collected)} tone="good" countTo={stats.collected} format={formatINR} />
+        <DashboardCard label="Outstanding" value={formatINR(stats.outstanding)} tone="bad" countTo={stats.outstanding} format={formatINR} />
+        <DashboardCard label="Credit Held" value={formatINR(stats.credit)} tone="warn" countTo={stats.credit} format={formatINR} />
       </div>
 
-      <div>
-        <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Quick actions</h2>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          <QuickAction to="/tenants" label="Add Tenant" icon="👤" />
-          <QuickAction to="/payments" label="Add Payment" icon="💳" />
-          <QuickAction to="/billing" label="Generate Bills" icon="🧾" />
-          <QuickAction to="/ledger" label="View Ledger" icon="📒" />
-          <QuickAction to="/receipts" label="Generate Receipt" icon="🧻" />
+      {yoy && (
+        <div className="card flex flex-wrap items-center gap-2 text-sm">
+          <span className="font-semibold text-slate-700 dark:text-slate-300">{yoy.thisMonthLabel}:</span>
+          <span className="text-slate-900 dark:text-slate-100">{formatINR(yoy.thisMonthCollected)}</span>
+          <span className="text-slate-400 dark:text-slate-500">vs {formatINR(yoy.lastYearCollected)} same month last year</span>
+          {yoy.changePct !== null && (
+            <span className={`font-bold ${yoy.changePct >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {yoy.changePct >= 0 ? '+' : ''}
+              {yoy.changePct.toFixed(1)}%
+            </span>
+          )}
         </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {trend && <CollectionTrendChart data={trend} />}
+        <OccupancyDonut occupied={stats.occupied} vacant={stats.vacant} />
       </div>
 
-      {(data.unpaidBillsCount > 0 || data.vacant > 0) && (
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div>
+          <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Quick actions</h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            <QuickAction to="/tenants" label="Add Tenant" icon="👤" />
+            <QuickAction to="/payments" label="Add Payment" icon="💳" />
+            <QuickAction to="/billing" label="Generate Bills" icon="🧾" />
+            <QuickAction to="/ledger" label="View Ledger" icon="📒" />
+            <QuickAction to="/receipts" label="Generate Receipt" icon="🧻" />
+          </div>
+        </div>
+        <ActivityFeed items={activity ?? []} />
+      </div>
+
+      {(stats.unpaidBillsCount > 0 || stats.vacant > 0) && (
         <div>
           <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Alerts</h2>
           <div className="space-y-2">
-            {data.unpaidBillsCount > 0 && (
+            {stats.unpaidBillsCount > 0 && (
               <div className="rounded-xl border border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/40 px-4 py-3 text-orange-800 dark:text-orange-300">
-                {data.unpaidBillsCount} bill(s) unpaid or overdue.{' '}
+                {stats.unpaidBillsCount} bill(s) unpaid or overdue.{' '}
                 <Link to="/ledger" className="font-semibold underline">
                   View ledger
                 </Link>
               </div>
             )}
-            {data.vacant > 0 && (
+            {stats.vacant > 0 && (
               <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-700 dark:text-slate-300">
-                {data.vacant} room(s) vacant: {data.vacantRoomsList.map((r) => r.room_number).join(', ')}
+                {stats.vacant} room(s) vacant: {stats.vacantRoomsList.map((r) => r.room_number).join(', ')}
               </div>
             )}
           </div>
