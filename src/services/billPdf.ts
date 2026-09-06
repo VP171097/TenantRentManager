@@ -70,25 +70,17 @@ export async function buildBillPdf({
   doc.text(`Phone: ${tenant.phone || 'No phone on file'}`, 20, bodyTop + 34)
   doc.text(`Room: ${roomNumber ?? '—'}`, 20, bodyTop + 48)
 
-  // Property name/address block — fills the whitespace below the tenant
-  // info block, left-aligned, clearly labeled.
-  doc.setFontSize(9)
-  doc.setTextColor(90, 90, 90)
-  doc.text(`Property name: ${property.name}`, 20, bodyTop + 66)
-  const addressText = property.address || '—'
-  const wrappedAddress = doc.splitTextToSize(`Property Address: ${addressText}`, pageWidth - 40)
-  doc.text(wrappedAddress, 20, bodyTop + 78)
-  doc.setTextColor(0, 0, 0)
-  const propertyBlockBottom = bodyTop + 78 + wrappedAddress.length * 11
-
   // Right: UPI QR block, positioned in the body (not the header band) so
   // it sits above the charges table, alongside the tenant info block.
+  // Computed before the property block below so that block can leave
+  // room for it and wrap onto extra lines instead of running underneath it.
+  const qrSize = 78
+  const qrReservedWidth = upiId ? qrSize + 16 : 0
   let qrBottom = bodyTop
   if (upiId) {
     const link = buildUpiLink({ upiId, payeeName: property.name, amount: balance, note: `Rent ${monthLabel}` })
     try {
       const qrDataUrl = await QRCode.toDataURL(link, { margin: 1, width: 200 })
-      const qrSize = 78
       const qrX = pageWidth - 20 - qrSize
       const qrY = bodyTop + 6
       doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
@@ -100,6 +92,20 @@ export async function buildBillPdf({
       // QR generation failing should never block the bill PDF itself.
     }
   }
+
+  // Property name/address block — fills the whitespace below the tenant
+  // info block, left-aligned, clearly labeled. Wraps within whatever width
+  // is left of the QR code (if any) so long addresses drop to their own
+  // line instead of running under/off the page.
+  doc.setFontSize(9)
+  doc.setTextColor(90, 90, 90)
+  doc.text(`Property name: ${property.name}`, 20, bodyTop + 66)
+  const addressText = property.address || '—'
+  const addressWrapWidth = pageWidth - 40 - qrReservedWidth
+  const wrappedAddress = doc.splitTextToSize(`Property Address: ${addressText}`, addressWrapWidth)
+  doc.text(wrappedAddress, 20, bodyTop + 78)
+  doc.setTextColor(0, 0, 0)
+  const propertyBlockBottom = bodyTop + 78 + wrappedAddress.length * 11
 
   const readingRows =
     reading != null
