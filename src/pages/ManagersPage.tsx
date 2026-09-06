@@ -1,11 +1,21 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listManagers, listManagerPermissions, upsertManagerPermission, removeManager, updateManager } from '../services/managers'
+import {
+  listManagers,
+  listManagerPermissions,
+  upsertManagerPermission,
+  removeManager,
+  updateManager,
+  createManager,
+} from '../services/managers'
 import { listProperties } from '../services/properties'
+import { useAuth } from '../hooks/useAuth'
 import { ErrorState, EmptyState } from '../components/States'
 import { SkeletonList } from '../components/Skeleton'
 import { ManagerEmptyIcon } from '../components/EmptyIcons'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { CreateManagerLoginForm } from '../components/CreateManagerLoginForm'
+import { InviteManagerForm } from '../components/InviteManagerForm'
 import { friendlyError } from '../utils/errors'
 
 const PERMISSION_FIELDS: { key: string; label: string }[] = [
@@ -22,11 +32,14 @@ const PERMISSION_FIELDS: { key: string; label: string }[] = [
 
 export function ManagersPage() {
   const queryClient = useQueryClient()
+  const { profile } = useAuth()
   const { data: managers, isLoading, error, refetch } = useQuery({ queryKey: ['managers'], queryFn: listManagers })
   const { data: properties } = useQuery({ queryKey: ['properties'], queryFn: listProperties })
   const [expandedManagerId, setExpandedManagerId] = useState<string | null>(null)
   const [editingManagerId, setEditingManagerId] = useState<string | null>(null)
+  const [loginManagerId, setLoginManagerId] = useState<string | null>(null)
   const [toRemove, setToRemove] = useState<string | null>(null)
+  const [showAddForm, setShowAddForm] = useState(false)
 
   const removeMutation = useMutation({
     mutationFn: (id: string) => removeManager(id),
@@ -48,22 +61,41 @@ export function ManagersPage() {
 
   return (
     <div className="space-y-6 page-fade-in">
-      <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Managers</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Managers</h1>
+        <button onClick={() => setShowAddForm((s) => !s)} className="btn-primary px-4">
+          {showAddForm ? 'Close' : '+ Add Manager'}
+        </button>
+      </div>
       <p className="text-slate-500 dark:text-slate-400">
-        Managers sign up separately using the standard login screen with the "manager" role assigned by you, or via
-        an invite flow set up by your admin. Once a manager account exists, set what they can access here.
+        Add a manager, then either set a password for them yourself or send them an invite link to set their own.
+        Once they have a login, set what they can access here.
       </p>
 
-      {managers && managers.length === 0 && <EmptyState title="No managers added yet" icon={<ManagerEmptyIcon className="h-full w-full" />} />}
+      {showAddForm && profile && (
+        <AddManagerForm ownerId={profile.role === 'owner' ? profile.id : (profile.owner_id ?? profile.id)} onDone={() => setShowAddForm(false)} />
+      )}
+
+      {managers && managers.length === 0 && !showAddForm && (
+        <EmptyState title="No managers added yet" icon={<ManagerEmptyIcon className="h-full w-full" />} />
+      )}
       <div className="space-y-3">
         {managers?.map((m) => (
           <div key={m.id} className="card">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-bold text-slate-900 dark:text-slate-100">{m.full_name}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{m.email}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{m.email || m.phone}</p>
+                {!m.profile_id && (
+                  <p className="mt-1 text-xs font-semibold text-orange-600 dark:text-orange-400">No login yet</p>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
+                {!m.profile_id && (
+                  <button onClick={() => setLoginManagerId(loginManagerId === m.id ? null : m.id)} className="btn-secondary px-4">
+                    {loginManagerId === m.id ? 'Close' : 'Set Up Login'}
+                  </button>
+                )}
                 <button onClick={() => setEditingManagerId(editingManagerId === m.id ? null : m.id)} className="btn-secondary px-4">
                   {editingManagerId === m.id ? 'Close' : 'Edit'}
                 </button>
@@ -78,6 +110,14 @@ export function ManagersPage() {
                 </button>
               </div>
             </div>
+            {loginManagerId === m.id && !m.profile_id && (
+              <div className="mt-4 space-y-4 border-t border-slate-100 dark:border-slate-700 pt-4">
+                <CreateManagerLoginForm manager={m} />
+                <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
+                  <InviteManagerForm manager={m} />
+                </div>
+              </div>
+            )}
             {editingManagerId === m.id && <ManagerProfileEditor manager={m} onDone={() => setEditingManagerId(null)} />}
             {expandedManagerId === m.id && properties && (
               <ManagerPermissionsEditor managerId={m.id} properties={properties} />
@@ -173,5 +213,53 @@ function ManagerPermissionsEditor({ managerId, properties }: { managerId: string
         )
       })}
     </div>
+  )
+}
+
+function AddManagerForm({ ownerId, onDone }: { ownerId: string; onDone: () => void }) {
+  const queryClient = useQueryClient()
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      createManager({ owner_id: ownerId, full_name: fullName, email: email || null, phone: phone || null }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['managers'] })
+      onDone()
+    },
+    onError: (err: unknown) => setError(friendlyError(err)),
+  })
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        mutation.mutate()
+      }}
+      className="card max-w-md space-y-3"
+    >
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Full name</label>
+        <input value={fullName} onChange={(e) => setFullName(e.target.value)} required className="input mt-1" />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Email (optional)</label>
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input mt-1" />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Mobile number (optional)</label>
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} className="input mt-1" />
+      </div>
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        You'll set up their login (password or invite link) and permissions next.
+      </p>
+      {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
+      <button type="submit" disabled={mutation.isPending} className="btn-primary w-full">
+        {mutation.isPending ? 'Adding…' : 'Add Manager'}
+      </button>
+    </form>
   )
 }

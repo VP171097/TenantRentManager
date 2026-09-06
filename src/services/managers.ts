@@ -13,11 +13,34 @@ export async function listManagerPermissions(managerId: string): Promise<Manager
   return data as ManagerPermission[]
 }
 
-/** Invites a manager: creates the auth user via signUp (email/password chosen
- * by the owner during setup flow is out of scope for a static site — in
- * production this should go through a Supabase Edge Function using the
- * service role to invite by email; here we support attaching permissions
- * to an already-existing manager profile row created by such a flow). */
+/** Creates a bare manager record (name + email/phone, no login yet). The
+ * owner then either sets a password directly (createManagerLogin) or
+ * generates a shareable invite link (generateManagerInvite) so the
+ * manager can set their own password. */
+export async function createManager(input: {
+  owner_id: string
+  full_name: string
+  email?: string | null
+  phone?: string | null
+}): Promise<Manager> {
+  const { data, error } = await supabase.from('managers').insert(input).select().single()
+  if (error) throw error
+  return data as Manager
+}
+
+/** Owner generates (or regenerates) a shareable invite link for this
+ * manager to self-register — same idea as generateTenantInvite. */
+export async function generateManagerInvite(managerId: string): Promise<Manager> {
+  const { data, error } = await supabase.rpc('fn_generate_manager_invite', { p_manager_id: managerId })
+  if (error) throw error
+  return data as Manager
+}
+
+export async function revokeManagerInvite(managerId: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_revoke_manager_invite', { p_manager_id: managerId })
+  if (error) throw error
+}
+
 export async function upsertManagerPermission(input: {
   manager_id: string
   property_id: string

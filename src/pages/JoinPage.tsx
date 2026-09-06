@@ -4,13 +4,17 @@ import { supabase } from '../lib/supabase'
 import { friendlyError } from '../utils/errors'
 import { Footer } from '../components/Footer'
 
-/** Public page a tenant lands on after opening the invite link their
- * landlord shared (WhatsApp/SMS/email/in person). Sets their own password
- * and creates their login via the accept-tenant-invite Edge Function. */
+/** Public page a tenant OR manager lands on after opening the invite link
+ * the owner shared (WhatsApp/SMS/email/in person). Sets their own password
+ * and creates their login via the matching accept-*-invite Edge Function —
+ * ?type=manager routes to accept-manager-invite, anything else (or no
+ * type param, keeping old tenant links working) routes to
+ * accept-tenant-invite. */
 export function JoinPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') ?? ''
+  const isManager = searchParams.get('type') === 'manager'
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -27,9 +31,10 @@ export function JoinPage() {
     }
     setLoading(true)
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('accept-tenant-invite', {
-        body: { token, identifier, password },
-      })
+      const { data, error: fnError } = await supabase.functions.invoke(
+        isManager ? 'accept-manager-invite' : 'accept-tenant-invite',
+        { body: { token, identifier, password } }
+      )
       if (fnError) throw fnError
       const result = data as { success?: boolean; identifier?: string; isEmail?: boolean; error?: string }
       if (result.error) throw new Error(result.error)
@@ -45,7 +50,10 @@ export function JoinPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900 px-4">
         <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-800 p-8 text-center shadow-sm border border-slate-100 dark:border-slate-700">
-          <p className="text-slate-600 dark:text-slate-300">This invite link is missing or incomplete. Please ask your landlord to resend it.</p>
+          <p className="text-slate-600 dark:text-slate-300">
+            This invite link is missing or incomplete. Please ask the {isManager ? 'property owner' : 'landlord'} to
+            resend it.
+          </p>
         </div>
       </div>
     )
@@ -73,7 +81,7 @@ export function JoinPage() {
           ) : (
             <>
               <p className="mt-2 text-slate-500 dark:text-slate-400">
-                Your landlord invited you to set up your RentBook account.
+                {isManager ? 'The property owner' : 'Your landlord'} invited you to set up your RentBook account.
               </p>
               <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                 <div>

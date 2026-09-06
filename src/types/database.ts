@@ -146,11 +146,13 @@ export interface Receipt {
 
 export interface Manager {
   id: string
-  profile_id: string
+  profile_id: string | null
   owner_id: string
   full_name: string
   email: string | null
   phone: string | null
+  invite_token: string | null
+  invite_token_expires_at: string | null
   created_at: string
 }
 
