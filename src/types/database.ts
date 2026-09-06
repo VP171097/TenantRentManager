@@ -13,6 +13,7 @@ export interface Profile {
   phone: string | null
   owner_id: string | null // for managers/tenants: the owner they belong to
   upi_id: string | null // owner's UPI ID for collecting rent payments (only meaningful on owner rows)
+  logo_url: string | null // owner's branding logo (only meaningful on owner rows), shown in header + PDFs
   created_at: string
 }
 
@@ -23,6 +24,7 @@ export interface Property {
   code: string // short code used in receipt numbers, e.g. KR
   address: string | null
   city: string | null
+  cover_image_url: string | null
   created_at: string
 }
 

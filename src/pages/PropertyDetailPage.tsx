@@ -4,11 +4,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getProperty, updateProperty, deleteProperty } from '../services/properties'
 import { listRooms, createRoom } from '../services/rooms'
 import { listTenants } from '../services/tenants'
-import { LoadingState, ErrorState, EmptyState } from '../components/States'
+import { ErrorState, EmptyState } from '../components/States'
+import { SkeletonCardGrid } from '../components/Skeleton'
+import { RoomEmptyIcon, TenantEmptyIcon } from '../components/EmptyIcons'
 import { RoomCard, TenantCard } from '../components/Cards'
 import { RoomForm } from '../components/forms/RoomForm'
 import { PropertyForm } from '../components/forms/PropertyForm'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { ImageUploader } from '../components/ImageUploader'
 import { friendlyError } from '../utils/errors'
 import type { PropertyFormValues, RoomFormValues } from '../utils/validation'
 
@@ -39,6 +42,15 @@ export function PropertyDetailPage() {
     onError: (err) => setFormError(friendlyError(err)),
   })
 
+  const coverMutation = useMutation({
+    mutationFn: (coverUrl: string) => updateProperty(id!, { cover_image_url: coverUrl }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['property', id] })
+      queryClient.invalidateQueries({ queryKey: ['properties'] })
+    },
+    onError: (err) => setEditError(friendlyError(err)),
+  })
+
   const editPropertyMutation = useMutation({
     mutationFn: (values: PropertyFormValues) => updateProperty(id!, values),
     onSuccess: () => {
@@ -58,15 +70,27 @@ export function PropertyDetailPage() {
     onError: (err) => setEditError(friendlyError(err)),
   })
 
-  if (isLoading) return <LoadingState />
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <SkeletonCardGrid count={1} />
+        <SkeletonCardGrid />
+      </div>
+    )
+  }
   if (error || !property) return <ErrorState message="Could not load property." onRetry={() => refetch()} />
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 page-fade-in">
+      {property.cover_image_url && (
+        <div className="h-40 w-full overflow-hidden rounded-2xl sm:h-56">
+          <img src={property.cover_image_url} alt="" className="h-full w-full object-cover" />
+        </div>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900">{property.name}</h1>
-          <p className="text-slate-500">
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">{property.name}</h1>
+          <p className="text-slate-500 dark:text-slate-400">
             {property.code} {property.city && `· ${property.city}`}
           </p>
         </div>
@@ -74,39 +98,54 @@ export function PropertyDetailPage() {
           <button onClick={() => setShowEdit((s) => !s)} className="btn-secondary px-4">
             {showEdit ? 'Close' : 'Edit'}
           </button>
-          <button onClick={() => setShowDelete(true)} className="btn-secondary px-4 text-red-600">
+          <button onClick={() => setShowDelete(true)} className="btn-secondary px-4 text-red-600 dark:text-red-400">
             Delete Property
           </button>
         </div>
       </div>
 
-      {editError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{editError}</p>}
+      {editError && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{editError}</p>}
 
       {showEdit && (
-        <div className="card max-w-md">
-          <h2 className="mb-3 text-lg font-bold text-slate-900">Edit Property</h2>
-          <PropertyForm
-            defaultValues={{ name: property.name, code: property.code, address: property.address ?? '', city: property.city ?? '' }}
-            onSubmit={(v) => editPropertyMutation.mutateAsync(v)}
-            submitLabel="Save Changes"
-          />
+        <div className="card max-w-md space-y-5">
+          <div>
+            <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Edit Property</h2>
+            <PropertyForm
+              defaultValues={{ name: property.name, code: property.code, address: property.address ?? '', city: property.city ?? '' }}
+              onSubmit={(v) => editPropertyMutation.mutateAsync(v)}
+              submitLabel="Save Changes"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Cover photo</label>
+            <div className="mt-1">
+              <ImageUploader
+                path={`${property.owner_id}/cover-${property.id}`}
+                label={property.cover_image_url ? 'Change cover photo' : 'Upload cover photo'}
+                currentUrl={property.cover_image_url}
+                onUploaded={(url) => coverMutation.mutate(url)}
+              />
+            </div>
+          </div>
         </div>
       )}
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">Rooms</h2>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Rooms</h2>
           <button onClick={() => setShowForm((s) => !s)} className="btn-primary px-4 py-2">
             {showForm ? 'Close' : '+ Add Room'}
           </button>
         </div>
         {showForm && (
           <div className="card mb-4 max-w-md">
-            {formError && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>}
+            {formError && <p className="mb-3 rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{formError}</p>}
             <RoomForm onSubmit={(v) => createRoomMutation.mutateAsync(v)} submitLabel="Add Room" />
           </div>
         )}
-        {rooms && rooms.length === 0 && <EmptyState title="No rooms yet" description="Add rooms to this property." />}
+        {rooms && rooms.length === 0 && (
+          <EmptyState title="No rooms yet" description="Add rooms to this property." icon={<RoomEmptyIcon className="h-full w-full" />} />
+        )}
         {rooms && rooms.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {rooms.map((r) => (
@@ -117,8 +156,8 @@ export function PropertyDetailPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-slate-900">Tenants</h2>
-        {tenants && tenants.length === 0 && <EmptyState title="No tenants yet" />}
+        <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Tenants</h2>
+        {tenants && tenants.length === 0 && <EmptyState title="No tenants yet" icon={<TenantEmptyIcon className="h-full w-full" />} />}
         {tenants && tenants.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {tenants.map((t) => (

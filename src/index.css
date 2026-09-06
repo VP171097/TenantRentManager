@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Class-based dark mode (Tailwind v4): toggling `.dark` on <html> makes
+ * every `dark:` variant apply, instead of only following OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-brand-50: #eef2ff;
   --color-brand-100: #e0e7ff;
@@ -16,8 +20,16 @@ html, body, #root {
   height: 100%;
 }
 
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -29,18 +41,46 @@ button, a, input, select {
   min-height: 2.5rem;
 }
 
+button, a {
+  @apply transition duration-150 ease-out;
+}
+
+button:active, a:active {
+  @apply scale-[0.97];
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .input {
-  @apply w-full rounded-xl border border-slate-300 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200;
+  @apply w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-base text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-900;
 }
 
 .btn-primary {
-  @apply rounded-xl bg-brand-600 py-3 text-base font-bold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60;
+  @apply rounded-xl bg-brand-600 py-3 text-base font-bold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60 transition active:scale-[0.97];
 }
 
 .btn-secondary {
-  @apply rounded-xl border border-slate-300 py-3 text-base font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60;
+  @apply rounded-xl border border-slate-300 dark:border-slate-600 py-3 text-base font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 transition active:scale-[0.97];
 }
 
 .card {
-  @apply rounded-2xl bg-white p-5 shadow-sm border border-slate-100;
+  @apply rounded-2xl bg-white dark:bg-slate-800 p-5 shadow-sm border border-slate-100 dark:border-slate-700;
+}
+
+/* Fade-in for route content (skipped under reduced motion via the media
+ * query above, which zeroes animation-duration globally). */
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-fade-in {
+  animation: page-fade-in 0.25s ease-out;
 }

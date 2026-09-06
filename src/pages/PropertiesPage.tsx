@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { listProperties, createProperty } from '../services/properties'
 import { useAuth } from '../hooks/useAuth'
 import { PropertyCard } from '../components/Cards'
-import { LoadingState, ErrorState, EmptyState } from '../components/States'
+import { ErrorState, EmptyState } from '../components/States'
+import { SkeletonCardGrid } from '../components/Skeleton'
+import { PropertyEmptyIcon } from '../components/EmptyIcons'
 import { PropertyForm } from '../components/forms/PropertyForm'
 import { friendlyError } from '../utils/errors'
 import type { PropertyFormValues } from '../utils/validation'
@@ -26,9 +28,9 @@ export function PropertiesPage() {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-fade-in">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-slate-900">Properties</h1>
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Properties</h1>
         <button onClick={() => setShowForm((s) => !s)} className="btn-primary px-5">
           {showForm ? 'Close' : '+ Add Property'}
         </button>
@@ -36,15 +38,19 @@ export function PropertiesPage() {
 
       {showForm && (
         <div className="card max-w-md">
-          {formError && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>}
+          {formError && <p className="mb-3 rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{formError}</p>}
           <PropertyForm onSubmit={(v) => createMutation.mutateAsync(v)} submitLabel="Create Property" />
         </div>
       )}
 
-      {isLoading && <LoadingState />}
+      {isLoading && <SkeletonCardGrid />}
       {error && <ErrorState message="Could not load properties." onRetry={() => refetch()} />}
       {data && data.length === 0 && (
-        <EmptyState title="No properties yet" description="Add your first property to get started." />
+        <EmptyState
+          title="No properties yet"
+          description="Add your first property to get started."
+          icon={<PropertyEmptyIcon className="h-full w-full" />}
+        />
       )}
       {data && data.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
