@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { GlobalSearch } from '../components/GlobalSearch'
 
 const OWNER_NAV = [
   { to: '/dashboard', label: 'Home', icon: '🏠' },
@@ -48,6 +49,7 @@ export function AppLayout() {
         <div className="px-6 py-5">
           <BrandMark profile={profile} />
           {profile && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{profile.full_name}</p>}
+          <GlobalSearch className="mt-4" />
         </div>
         <nav className="flex-1 space-y-1 px-3">
           {OWNER_NAV.map((item) => (
@@ -79,11 +81,14 @@ export function AppLayout() {
 
       {/* Main content */}
       <div className="flex-1 pb-24 md:pb-0">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 md:hidden">
-          <BrandMark profile={profile} />
-          <button onClick={handleSignOut} className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-            Sign out
-          </button>
+        <header className="sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 md:hidden">
+          <div className="flex items-center justify-between">
+            <BrandMark profile={profile} />
+            <button onClick={handleSignOut} className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+              Sign out
+            </button>
+          </div>
+          <GlobalSearch className="mt-3" />
         </header>
         <main className="mx-auto max-w-6xl px-4 py-6">
           <div key={location.pathname} className="page-fade-in">
