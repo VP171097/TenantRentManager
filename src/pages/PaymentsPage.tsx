@@ -13,6 +13,7 @@ import { friendlyError } from '../utils/errors'
 import { formatINR } from '../utils/money'
 import { downloadReceiptPdf } from '../services/receiptPdf'
 import { useOwnerLogoUrl } from '../hooks/useOwnerBranding'
+import { downloadCsv, toCsv } from '../utils/csv'
 
 type SortKey = 'date' | 'amount'
 
@@ -91,9 +92,28 @@ export function PaymentsPage() {
     }
   }
 
+  function handleExport() {
+    const csv = toCsv(
+      sortedPayments.map((p) => ({ ...p, tenant_name: tenantName(p.tenant_id) })),
+      [
+        { key: 'tenant_name', label: 'Tenant' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'payment_date', label: 'Payment Date' },
+        { key: 'method', label: 'Method' },
+        { key: 'reference', label: 'Reference' },
+      ]
+    )
+    downloadCsv('payments.csv', csv)
+  }
+
   return (
     <div className="space-y-6 page-fade-in">
-      <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Payments</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Payments</h1>
+        <button onClick={handleExport} className="btn-secondary px-4" disabled={sortedPayments.length === 0}>
+          Export CSV
+        </button>
+      </div>
 
       <div className="card max-w-md">
         <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Record a Payment</h2>

@@ -9,6 +9,7 @@ import { TenantEmptyIcon } from '../components/EmptyIcons'
 import { TenantForm } from '../components/forms/TenantForm'
 import { SearchBar, FilterBar } from '../components/SearchFilterBar'
 import { friendlyError } from '../utils/errors'
+import { downloadCsv, toCsv } from '../utils/csv'
 import type { TenantFormValues } from '../utils/validation'
 
 export function TenantsPage() {
@@ -48,13 +49,38 @@ export function TenantsPage() {
       .filter((t) => !search || t.full_name.toLowerCase().includes(search.toLowerCase()) || t.phone.includes(search))
   }, [data, filter, search])
 
+  function handleExport() {
+    const rows = filtered.map((t) => ({
+      full_name: t.full_name,
+      phone: t.phone,
+      email: t.email,
+      status: t.status,
+      move_in_date: t.move_in_date,
+      security_deposit: t.security_deposit,
+    }))
+    const csv = toCsv(rows, [
+      { key: 'full_name', label: 'Name' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'email', label: 'Email' },
+      { key: 'status', label: 'Status' },
+      { key: 'move_in_date', label: 'Move-in Date' },
+      { key: 'security_deposit', label: 'Security Deposit' },
+    ])
+    downloadCsv('tenants.csv', csv)
+  }
+
   return (
     <div className="space-y-6 page-fade-in">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Tenants</h1>
-        <button onClick={() => setShowForm((s) => !s)} className="btn-primary px-5">
-          {showForm ? 'Close' : '+ Add Tenant'}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={handleExport} className="btn-secondary px-4" disabled={filtered.length === 0}>
+            Export CSV
+          </button>
+          <button onClick={() => setShowForm((s) => !s)} className="btn-primary px-5">
+            {showForm ? 'Close' : '+ Add Tenant'}
+          </button>
+        </div>
       </div>
 
       {showForm && (

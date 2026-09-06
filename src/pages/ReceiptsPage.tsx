@@ -9,6 +9,7 @@ import { SearchBar } from '../components/SearchFilterBar'
 import { useState } from 'react'
 import { downloadReceiptPdf } from '../services/receiptPdf'
 import { useOwnerLogoUrl } from '../hooks/useOwnerBranding'
+import { downloadCsv, toCsv } from '../utils/csv'
 
 export function ReceiptsPage() {
   const { data: receipts, isLoading, error, refetch } = useQuery({ queryKey: ['receipts'], queryFn: () => listReceipts() })
@@ -46,9 +47,26 @@ export function ReceiptsPage() {
   }
   if (error) return <ErrorState message="Could not load receipts." onRetry={() => refetch()} />
 
+  function handleExport() {
+    const csv = toCsv(
+      filtered.map((r) => ({ ...r, tenant_name: tenants?.find((t) => t.id === r.tenant_id)?.full_name ?? '' })),
+      [
+        { key: 'receipt_number', label: 'Receipt Number' },
+        { key: 'tenant_name', label: 'Tenant' },
+        { key: 'generated_at', label: 'Generated At' },
+      ]
+    )
+    downloadCsv('receipts.csv', csv)
+  }
+
   return (
     <div className="space-y-6 page-fade-in">
-      <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Receipts</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Receipts</h1>
+        <button onClick={handleExport} className="btn-secondary px-4" disabled={filtered.length === 0}>
+          Export CSV
+        </button>
+      </div>
       <SearchBar value={search} onChange={setSearch} placeholder="Search by receipt number or tenant…" />
       {filtered.length === 0 ? (
         <EmptyState title="No receipts yet" description="Generate a receipt after recording a payment." icon={<ReceiptEmptyIcon className="h-full w-full" />} />

@@ -8,6 +8,7 @@ import { SkeletonCardGrid } from '../components/Skeleton'
 import { PropertyEmptyIcon } from '../components/EmptyIcons'
 import { PropertyForm } from '../components/forms/PropertyForm'
 import { friendlyError } from '../utils/errors'
+import { downloadCsv, toCsv } from '../utils/csv'
 import type { PropertyFormValues } from '../utils/validation'
 
 export function PropertiesPage() {
@@ -27,13 +28,29 @@ export function PropertiesPage() {
     onError: (err) => setFormError(friendlyError(err)),
   })
 
+  function handleExport() {
+    const rows = (data ?? []).map((p) => ({ name: p.name, code: p.code, address: p.address, city: p.city }))
+    const csv = toCsv(rows, [
+      { key: 'name', label: 'Name' },
+      { key: 'code', label: 'Code' },
+      { key: 'address', label: 'Address' },
+      { key: 'city', label: 'City' },
+    ])
+    downloadCsv('properties.csv', csv)
+  }
+
   return (
     <div className="space-y-6 page-fade-in">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Properties</h1>
-        <button onClick={() => setShowForm((s) => !s)} className="btn-primary px-5">
-          {showForm ? 'Close' : '+ Add Property'}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={handleExport} className="btn-secondary px-4" disabled={!data || data.length === 0}>
+            Export CSV
+          </button>
+          <button onClick={() => setShowForm((s) => !s)} className="btn-primary px-5">
+            {showForm ? 'Close' : '+ Add Property'}
+          </button>
+        </div>
       </div>
 
       {showForm && (
