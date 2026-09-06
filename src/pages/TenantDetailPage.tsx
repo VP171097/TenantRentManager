@@ -12,7 +12,7 @@ import {
   dismissTenantPaidFlag,
 } from '../services/billing'
 import { listPayments, recordPayment, generateReceipt } from '../services/payments'
-import { getLatestReading, listElectricityReadings, recordElectricityReading } from '../services/electricity'
+import { getLatestReading, getReadingForMonth, listElectricityReadings, recordElectricityReading } from '../services/electricity'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { ErrorState } from '../components/States'
@@ -146,7 +146,12 @@ export function TenantDetailPage() {
       const { data: property } = await supabase.from('properties').select('*').eq('id', tenant.property_id).single()
       if (!property) return
 
-      const { data: ownerProfileForReceipt } = await supabase.from('profiles').select('logo_url').eq('id', tenant.owner_id).maybeSingle()
+      const { data: ownerProfileForReceipt } = await supabase
+        .from('profiles')
+        .select('logo_url, full_name, phone')
+        .eq('id', tenant.owner_id)
+        .maybeSingle()
+      const readingForReceipt = await getReadingForMonth(tenant.id, bill.billing_month).catch(() => null)
       const pdfBase64 = await receiptPdfBase64({
         receipt,
         payment,
@@ -154,6 +159,9 @@ export function TenantDetailPage() {
         tenant,
         property,
         logoUrl: (ownerProfileForReceipt as { logo_url?: string } | null)?.logo_url,
+        reading: readingForReceipt,
+        ownerName: (ownerProfileForReceipt as { full_name?: string } | null)?.full_name,
+        ownerPhone: (ownerProfileForReceipt as { phone?: string } | null)?.phone,
       })
       const { data, error: fnError } = await supabase.functions.invoke('send-bill', {
         body: { billId: bill.id, mode: 'receipt', paymentId: payment.id, pdfBase64 },
@@ -194,8 +202,8 @@ export function TenantDetailPage() {
     mutationFn: (values: TenantFormValues) =>
       updateTenant(id!, {
         full_name: values.full_name,
-        phone: values.phone,
-        email: values.email || undefined,
+        phone: values.phone || null,
+        email: values.email || null,
         property_id: values.property_id,
         room_id: values.room_id,
         security_deposit: values.security_deposit,
@@ -253,11 +261,23 @@ export function TenantDetailPage() {
       const payment = payments?.find((p) => p.id === paymentId)
       const bill = bills?.find((b) => b.id === payment?.bill_id)
       if (payment && bill && tenant) {
-        const [{ data: property }, { data: ownerProfile }] = await Promise.all([
+        const [{ data: property }, { data: ownerProfile }, readingForReceipt] = await Promise.all([
           supabase.from('properties').select('*').eq('id', tenant.property_id).single(),
-          supabase.from('profiles').select('logo_url').eq('id', tenant.owner_id).maybeSingle(),
+          supabase.from('profiles').select('logo_url, full_name, phone').eq('id', tenant.owner_id).maybeSingle(),
+          getReadingForMonth(tenant.id, bill.billing_month).catch(() => null),
         ])
-        if (property) downloadReceiptPdf({ receipt, payment, bill, tenant, property, logoUrl: (ownerProfile as { logo_url?: string } | null)?.logo_url })
+        if (property)
+          downloadReceiptPdf({
+            receipt,
+            payment,
+            bill,
+            tenant,
+            property,
+            logoUrl: (ownerProfile as { logo_url?: string } | null)?.logo_url,
+            reading: readingForReceipt,
+            ownerName: (ownerProfile as { full_name?: string } | null)?.full_name,
+            ownerPhone: (ownerProfile as { phone?: string } | null)?.phone,
+          })
       }
     } catch (err) {
       setError(friendlyError(err))
@@ -288,16 +308,24 @@ export function TenantDetailPage() {
   async function handleDownloadBill(bill: Bill) {
     try {
       const { data: property } = await supabase.from('properties').select('*').eq('id', tenant!.property_id).single()
-      const { data: ownerProfile } = await supabase.from('profiles').select('upi_id, logo_url').eq('id', tenant!.owner_id).maybeSingle()
+      const { data: ownerProfile } = await supabase
+        .from('profiles')
+        .select('upi_id, logo_url, full_name, phone')
+        .eq('id', tenant!.owner_id)
+        .maybeSingle()
       const { data: room } = await supabase.from('rooms').select('room_number').eq('id', bill.room_id).maybeSingle()
+      const reading = await getReadingForMonth(tenant!.id, bill.billing_month).catch(() => null)
       if (property) {
         await downloadBillPdf({
           bill,
           tenant: tenant!,
           property,
-          upiId: (ownerProfile as { upi_id?: string; logo_url?: string } | null)?.upi_id,
+          upiId: (ownerProfile as { upi_id?: string } | null)?.upi_id,
           roomNumber: (room as { room_number?: string } | null)?.room_number,
-          logoUrl: (ownerProfile as { upi_id?: string; logo_url?: string } | null)?.logo_url,
+          logoUrl: (ownerProfile as { logo_url?: string } | null)?.logo_url,
+          reading,
+          ownerName: (ownerProfile as { full_name?: string } | null)?.full_name,
+          ownerPhone: (ownerProfile as { phone?: string } | null)?.phone,
         })
       }
     } catch (err) {
@@ -310,17 +338,25 @@ export function TenantDetailPage() {
     setSendStatus(null)
     try {
       const { data: property } = await supabase.from('properties').select('*').eq('id', tenant!.property_id).single()
-      const { data: ownerProfile } = await supabase.from('profiles').select('upi_id, logo_url').eq('id', tenant!.owner_id).maybeSingle()
+      const { data: ownerProfile } = await supabase
+        .from('profiles')
+        .select('upi_id, logo_url, full_name, phone')
+        .eq('id', tenant!.owner_id)
+        .maybeSingle()
       const { data: room } = await supabase.from('rooms').select('room_number').eq('id', bill.room_id).maybeSingle()
+      const reading = await getReadingForMonth(tenant!.id, bill.billing_month).catch(() => null)
       let pdfBase64: string | undefined
       if (property) {
         pdfBase64 = await billPdfBase64({
           bill,
           tenant: tenant!,
           property,
-          upiId: (ownerProfile as { upi_id?: string; logo_url?: string } | null)?.upi_id,
+          upiId: (ownerProfile as { upi_id?: string } | null)?.upi_id,
           roomNumber: (room as { room_number?: string } | null)?.room_number,
-          logoUrl: (ownerProfile as { upi_id?: string; logo_url?: string } | null)?.logo_url,
+          logoUrl: (ownerProfile as { logo_url?: string } | null)?.logo_url,
+          reading,
+          ownerName: (ownerProfile as { full_name?: string } | null)?.full_name,
+          ownerPhone: (ownerProfile as { phone?: string } | null)?.phone,
         })
       }
       const { data, error: fnError } = await supabase.functions.invoke('send-bill', {
@@ -387,7 +423,7 @@ export function TenantDetailPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">{tenant.full_name}</h1>
           <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">
-            {tenant.phone} {tenant.email && `· ${tenant.email}`}
+            {tenant.phone || 'No phone on file'} {tenant.email && `· ${tenant.email}`}
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -414,7 +450,7 @@ export function TenantDetailPage() {
           <TenantForm
             defaultValues={{
               full_name: tenant.full_name,
-              phone: tenant.phone,
+              phone: tenant.phone ?? '',
               email: tenant.email ?? '',
               property_id: tenant.property_id,
               room_id: tenant.room_id ?? '',
@@ -556,6 +592,12 @@ export function TenantDetailPage() {
 
       <section className="space-y-4">
         <h2 className="mb-1 text-lg font-bold text-slate-900 dark:text-slate-100">Tenant Login</h2>
+        {!tenant.phone && !tenant.email && !tenant.profile_id && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+            This tenant hasn't provided contact details yet — generate an invite link so they can set up their own
+            account.
+          </p>
+        )}
         <CreateTenantLoginForm tenant={tenant} />
         <InviteTenantForm tenant={tenant} />
       </section>

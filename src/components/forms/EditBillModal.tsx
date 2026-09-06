@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Field } from './PropertyForm'
 import { formatINR } from '../../utils/money'
 import type { Bill, ElectricityReading } from '../../types/database'
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll'
 
 export interface EditBillValues {
   rent_amount: number
@@ -27,6 +28,7 @@ export function EditBillModal({
   onClose: () => void
   onSubmit: (values: EditBillValues) => Promise<unknown>
 }) {
+  useLockBodyScroll(open && !!bill)
   if (!open || !bill) return null
   // Keyed on bill.id so switching bills re-initializes local form state
   // instead of needing an effect to sync it.

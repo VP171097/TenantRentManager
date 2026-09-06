@@ -50,7 +50,7 @@ export interface Tenant {
   room_id: string | null
   profile_id: string | null // linked auth user for tenant login, nullable
   full_name: string
-  phone: string
+  phone: string | null
   email: string | null
   status: TenantStatus
   move_in_date: string

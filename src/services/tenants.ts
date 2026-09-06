@@ -20,7 +20,7 @@ export interface NewTenantInput {
   property_id: string
   room_id: string
   full_name: string
-  phone: string
+  phone?: string
   email?: string
   move_in_date: string
   security_deposit: number
@@ -33,7 +33,12 @@ export interface NewTenantInput {
  * user can retry idempotently since rent_revisions is unique per date). */
 export async function createTenant(input: NewTenantInput): Promise<Tenant> {
   const { initial_rent, ...tenantInput } = input
-  const { data: tenant, error } = await supabase.from('tenants').insert(tenantInput).select().single()
+  const insertPayload = {
+    ...tenantInput,
+    phone: tenantInput.phone?.trim() ? tenantInput.phone.trim() : null,
+    email: tenantInput.email?.trim() ? tenantInput.email.trim() : null,
+  }
+  const { data: tenant, error } = await supabase.from('tenants').insert(insertPayload).select().single()
   if (error) throw error
 
   const { error: revErr } = await supabase.from('rent_revisions').insert({

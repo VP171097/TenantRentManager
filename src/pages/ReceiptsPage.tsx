@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { downloadReceiptPdf } from '../services/receiptPdf'
 import { useOwnerLogoUrl } from '../hooks/useOwnerBranding'
 import { downloadCsv, toCsv } from '../utils/csv'
+import { getReadingForMonth } from '../services/electricity'
 
 export function ReceiptsPage() {
   const { data: receipts, isLoading, error, refetch } = useQuery({ queryKey: ['receipts'], queryFn: () => listReceipts() })
@@ -26,7 +27,23 @@ export function ReceiptsPage() {
       supabase.from('tenants').select('*').eq('id', receipt.tenant_id).single(),
       supabase.from('properties').select('*').eq('id', receipt.property_id).single(),
     ])
-    if (payment && bill && tenant && property) downloadReceiptPdf({ receipt, payment, bill, tenant, property, logoUrl })
+    if (payment && bill && tenant && property) {
+      const [reading, { data: ownerProfile }] = await Promise.all([
+        getReadingForMonth(tenant.id, bill.billing_month).catch(() => null),
+        supabase.from('profiles').select('full_name, phone').eq('id', tenant.owner_id).maybeSingle(),
+      ])
+      downloadReceiptPdf({
+        receipt,
+        payment,
+        bill,
+        tenant,
+        property,
+        logoUrl,
+        reading,
+        ownerName: (ownerProfile as { full_name?: string } | null)?.full_name,
+        ownerPhone: (ownerProfile as { phone?: string } | null)?.phone,
+      })
+    }
   }
 
   const filtered = (receipts ?? []).filter(

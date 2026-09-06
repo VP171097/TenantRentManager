@@ -4,6 +4,7 @@ import { rentRevisionSchema, type RentRevisionFormValues } from '../../utils/val
 import { Field } from './PropertyForm'
 import { computeRevisedRent } from '../../utils/billing'
 import { formatINR } from '../../utils/money'
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll'
 
 export function RentRevisionModal({
   open,
@@ -28,6 +29,8 @@ export function RentRevisionModal({
     defaultValues: { tenant_id: tenantId, change_type: 'percentage' },
   })
 
+  useLockBodyScroll(open)
+
   if (!open) return null
 
   const changeType = watch('change_type')
@@ -37,7 +40,7 @@ export function RentRevisionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
+      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
         <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Revise Rent</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">Current rent: {formatINR(currentRent)}</p>
         <form

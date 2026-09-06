@@ -31,7 +31,7 @@ export function TenantProfilePage() {
 
   useEffect(() => {
     if (tenant) {
-      setPhone(tenant.phone)
+      setPhone(tenant.phone ?? '')
       setEmail(tenant.email ?? '')
     }
   }, [tenant])

@@ -162,23 +162,27 @@ Deno.serve(async (req) => {
 
     const result: { whatsapp?: string; email?: string } = {}
 
-    // ---- WhatsApp (always attempted) ----
-    try {
-      await sendWhatsApp({
-        toPhone: tenant.phone,
-        tenantName: tenant.full_name,
-        monthLabel,
-        totalDue,
-        balanceStr,
-        upiId,
-        isReminder,
-        isReceipt,
-        paymentAmount,
-        receiptNumber,
-      })
-      result.whatsapp = 'sent'
-    } catch (err) {
-      result.whatsapp = `failed: ${(err as Error).message}`
+    // ---- WhatsApp (only if tenant has a phone on file) ----
+    if (tenant.phone) {
+      try {
+        await sendWhatsApp({
+          toPhone: tenant.phone,
+          tenantName: tenant.full_name,
+          monthLabel,
+          totalDue,
+          balanceStr,
+          upiId,
+          isReminder,
+          isReceipt,
+          paymentAmount,
+          receiptNumber,
+        })
+        result.whatsapp = 'sent'
+      } catch (err) {
+        result.whatsapp = `failed: ${(err as Error).message}`
+      }
+    } else {
+      result.whatsapp = 'skipped: no phone on file'
     }
 
     // ---- Email (only if tenant has an email on file) ----

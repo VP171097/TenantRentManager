@@ -65,7 +65,7 @@ export function TenantCard({ tenant }: { tenant: Tenant }) {
           {tenant.status === 'active' ? 'Active' : 'Moved Out'}
         </span>
       </div>
-      <p className="text-sm text-slate-500 dark:text-slate-400">{tenant.phone}</p>
+      <p className="text-sm text-slate-500 dark:text-slate-400">{tenant.phone || 'No phone on file'}</p>
     </Link>
   )
 }

@@ -46,7 +46,7 @@ export function TenantsPage() {
   const filtered = useMemo(() => {
     return (data ?? [])
       .filter((t) => filter === 'all' || t.status === filter)
-      .filter((t) => !search || t.full_name.toLowerCase().includes(search.toLowerCase()) || t.phone.includes(search))
+      .filter((t) => !search || t.full_name.toLowerCase().includes(search.toLowerCase()) || (t.phone ?? '').includes(search))
   }, [data, filter, search])
 
   function handleExport() {

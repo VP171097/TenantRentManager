@@ -5,6 +5,7 @@ import { ErrorState, EmptyState } from '../../components/States'
 import { SkeletonList } from '../../components/Skeleton'
 import { ReceiptEmptyIcon } from '../../components/EmptyIcons'
 import { downloadReceiptPdf } from '../../services/receiptPdf'
+import { getReadingForMonth } from '../../services/electricity'
 import type { Receipt, Tenant } from '../../types/database'
 
 async function loadReceipts(profileId: string) {
@@ -34,9 +35,10 @@ export function TenantReceiptsPage() {
       supabase.from('payments').select('*').eq('id', receipt.payment_id).single(),
       supabase.from('bills').select('*').eq('tenant_id', receipt.tenant_id).order('billing_month', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('properties').select('*').eq('id', receipt.property_id).single(),
-      supabase.from('profiles').select('logo_url').eq('id', data.tenant.owner_id).maybeSingle(),
+      supabase.from('profiles').select('logo_url, full_name, phone').eq('id', data.tenant.owner_id).maybeSingle(),
     ])
-    if (payment && bill && property)
+    if (payment && bill && property) {
+      const reading = await getReadingForMonth(data.tenant.id, bill.billing_month).catch(() => null)
       downloadReceiptPdf({
         receipt,
         payment,
@@ -44,7 +46,11 @@ export function TenantReceiptsPage() {
         tenant: data.tenant,
         property,
         logoUrl: (ownerProfile as { logo_url?: string } | null)?.logo_url,
+        reading,
+        ownerName: (ownerProfile as { full_name?: string } | null)?.full_name,
+        ownerPhone: (ownerProfile as { phone?: string } | null)?.phone,
       })
+    }
   }
 
   if (isLoading) return <SkeletonList />

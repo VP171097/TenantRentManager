@@ -3,7 +3,7 @@ import type { Bill } from '../types/database'
 import { formatINR } from '../utils/money'
 import { StatusBadge } from './StatusBadge'
 
-type SortKey = 'month' | 'rent' | 'electricity' | 'total_due' | 'total_paid' | 'balance' | 'status'
+type SortKey = 'month' | 'rent' | 'electricity' | 'units' | 'total_due' | 'total_paid' | 'balance' | 'status'
 type SortDir = 'asc' | 'desc'
 
 function SortHeader({
@@ -67,6 +67,8 @@ export function LedgerTable({
           return factor * (a.rent_amount - b.rent_amount)
         case 'electricity':
           return factor * (a.electricity_charge - b.electricity_charge)
+        case 'units':
+          return factor * (a.electricity_units - b.electricity_units)
         case 'total_due':
           return factor * (a.total_due - b.total_due)
         case 'total_paid':
@@ -90,6 +92,7 @@ export function LedgerTable({
             <SortHeader label="Month" sortKey="month" active={sortKey === 'month'} dir={sortDir} onSort={handleSort} />
             <SortHeader label="Rent" sortKey="rent" active={sortKey === 'rent'} dir={sortDir} onSort={handleSort} />
             <SortHeader label="Electricity" sortKey="electricity" active={sortKey === 'electricity'} dir={sortDir} onSort={handleSort} />
+            <SortHeader label="Units" sortKey="units" active={sortKey === 'units'} dir={sortDir} onSort={handleSort} />
             <SortHeader label="Total Due" sortKey="total_due" active={sortKey === 'total_due'} dir={sortDir} onSort={handleSort} />
             <SortHeader label="Paid" sortKey="total_paid" active={sortKey === 'total_paid'} dir={sortDir} onSort={handleSort} />
             <SortHeader label="Balance" sortKey="balance" active={sortKey === 'balance'} dir={sortDir} onSort={handleSort} />
@@ -110,6 +113,7 @@ export function LedgerTable({
               </td>
               <td className="px-4 py-3 dark:text-slate-200">{formatINR(b.rent_amount)}</td>
               <td className="px-4 py-3 dark:text-slate-200">{formatINR(b.electricity_charge)}</td>
+              <td className="px-4 py-3 dark:text-slate-200">{b.electricity_units}</td>
               <td className="px-4 py-3 dark:text-slate-200">{formatINR(b.total_due)}</td>
               <td className="px-4 py-3 dark:text-slate-200">{formatINR(b.total_paid)}</td>
               <td className={`px-4 py-3 font-semibold ${b.balance > 0 ? 'text-red-600 dark:text-red-400' : b.balance < 0 ? 'text-green-600 dark:text-green-400' : 'text-slate-600 dark:text-slate-300'}`}>

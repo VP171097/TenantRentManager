@@ -34,10 +34,14 @@ export function TenantForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <p className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+        Fill in what you know now. Anything left blank (phone, email) can be filled in by the tenant themselves via
+        an invite link after you save.
+      </p>
       <Field label="Full name" error={errors.full_name?.message}>
         <input {...register('full_name')} className="input" />
       </Field>
-      <Field label="Mobile number" error={errors.phone?.message}>
+      <Field label="Mobile number (optional — leave blank if you'll send an invite link instead)" error={errors.phone?.message}>
         <input {...register('phone')} className="input" />
       </Field>
       <Field label="Email (optional)" error={errors.email?.message}>

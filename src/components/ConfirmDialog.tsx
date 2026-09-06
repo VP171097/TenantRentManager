@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -12,10 +13,11 @@ interface ConfirmDialogProps {
 }
 
 export function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', danger, onConfirm, onCancel, children }: ConfirmDialogProps) {
+  useLockBodyScroll(open)
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
+      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
         <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h2>
         <p className="mt-2 text-slate-600 dark:text-slate-300">{message}</p>
         {children}

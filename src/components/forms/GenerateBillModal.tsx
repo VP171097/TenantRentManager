@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { generateBillSchema, type GenerateBillFormValues } from '../../utils/validation'
 import { Field } from './PropertyForm'
 import { formatINR } from '../../utils/money'
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll'
 
 /** Collects the electricity reading, rate, and any extra charges up front,
  * then hands them to the caller to save the reading + generate the bill in
@@ -56,6 +57,8 @@ export function GenerateBillModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, defaultPreviousReading, defaultRatePerUnit])
 
+  useLockBodyScroll(open)
+
   if (!open) return null
 
   const isMeterReset = watch('is_meter_reset')
@@ -70,7 +73,7 @@ export function GenerateBillModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
+      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
         <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Generate Bill — {monthLabel}</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">Rent for this month: {formatINR(currentRent)}</p>
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">

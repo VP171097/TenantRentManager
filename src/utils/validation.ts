@@ -5,6 +5,14 @@ export const phoneSchema = z
   .trim()
   .regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number')
 
+// Symmetric with emailSchema: value is optional, but if provided must be a valid 10-digit Indian mobile number
+export const optionalPhoneSchema = z
+  .string()
+  .trim()
+  .regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number')
+  .or(z.literal(''))
+  .optional()
+
 export const emailSchema = z.string().trim().email('Enter a valid email address').or(z.literal('')).optional()
 
 export const propertySchema = z.object({
@@ -30,7 +38,7 @@ export type RoomFormValues = z.infer<typeof roomSchema>
 
 export const tenantSchema = z.object({
   full_name: z.string().trim().min(2, 'Name is required'),
-  phone: phoneSchema,
+  phone: optionalPhoneSchema,
   email: emailSchema,
   property_id: z.string().uuid('Select a property'),
   room_id: z.string().uuid('Select a room'),
