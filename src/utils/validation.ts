@@ -83,3 +83,19 @@ export const managerSchema = z.object({
   phone: phoneSchema.optional(),
 })
 export type ManagerFormValues = z.infer<typeof managerSchema>
+
+export const expenseSchema = z.object({
+  property_id: z.string().uuid('Select a property'),
+  room_id: z.string().uuid().optional().or(z.literal('')),
+  category: z.enum(['maintenance', 'repair', 'utility', 'tax', 'insurance', 'other']),
+  description: z.string().trim().optional(),
+  amount: z.coerce.number().min(0, 'Amount cannot be negative'),
+  expense_date: z.string().min(1, 'Date is required'),
+})
+export type ExpenseFormValues = z.infer<typeof expenseSchema>
+
+export const maintenanceRequestSchema = z.object({
+  title: z.string().trim().min(2, 'Please describe the problem briefly'),
+  description: z.string().trim().optional(),
+})
+export type MaintenanceRequestFormValues = z.infer<typeof maintenanceRequestSchema>

@@ -7,6 +7,7 @@ import { SkeletonStatGrid } from '../../components/Skeleton'
 import { BillSummary } from '../../components/BillSummary'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { markBillAsPaidByTenant } from '../../services/billing'
+import { createMaintenanceRequest } from '../../services/maintenance'
 import { friendlyError } from '../../utils/errors'
 import { formatINR } from '../../utils/money'
 import { buildUpiLink } from '../../utils/upi'
@@ -46,6 +47,11 @@ export function TenantDashboardPage() {
   const [paidNote, setPaidNote] = useState('')
   const [markPaidError, setMarkPaidError] = useState<string | null>(null)
   const [markPaidDone, setMarkPaidDone] = useState(false)
+  const [showReportProblem, setShowReportProblem] = useState(false)
+  const [problemTitle, setProblemTitle] = useState('')
+  const [problemDescription, setProblemDescription] = useState('')
+  const [problemError, setProblemError] = useState<string | null>(null)
+  const [problemDone, setProblemDone] = useState(false)
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['my-data', profile?.id],
@@ -63,6 +69,25 @@ export function TenantDashboardPage() {
       setMarkPaidDone(true)
     },
     onError: (err) => setMarkPaidError(friendlyError(err)),
+  })
+
+  const reportProblemMutation = useMutation({
+    mutationFn: () =>
+      createMaintenanceRequest({
+        tenant_id: data!.tenant.id,
+        property_id: data!.tenant.property_id,
+        room_id: data!.tenant.room_id,
+        title: problemTitle.trim(),
+        description: problemDescription.trim() || undefined,
+      }),
+    onSuccess: () => {
+      setShowReportProblem(false)
+      setProblemTitle('')
+      setProblemDescription('')
+      setProblemError(null)
+      setProblemDone(true)
+    },
+    onError: (err) => setProblemError(friendlyError(err)),
   })
 
   const totalOutstanding = data ? data.bills.reduce((s, b) => s + (b.balance > 0 ? b.balance : 0), 0) : 0
@@ -138,6 +163,56 @@ export function TenantDashboardPage() {
         )}
       </div>
       {latestBill ? <BillSummary bill={latestBill} /> : <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">No bills yet.</p>}
+
+      <div className="card space-y-3">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Report a Problem</h2>
+        {problemDone && !showReportProblem && (
+          <p className="rounded-lg bg-green-50 dark:bg-green-950/40 px-3 py-2 text-sm text-green-700 dark:text-green-400">
+            Your request has been sent to your landlord.
+          </p>
+        )}
+        {!showReportProblem ? (
+          <button
+            onClick={() => {
+              setProblemDone(false)
+              setShowReportProblem(true)
+            }}
+            className="btn-secondary w-full"
+          >
+            Report a Problem
+          </button>
+        ) : (
+          <div className="space-y-2">
+            {problemError && <p className="text-sm text-red-600 dark:text-red-400">{problemError}</p>}
+            <input
+              type="text"
+              placeholder="What's the problem? (e.g. Leaking tap)"
+              value={problemTitle}
+              onChange={(e) => setProblemTitle(e.target.value)}
+              className="input"
+            />
+            <textarea
+              placeholder="More details (optional)"
+              value={problemDescription}
+              onChange={(e) => setProblemDescription(e.target.value)}
+              className="input"
+              rows={3}
+            />
+            <div className="flex gap-2">
+              <button onClick={() => setShowReportProblem(false)} className="btn-secondary flex-1">
+                Cancel
+              </button>
+              <button
+                onClick={() => reportProblemMutation.mutate()}
+                disabled={!problemTitle.trim() || reportProblemMutation.isPending}
+                className="btn-primary flex-1"
+              >
+                {reportProblemMutation.isPending ? 'Sending…' : 'Submit'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <ConfirmDialog
         open={showMarkPaid}

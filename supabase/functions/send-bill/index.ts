@@ -28,6 +28,21 @@
 // (sent right after recording a payment) it's owner or a manager with
 // can_generate_receipts OR can_record_payments — do not widen either check
 // without re-reading it carefully.
+//
+// TRUSTED SERVER-TO-SERVER BYPASS (cron only): a daily pg_cron job (see
+// supabase/migrations/018_overdue_reminders_cron.sql) calls this function
+// with mode: 'reminder' for every overdue bill, with no interactive user
+// to authenticate as. That request carries a header `X-Cron-Secret`
+// matching the CRON_SECRET Edge Function secret set in the dashboard.
+// When that header is present and correct, the caller-authorization block
+// below (JWT + RLS + permission check) is skipped ENTIRELY for that one
+// request — everything after it (bill/tenant/property lookups, the actual
+// send) is identical to the normal path. This bypass is intentionally
+// narrow: it only ever runs the same reminder logic a human clicking
+// "Send Reminder" would, never the bill/receipt modes, and never touches
+// financial data. Keep it that way — do not extend the bypass to other
+// modes, and never accept X-Cron-Secret without comparing it to the
+// CRON_SECRET env var (a missing/misconfigured secret must fail closed).
 
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.112.3'
@@ -49,63 +64,74 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405)
 
   try {
-    const authHeader = req.headers.get('Authorization') ?? ''
-    if (!authHeader) return jsonResponse({ error: 'Missing Authorization header' }, 401)
-
     const body = (await req.json().catch(() => null)) as SendBillBody | null
     if (!body?.billId) return jsonResponse({ error: 'billId is required' }, 400)
 
     const isReceipt = body.mode === 'receipt'
     if (isReceipt && !body.paymentId) return jsonResponse({ error: 'paymentId is required for mode: receipt' }, 400)
 
-    // Request-scoped client: runs AS the caller, so RLS applies. Used only
-    // to authenticate the caller and to check they can actually see this
-    // bill/property (which mirrors the real authorization rules instead of
-    // re-implementing them here).
-    const callerClient = createClient(SUPABASE_URL, ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    })
-    const {
-      data: { user },
-      error: userErr,
-    } = await callerClient.auth.getUser()
-    if (userErr || !user) return jsonResponse({ error: 'Not authenticated' }, 401)
+    // Trusted server-to-server bypass for the daily overdue-reminders cron
+    // job — see the header comment above. Fails closed: CRON_SECRET must
+    // be set AND match exactly, otherwise we fall through to the normal
+    // (human) authorization path below.
+    const cronSecret = Deno.env.get('CRON_SECRET')
+    const suppliedCronSecret = req.headers.get('X-Cron-Secret')
+    const isCronRequest = !!cronSecret && !!suppliedCronSecret && suppliedCronSecret === cronSecret
 
-    // If the caller can read the bill under their own RLS policies, they're
-    // authorized (owner_all policy, or manager with can_view_ledger, etc).
-    // We additionally require can_generate_receipts-equivalent access by
-    // checking the bill is visible AND the caller is owner or a manager
-    // with can_generate_receipts on that property (or, for a receipt sent
-    // right after a payment, can_record_payments also qualifies — they
-    // just made that exact write themselves).
-    const { data: visibleBill, error: billErr } = await callerClient
-      .from('bills')
-      .select('id, property_id, tenant_id')
-      .eq('id', body.billId)
-      .maybeSingle()
-    if (billErr) return jsonResponse({ error: billErr.message }, 500)
-    if (!visibleBill) return jsonResponse({ error: 'Bill not found or not accessible' }, 404)
+    if (!isCronRequest) {
+      const authHeader = req.headers.get('Authorization') ?? ''
+      if (!authHeader) return jsonResponse({ error: 'Missing Authorization header' }, 401)
 
-    const { data: profileRow } = await callerClient.from('profiles').select('role').eq('id', user.id).maybeSingle()
-    const role = (profileRow as any)?.role
-    if (role === 'manager') {
-      const { data: perm } = await callerClient
-        .from('manager_permissions')
-        .select('can_generate_receipts, can_record_payments, manager_id, managers!inner(profile_id)')
-        .eq('property_id', (visibleBill as any).property_id)
+      // Request-scoped client: runs AS the caller, so RLS applies. Used only
+      // to authenticate the caller and to check they can actually see this
+      // bill/property (which mirrors the real authorization rules instead of
+      // re-implementing them here).
+      const callerClient = createClient(SUPABASE_URL, ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      })
+      const {
+        data: { user },
+        error: userErr,
+      } = await callerClient.auth.getUser()
+      if (userErr || !user) return jsonResponse({ error: 'Not authenticated' }, 401)
+
+      // If the caller can read the bill under their own RLS policies, they're
+      // authorized (owner_all policy, or manager with can_view_ledger, etc).
+      // We additionally require can_generate_receipts-equivalent access by
+      // checking the bill is visible AND the caller is owner or a manager
+      // with can_generate_receipts on that property (or, for a receipt sent
+      // right after a payment, can_record_payments also qualifies — they
+      // just made that exact write themselves).
+      const { data: visibleBill, error: billErr } = await callerClient
+        .from('bills')
+        .select('id, property_id, tenant_id')
+        .eq('id', body.billId)
         .maybeSingle()
-      const allowed = isReceipt
-        ? (perm as any)?.can_generate_receipts || (perm as any)?.can_record_payments
-        : (perm as any)?.can_generate_receipts
-      if (!perm || !allowed) {
-        return jsonResponse({ error: 'You do not have permission to send bills for this property.' }, 403)
+      if (billErr) return jsonResponse({ error: billErr.message }, 500)
+      if (!visibleBill) return jsonResponse({ error: 'Bill not found or not accessible' }, 404)
+
+      const { data: profileRow } = await callerClient.from('profiles').select('role').eq('id', user.id).maybeSingle()
+      const role = (profileRow as any)?.role
+      if (role === 'manager') {
+        const { data: perm } = await callerClient
+          .from('manager_permissions')
+          .select('can_generate_receipts, can_record_payments, manager_id, managers!inner(profile_id)')
+          .eq('property_id', (visibleBill as any).property_id)
+          .maybeSingle()
+        const allowed = isReceipt
+          ? (perm as any)?.can_generate_receipts || (perm as any)?.can_record_payments
+          : (perm as any)?.can_generate_receipts
+        if (!perm || !allowed) {
+          return jsonResponse({ error: 'You do not have permission to send bills for this property.' }, 403)
+        }
+      } else if (role !== 'owner') {
+        return jsonResponse({ error: 'Only the owner or an authorized manager can send bills.' }, 403)
       }
-    } else if (role !== 'owner') {
-      return jsonResponse({ error: 'Only the owner or an authorized manager can send bills.' }, 403)
     }
 
-    // Authorization confirmed — now use the service-role client for the
-    // actual privileged lookups and the outbound sends.
+    // Authorization confirmed (human caller) or trusted cron bypass — now
+    // use the service-role client for the actual privileged lookups and
+    // the outbound sends.
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 
     const { data: bill, error: bErr } = await admin.from('bills').select('*').eq('id', body.billId).single()

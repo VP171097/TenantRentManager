@@ -10,6 +10,8 @@ const OWNER_NAV = [
   { to: '/ledger', label: 'Ledger', icon: '📒' },
   { to: '/receipts', label: 'Receipts', icon: '🧻' },
   { to: '/reports', label: 'Reports', icon: '📊' },
+  { to: '/expenses', label: 'Expenses', icon: '💸' },
+  { to: '/maintenance', label: 'Maintenance', icon: '🔧' },
   { to: '/managers', label: 'Managers', icon: '🧑‍💼' },
   { to: '/settings', label: 'Settings', icon: '⚙️' },
 ]

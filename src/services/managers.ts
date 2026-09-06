@@ -29,6 +29,7 @@ export async function upsertManagerPermission(input: {
   can_view_ledger?: boolean
   can_edit_rent?: boolean
   can_manage_rooms?: boolean
+  can_manage_expenses?: boolean
 }): Promise<ManagerPermission> {
   const { data, error } = await supabase
     .from('manager_permissions')

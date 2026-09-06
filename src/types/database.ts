@@ -164,6 +164,7 @@ export interface ManagerPermission {
   can_view_ledger: boolean
   can_edit_rent: boolean
   can_manage_rooms: boolean
+  can_manage_expenses: boolean
 }
 
 export interface TenantRoomHistory {
@@ -174,6 +175,35 @@ export interface TenantRoomHistory {
   transfer_date: string
   reason: string | null
   created_at: string
+}
+
+export type ExpenseCategory = 'maintenance' | 'repair' | 'utility' | 'tax' | 'insurance' | 'other'
+
+export interface Expense {
+  id: string
+  owner_id: string
+  property_id: string
+  room_id: string | null
+  category: ExpenseCategory
+  description: string | null
+  amount: number
+  expense_date: string
+  created_by: string | null
+  created_at: string
+}
+
+export type MaintenanceStatus = 'open' | 'in_progress' | 'resolved'
+
+export interface MaintenanceRequest {
+  id: string
+  tenant_id: string
+  property_id: string
+  room_id: string | null
+  title: string
+  description: string | null
+  status: MaintenanceStatus
+  created_at: string
+  resolved_at: string | null
 }
 
 export interface AuditLogEntry {
@@ -204,6 +234,8 @@ export interface Database {
       manager_permissions: { Row: ManagerPermission; Insert: Partial<ManagerPermission>; Update: Partial<ManagerPermission> }
       tenant_room_history: { Row: TenantRoomHistory; Insert: Partial<TenantRoomHistory>; Update: Partial<TenantRoomHistory> }
       audit_log: { Row: AuditLogEntry; Insert: Partial<AuditLogEntry>; Update: Partial<AuditLogEntry> }
+      expenses: { Row: Expense; Insert: Partial<Expense>; Update: Partial<Expense> }
+      maintenance_requests: { Row: MaintenanceRequest; Insert: Partial<MaintenanceRequest>; Update: Partial<MaintenanceRequest> }
     }
   }
 }

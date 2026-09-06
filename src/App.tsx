@@ -16,6 +16,8 @@ import { PaymentsPage } from './pages/PaymentsPage'
 import { LedgerPage } from './pages/LedgerPage'
 import { ReceiptsPage } from './pages/ReceiptsPage'
 import { ReportsPage } from './pages/ReportsPage'
+import { ExpensesPage } from './pages/ExpensesPage'
+import { MaintenancePage } from './pages/MaintenancePage'
 import { ManagersPage } from './pages/ManagersPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -58,6 +60,8 @@ export default function App() {
           <Route path="/ledger" element={<LedgerPage />} />
           <Route path="/receipts" element={<ReceiptsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/expenses" element={<ExpensesPage />} />
+          <Route path="/maintenance" element={<MaintenancePage />} />
           <Route path="/managers" element={<ManagersPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/profile" element={<ProfilePage />} />

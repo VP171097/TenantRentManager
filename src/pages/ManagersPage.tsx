@@ -17,6 +17,7 @@ const PERMISSION_FIELDS: { key: string; label: string }[] = [
   { key: 'can_view_ledger', label: 'View ledger' },
   { key: 'can_edit_rent', label: 'Edit rent' },
   { key: 'can_manage_rooms', label: 'Manage rooms' },
+  { key: 'can_manage_expenses', label: 'Manage expenses' },
 ]
 
 export function ManagersPage() {
