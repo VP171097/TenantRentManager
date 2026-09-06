@@ -1,7 +1,13 @@
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { Footer } from '../components/Footer'
+import { UserMenu } from '../components/UserMenu'
+
+const USER_MENU_LINKS = [
+  { to: '/profile', label: 'My Profile', icon: '👤' },
+  { to: '/settings', label: 'Settings', icon: '⚙️' },
+]
 
 const NAV_SECTIONS: { heading: string; items: { to: string; label: string; icon: string }[] }[] = [
   {
@@ -55,14 +61,8 @@ function BrandMark({ profile }: { profile: { logo_url?: string | null; full_name
 }
 
 export function AppLayout() {
-  const { profile, signOut } = useAuth()
-  const navigate = useNavigate()
+  const { profile } = useAuth()
   const location = useLocation()
-
-  async function handleSignOut() {
-    await signOut()
-    navigate('/login')
-  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 md:flex">
@@ -100,24 +100,20 @@ export function AppLayout() {
             </div>
           ))}
         </nav>
-        <div className="p-3">
-          <button
-            onClick={handleSignOut}
-            className="w-full rounded-xl border border-slate-300 dark:border-slate-700 py-3 font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            Sign out
-          </button>
-        </div>
       </aside>
 
       {/* Main content */}
       <div className="flex-1 pb-24 md:pb-0">
+        {/* Desktop top bar: user menu, top right */}
+        <header className="sticky top-0 z-10 hidden items-center justify-end border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-3 md:flex">
+          <UserMenu links={USER_MENU_LINKS} />
+        </header>
+
+        {/* Mobile header */}
         <header className="sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 md:hidden">
           <div className="flex items-center justify-between">
             <BrandMark profile={profile} />
-            <button onClick={handleSignOut} className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-              Sign out
-            </button>
+            <UserMenu links={USER_MENU_LINKS} />
           </div>
           <GlobalSearch className="mt-3" />
         </header>
