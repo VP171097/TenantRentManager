@@ -81,6 +81,12 @@ npm run test
 npm run build
 ```
 
+## New: dark mode, branding, and installable app
+
+- **Dark mode**: toggle Light/Dark/System in Settings → Appearance. Persisted per-browser; "System" follows the device's OS setting automatically.
+- **Branding**: owners can upload a logo (Settings → My Profile) shown in the app header and at the top of generated bill/receipt PDFs, and an optional cover photo per property (Properties → a property → Edit). Requires running migration `015_branding_logo_and_cover.sql` and creating the `branding` storage bucket — see the migration file for the exact SQL/policies.
+- **Installable app**: the app ships a web manifest and a minimal offline-shell service worker, so it can be "installed" from the browser (Add to Home Screen / Install App) and the UI loads even on a flaky connection. Financial data (bills, payments) is never cached — every Supabase request still requires a live connection, so there's no risk of working from stale numbers offline.
+
 ## Known limitations / future improvements
 
 - Manager/tenant account invitation is a manual step in this version (see SETUP.md) — production use should add a Supabase Edge Function (service-role, server-side only) to send email invites and link `profiles`/`tenants` rows automatically.
