@@ -70,7 +70,6 @@ export function AppLayout() {
       <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:border-slate-200 dark:md:border-slate-800 md:bg-white dark:md:bg-slate-900">
         <div className="px-6 py-5">
           <BrandMark profile={profile} />
-          {profile && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{profile.full_name}</p>}
           <GlobalSearch className="mt-4" />
         </div>
         <nav className="flex-1 space-y-4 overflow-y-auto px-3 pb-3">
