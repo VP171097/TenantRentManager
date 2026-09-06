@@ -58,9 +58,12 @@ export function LoginPage() {
         <div className="rounded-2xl bg-white dark:bg-slate-800 p-8 shadow-sm border border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <img src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="RentBook" className="h-10 w-10 rounded-xl" />
-            <h1 className="text-2xl font-extrabold text-brand-700 dark:text-brand-200">RentBook</h1>
+            <div>
+              <h1 className="text-2xl font-extrabold text-brand-700 dark:text-brand-200">RentBook</h1>
+              <p className="text-xs font-medium text-slate-400 dark:text-slate-500">Rent, Simplified.</p>
+            </div>
           </div>
-          <p className="mt-2 text-slate-500 dark:text-slate-400">
+          <p className="mt-3 text-slate-500 dark:text-slate-400">
             {mode === 'signin' && 'Sign in to manage your properties'}
             {mode === 'signup' && 'Create your owner account'}
             {mode === 'forgot' && 'Enter your email and we\'ll send you a reset link'}
