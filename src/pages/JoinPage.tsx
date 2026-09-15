@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { friendlyError } from '../utils/errors'
+import { extractFunctionErrorMessage, friendlyError } from '../utils/errors'
 import { Footer } from '../components/Footer'
 import { Building2, Eye, EyeOff, Mail, Lock, CheckCircle, ArrowRight } from 'lucide-react'
 
@@ -40,12 +40,7 @@ export function JoinPage() {
       )
       
       if (fnError) {
-        let errorMsg = fnError.message
-        if ((fnError as any).context && typeof (fnError as any).context.json === 'function') {
-          const body = await (fnError as any).context.json().catch(() => null)
-          if (body?.error) errorMsg = body.error
-        }
-        setError(errorMsg)
+        setError(await extractFunctionErrorMessage(fnError))
         return
       }
       

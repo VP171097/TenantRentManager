@@ -1,3 +1,25 @@
+/** supabase-js's `functions.invoke()` throws a `FunctionsHttpError` whose
+ * `.message` is always the generic "Edge Function returned a non-2xx
+ * status code" — it does NOT read the function's actual JSON error body
+ * for you. The real `{ error: "..." }` response is only reachable via
+ * `error.context`, a `Response` object that must be read separately.
+ * Call this on the result of a failed `functions.invoke()` (or pass the
+ * thrown error straight through if it's some other kind of error) to get
+ * the real message before handing it to `friendlyError`. */
+export async function extractFunctionErrorMessage(error: unknown): Promise<string> {
+  const context = (error as { context?: unknown })?.context
+  if (context instanceof Response) {
+    try {
+      const body = await context.clone().json()
+      if (typeof body?.error === 'string' && body.error) return body.error
+    } catch {
+      // Body wasn't JSON (or already consumed) — fall through to the
+      // generic message below rather than blocking on this.
+    }
+  }
+  return (error as { message?: string })?.message ?? 'Something went wrong. Please try again.'
+}
+
 /** Converts a Supabase/Postgres error into a friendly, non-technical message. */
 export function friendlyError(error: unknown): string {
   if (!error) return 'Something went wrong. Please try again.'

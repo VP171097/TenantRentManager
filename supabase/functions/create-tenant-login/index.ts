@@ -97,11 +97,42 @@ Deno.serve(async (req) => {
         phone: isEmail ? null : identifier,
       }
     })
-    if (createErr || !created?.user) {
-      return jsonResponse({ error: createErr?.message ?? 'Could not create the login.' }, 400)
-    }
 
-    const newUserId = created.user.id
+    let newUserId: string
+    if (createErr || !created?.user) {
+      // Recovery path: a PREVIOUS attempt (e.g. this same "Create Tenant
+      // Login" click retried after a network blip) may have already
+      // created the auth user but failed on a later step (profile
+      // upsert / tenant link), leaving an orphaned login the owner can't
+      // see. Rather than dead-ending on "already registered", find that
+      // user and finish linking it instead.
+      const alreadyExists = /already registered|already exists/i.test(createErr?.message ?? '')
+      if (!alreadyExists) {
+        return jsonResponse({ error: createErr?.message ?? 'Could not create the login.' }, 400)
+      }
+      const { data: list, error: listErr } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 })
+      if (listErr) {
+        return jsonResponse({ error: `A login with this email/phone already exists, but could not be looked up: ${listErr.message}` }, 500)
+      }
+      const normalizedDigits = identifier.replace(/\D/g, '')
+      const existing = list.users.find((u) =>
+        isEmail ? u.email?.toLowerCase() === identifier : (u.phone ?? '').replace(/\D/g, '') === normalizedDigits
+      )
+      if (!existing) {
+        return jsonResponse({ error: 'A login with this email/phone already exists elsewhere and could not be matched automatically. Please use a different email/phone, or contact support.' }, 409)
+      }
+      // Reset the password to what was just entered, so the owner's
+      // retry behaves predictably regardless of what the first (partial)
+      // attempt set.
+      const { error: updateErr } = await admin.auth.admin.updateUserById(existing.id, {
+        password: body.password,
+        ...(isEmail ? { email_confirm: true } : { phone_confirm: true }),
+      })
+      if (updateErr) return jsonResponse({ error: `Could not update the existing login: ${updateErr.message}` }, 500)
+      newUserId = existing.id
+    } else {
+      newUserId = created.user.id
+    }
 
     // Controlled, already-authorized server-side write — intentionally
     // bypasses RLS via the service-role client.

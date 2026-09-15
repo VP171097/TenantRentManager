@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { friendlyError } from '../utils/errors'
+import { extractFunctionErrorMessage, friendlyError } from '../utils/errors'
 import type { Tenant } from '../types/database'
 
 export function CreateTenantLoginForm({ tenant }: { tenant: Tenant }) {
@@ -22,7 +22,7 @@ export function CreateTenantLoginForm({ tenant }: { tenant: Tenant }) {
       const { data, error: fnError } = await supabase.functions.invoke('create-tenant-login', {
         body: { tenantId: tenant.id, identifier, password },
       })
-      if (fnError) throw fnError
+      if (fnError) throw new Error(await extractFunctionErrorMessage(fnError))
       const result = data as { success?: boolean; identifier?: string; error?: string }
       if (result.error) throw new Error(result.error)
       setSuccess({ identifier: result.identifier ?? identifier, password })

@@ -25,7 +25,7 @@ import { PaymentForm } from '../components/forms/PaymentForm'
 import { TenantForm } from '../components/forms/TenantForm'
 import { DocumentUploader } from '../components/DocumentUploader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
-import { friendlyError } from '../utils/errors'
+import { extractFunctionErrorMessage, friendlyError } from '../utils/errors'
 import { applicableRent } from '../utils/billing'
 import { formatINR } from '../utils/money'
 import { downloadReceiptPdf, receiptPdfBase64 } from '../services/receiptPdf'
@@ -166,7 +166,7 @@ export function TenantDetailPage() {
       const { data, error: fnError } = await supabase.functions.invoke('send-bill', {
         body: { billId: bill.id, mode: 'receipt', paymentId: payment.id, pdfBase64 },
       })
-      if (fnError) throw fnError
+      if (fnError) throw new Error(await extractFunctionErrorMessage(fnError))
       const result = data as { whatsapp?: string; email?: string; error?: string }
       if (result?.error) {
         setSendStatus(`Payment confirmation not sent: ${result.error}`)
@@ -372,7 +372,7 @@ export function TenantDetailPage() {
       const { data, error: fnError } = await supabase.functions.invoke('send-bill', {
         body: { billId: bill.id, pdfBase64 },
       })
-      if (fnError) throw fnError
+      if (fnError) throw new Error(await extractFunctionErrorMessage(fnError))
       const result = data as { whatsapp?: string; email?: string; error?: string }
       if (result.error) {
         setSendStatus(`Could not send bill: ${result.error}`)
@@ -397,7 +397,7 @@ export function TenantDetailPage() {
       const { data, error: fnError } = await supabase.functions.invoke('send-bill', {
         body: { billId: bill.id, mode: 'reminder' },
       })
-      if (fnError) throw fnError
+      if (fnError) throw new Error(await extractFunctionErrorMessage(fnError))
       const result = data as { whatsapp?: string; email?: string; error?: string }
       if (result.error) {
         setSendStatus(`Could not send reminder: ${result.error}`)

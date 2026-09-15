@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { friendlyError } from '../utils/errors'
+import { extractFunctionErrorMessage, friendlyError } from '../utils/errors'
 import type { Manager } from '../types/database'
 
 /** Mirrors CreateTenantLoginForm — owner sets a password directly for a
@@ -20,7 +20,7 @@ export function CreateManagerLoginForm({ manager }: { manager: Manager }) {
       const { data, error: fnError } = await supabase.functions.invoke('create-manager-login', {
         body: { managerId: manager.id, identifier, password },
       })
-      if (fnError) throw fnError
+      if (fnError) throw new Error(await extractFunctionErrorMessage(fnError))
       const result = data as { success?: boolean; identifier?: string; error?: string }
       if (result.error) throw new Error(result.error)
       setSuccess({ identifier: result.identifier ?? identifier, password })
