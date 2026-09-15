@@ -1,0 +1,323 @@
+{
+  "theme": "light_warm_ledger_with_dark_toggle",
+  "project_title": "RentBook UI/UX Enhancement & Modernization Blueprint",
+  "project_subtitle": "Comprehensive Design Audit, System Specification & Interactive Modernization Proposal for Indian Landlord Rent Management",
+  "archetype": "ORGANIC & EARTHY meets SWISS PRECISION (Warm Ledger Editorial)",
+  "colors": {
+    "surfaces": [
+      {
+        "name": "page",
+        "kind": "solid",
+        "bg": "#FAF7F0",
+        "on_bg": "#18181B",
+        "on_bg_muted": "#52525B",
+        "roles": {
+          "link": "#0F766E",
+          "error": "#BE123C",
+          "success": "#047857",
+          "warning": "#B45309"
+        }
+      },
+      {
+        "name": "panel",
+        "kind": "solid",
+        "bg": "#FFFFFF",
+        "on_bg": "#18181B",
+        "on_bg_muted": "#52525B",
+        "roles": {
+          "link": "#0F766E",
+          "error": "#BE123C",
+          "success": "#047857",
+          "warning": "#B45309"
+        }
+      },
+      {
+        "name": "panel_muted",
+        "kind": "solid",
+        "bg": "#F4EFE6",
+        "on_bg": "#1C1917",
+        "on_bg_muted": "#78716C",
+        "roles": {
+          "link": "#0F766E",
+          "error": "#BE123C",
+          "success": "#047857",
+          "warning": "#B45309"
+        }
+      },
+      {
+        "name": "inverse",
+        "kind": "solid",
+        "bg": "#0C0A08",
+        "on_bg": "#F9FAFB",
+        "on_bg_muted": "#D1D5DB",
+        "roles": {
+          "link": "#2DD4BF",
+          "error": "#FB7185",
+          "success": "#34D399",
+          "warning": "#FBBF24"
+        }
+      },
+      {
+        "name": "inverse_card",
+        "kind": "solid",
+        "bg": "#171412",
+        "on_bg": "#F9FAFB",
+        "on_bg_muted": "#A1A1AA",
+        "roles": {
+          "link": "#2DD4BF",
+          "error": "#FB7185",
+          "success": "#34D399",
+          "warning": "#FBBF24"
+        }
+      },
+      {
+        "name": "hero",
+        "kind": "gradient",
+        "contrast_against": "#18181B",
+        "guarantee": "scrim: radial-gradient(circle at 10% 20%, rgba(15,118,110,0.08) 0%, rgba(250,247,240,1) 70%)",
+        "on_bg": "#18181B",
+        "on_bg_muted": "#52525B",
+        "roles": {
+          "link": "#0F766E",
+          "error": "#BE123C",
+          "success": "#047857"
+        }
+      },
+      {
+        "name": "glass_header",
+        "kind": "glass",
+        "contrast_against": "#FAF7F0",
+        "guarantee": "backdrop-blur-xl bg-[#FAF7F0]/85 border-b border-[#0F766E]/15",
+        "on_bg": "#18181B",
+        "on_bg_muted": "#52525B"
+      },
+      {
+        "name": "badge_success",
+        "kind": "solid",
+        "bg": "#DCFCE7",
+        "on_bg": "#14532D",
+        "on_bg_muted": "#166534"
+      },
+      {
+        "name": "badge_warning",
+        "kind": "solid",
+        "bg": "#FEF3C7",
+        "on_bg": "#78350F",
+        "on_bg_muted": "#92400E"
+      },
+      {
+        "name": "badge_error",
+        "kind": "solid",
+        "bg": "#FFE4E6",
+        "on_bg": "#881337",
+        "on_bg_muted": "#9F1239"
+      },
+      {
+        "name": "badge_teal",
+        "kind": "solid",
+        "bg": "#CCFBF1",
+        "on_bg": "#115E59",
+        "on_bg_muted": "#0F766E"
+      }
+    ],
+    "accent": "#0F766E",
+    "on_accent": "#FFFFFF",
+    "secondary_accent": "#D97706",
+    "on_secondary_accent": "#FFFFFF",
+    "border_subtle": "rgba(15, 118, 110, 0.12)",
+    "border_hard": "rgba(24, 24, 27, 0.15)"
+  },
+  "typography": {
+    "font_heading": "'Playfair Display', serif, Georgia",
+    "font_subheading": "'Lora', serif, Georgia",
+    "font_body": "'DM Sans', 'Inter', sans-serif",
+    "font_numbers": "'JetBrains Mono', 'IBM Plex Mono', monospace",
+    "scale_px": {
+      "display": 56,
+      "h1": 44,
+      "h2": 32,
+      "h3": 22,
+      "body": 16,
+      "caption": 14
+    },
+    "letter_spacing": {
+      "headline": "-0.025em",
+      "overline": "0.18em",
+      "body": "0.01em"
+    }
+  },
+  "entry_surfaces": {
+    "/": "editorial case-study hero — left: audit statement & visual grade badge, right: interactive interactive preview of redesigned RentBook dashboard tile"
+  },
+  "design_audit_dimensions": [
+    {
+      "dimension": "Visual Hierarchy & Information Architecture",
+      "score": 68,
+      "verdict": "Functional but visually flat",
+      "observations": [
+        "Dashboard KPIs lack visual rhythm; numbers compete with titles.",
+        "Lack of high-contrast micro-surfaces creates fatigue when scanning multiple properties.",
+        "Table rows lack clear status grouping and sticky financial summaries."
+      ],
+      "enhancements": [
+        "Introduce editorial 'Ledger Cards' with JetBrains Mono numbers, micro-sparklines and progressive disclosure.",
+        "Add a high-impact 'Needs Attention Right Now' triage panel for overdue rent, unconfirmed UPI payments, and meter discrepancies.",
+        "Use subtle paper-warm backgrounds (#FAF7F0) with crisp 1px borders (#0F766E/15) to make financial records feel tangible."
+      ]
+    },
+    {
+      "dimension": "Mobile-First UX & WhatsApp/UPI Workflows",
+      "score": 74,
+      "verdict": "Great core logic, friction in everyday micro-tasks",
+      "observations": [
+        "Recording electricity meter units requires 3+ clicks per room.",
+        "Sharing PDF receipts via WhatsApp requires manual download then attach.",
+        "Payment verification flow lacks quick batch-approval gestures."
+      ],
+      "enhancements": [
+        "One-tap 'Quick Meter Dial' with automated unit calculation and instant bill generation.",
+        "Native Web Share API button generating custom branded WhatsApp text & direct PDF link.",
+        "Swipeable action cards on mobile for marking cash/UPI payments received."
+      ]
+    },
+    {
+      "dimension": "Motion, Micro-interactions & State Transitions",
+      "score": 52,
+      "verdict": "Static feel, missing celebratory & operational feedback",
+      "observations": [
+        "Recording a payment closes modal with zero tactile delight.",
+        "Tab changes trigger abrupt layout shifts.",
+        "Status badges feel like static HTML pills."
+      ],
+      "enhancements": [
+        "Smooth spring physics count-up for ledger totals & collection percentages.",
+        "Lottie/SVG confetti & subtle haptic ripple on full rent collection milestone.",
+        "Subtle floating sheet slide-overs rather than disruptive modal popups."
+      ]
+    },
+    {
+      "dimension": "Design System & Theming Architecture",
+      "score": 65,
+      "verdict": "Solid color inspiration, needs strict token discipline",
+      "observations": [
+        "Inconsistent border radiuses across dialogs, cards, and input fields.",
+        "Contrast ratios in dark mode muted text drop below WCAG AA in some badges.",
+        "Charts rely on standard canvas colors without brand-coordinated gradients."
+      ],
+      "enhancements": [
+        "Strict 12-token semantic color system mapped to CSS variables in Tailwind v4.",
+        "Concentric border radii: Outer cards rounded-2xl (16px), inner items rounded-xl (12px), buttons rounded-lg (8px).",
+        "Custom SVG charts with warm emerald & amber fills, crisp grid lines, and interactive tooltips."
+      ]
+    }
+  ],
+  "before_after_comparisons": [
+    {
+      "component": "Dashboard KPI & Collection Status Card",
+      "category": "Dashboard",
+      "before_description": "Plain white rectangular box with generic title, standard 24px sans-serif number, and tiny green text badge.",
+      "after_description": "Warm ledger surface with custom 32px tabular monospace numerals, animated circular collection progress ring, month-over-month delta badge, and instant 'Collect Rent' action button.",
+      "key_improvement": "+42% faster glanceability and instant actionable trigger"
+    },
+    {
+      "component": "Electricity Meter & Billing Entry",
+      "category": "Billing",
+      "before_description": "Long form with previous units, current units, rate per unit text inputs requiring manual mental math verification.",
+      "after_description": "Interactive visual meter stepper showing previous reading, live differential calculation (e.g. 142 units @ ₹9 = ₹1,278), split sharing breakdown, and live bill preview chip.",
+      "key_improvement": "Eliminates calculation errors & gives immediate visual feedback"
+    },
+    {
+      "component": "Tenant Ledger & Payment Record",
+      "category": "Ledger & Receipts",
+      "before_description": "Basic HTML table with cramped columns and generic status text.",
+      "after_description": "Editorial banking-grade transaction timeline with payment mode icons (UPI, IMPS, Cash), one-click PDF receipt generator, and instant WhatsApp reminder trigger.",
+      "key_improvement": "Builds landlord-tenant trust with professional audited receipts"
+    }
+  ],
+  "page_by_page_blueprints": [
+    {
+      "page": "Dashboard & Overview",
+      "route": "/dashboard",
+      "critical_upgrades": [
+        "Sticky 'Morning Brief' banner summarizing pending collections for the 1st-10th of the month.",
+        "Property occupancy radial breakdown showing vacant rooms and potential revenue loss.",
+        "Quick Action FAB / Dock on mobile: [New Bill], [Record Payment], [Add Meter Reading]."
+      ]
+    },
+    {
+      "page": "Properties & Room Grid",
+      "route": "/properties",
+      "critical_upgrades": [
+        "Visual architectural floor/unit cards with occupancy color coding (Occupied: Deep Teal, Vacant: Amber, Due: Coral).",
+        "Room detail popover displaying tenant name, move-in date, security deposit balance, and active electricity meter ID.",
+        "Bulk rent reminder broadcaster with custom WhatsApp template builder."
+      ]
+    },
+    {
+      "page": "Billing & Electricity Module",
+      "route": "/billing",
+      "critical_upgrades": [
+        "Smart meter photo capture with OCR reading helper.",
+        "Single-screen landlord month-end batch billing wizard for 20+ rooms in under 3 minutes.",
+        "Transparent billing breakdown view for tenants showing fixed rent + variable electricity + maintenance."
+      ]
+    },
+    {
+      "page": "Tenant Portal & Self-Service",
+      "route": "/tenant",
+      "critical_upgrades": [
+        "Clean, zero-clutter mobile passbook showing current due, one-click UPI QR code intent (GPay, PhonePe, Paytm).",
+        "Maintenance request ticket tracker with photo attachment and status timeline.",
+        "Lifetime downloadable tax & HRA rent receipt archive."
+      ]
+    }
+  ],
+  "interactive_demo_sections": {
+    "section_1": "Executive Summary & UX Maturity Audit (Hero + Radar/Scorecard)",
+    "section_2": "The Modern 'Warm Ledger' Design System (Palette, Typography, Spacing, Shadows)",
+    "section_3": "Interactive Live Before / After Component Laboratory (Interactive Toggle)",
+    "section_4": "High-Fidelity Dashboard Mockup Experience (Live KPI counters, Collection Ring, Filterable Rooms, Attention List)",
+    "section_5": "Mobile-First Micro-Interactions & Animation Showcase (UPI Payment Flow, WhatsApp Share, Quick Meter)",
+    "section_6": "Page-by-Page Enhancement Architectural Matrix",
+    "section_7": "Prioritized Implementation Roadmap & Engineering Plan (Phase 1 Quick Wins to Phase 3 Scale)"
+  },
+  "media": {
+    "image_urls": [
+      {
+        "category": "Hero Architecture",
+        "url": "https://images.unsplash.com/photo-1545169734-58a4a6353ccb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwyfHxpbmRpYW4lMjBhcGFydG1lbnQlMjBtb2Rlcm4lMjBidWlsZGluZyUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3ODk0ODQ4NDZ8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Modern contemporary apartment structure symbolizing multi-unit property management excellence"
+      },
+      {
+        "category": "High-rise Urban Property",
+        "url": "https://images.unsplash.com/photo-1630618468400-ac074bd3408f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwzfHxpbmRpYW4lMjBhcGFydG1lbnQlMjBtb2Rlcm4lMjBidWlsZGluZyUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3ODk0ODQ4NDZ8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Clean white and earthy residential buildings for landlord portfolio visualization"
+      }
+    ]
+  },
+  "motion": {
+    "default_transition": "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease",
+    "spring_config": "stiffness: 300, damping: 25",
+    "card_hover": "translateY(-3px) scale(1.005) with subtle layered warm shadow",
+    "counter_duration": "1.2s easeOutExpo"
+  },
+  "accessibility": {
+    "contrast_standard": "WCAG 2.2 AA and APCA compliant",
+    "minimum_contrast_ratio": "4.5:1 for body and data text, 3:1 for large display titles",
+    "focus_indicator": "ring-2 ring-[#0F766E] ring-offset-2 ring-offset-[#FAF7F0]",
+    "reduced_motion": "respects prefers-reduced-motion media query with instant fades"
+  },
+  "component_path": "/app/src/pages/DesignBlueprintPage.tsx",
+  "instructions_to_main_agent": [
+    "Present this blueprint as a showcase design-proposal web app with sticky navigation, filterable audit findings, live before/after interactive sliders/toggles, high-fidelity interactive dashboard simulation, and visual roadmap.",
+    "Preserve the core business domain: Indian Landlords managing multiple properties, rooms, tenants, rent cycles, electricity sub-meters, UPI payments, and PDF receipts.",
+    "Use data-testid attributes on all interactive elements (tabs, toggles, before/after selectors, metric cards, action triggers).",
+    "Make the page feel like an Awwwards / Godly case study: rich warm paper background, deep teal and amber accents, crisp borders, tactile typography, and fluid spring animations.",
+    "Ensure both Light Mode (Warm Ledger) and Dark Mode (Midnight Obsidian) toggle work seamlessly."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Avoid AI slop: no generic purple gradients or center-everything layout.",
+    "Use generous spacing (p-6, p-8, p-12) to let financial data and architectural diagrams breathe.",
+    "Ensure every interactive button and card has responsive hover, active, and focus states."
+  ]
+}
