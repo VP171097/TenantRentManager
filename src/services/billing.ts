@@ -49,22 +49,48 @@ export async function getBillingPreview(propertyId: string, billingMonth: string
 
   const results: BillingPreviewItem[] = []
   for (const t of tenants ?? []) {
-    // Find the latest electricity reading for this tenant
-    const { data: lastReading } = await supabase
-      .from('electricity_readings')
-      .select('current_reading')
+    // "Previous Unit" should always carry forward from the last bill,
+    // never silently reset to 0. Prefer the reading snapshot on the most
+    // recent prior bill (migration 028 — always correct, since it's set
+    // at generation time); fall back to the electricity_readings join
+    // only for bills generated before that column existed; and if even
+    // that's missing, derive it by summing every prior bill's
+    // electricity_units forward from the tenant's start reading — this
+    // never depends on a reading row existing at all.
+    const { data: priorBills } = await supabase
+      .from('bills')
+      .select('billing_month, electricity_units, current_electricity_reading')
       .eq('tenant_id', t.id)
       .lt('billing_month', billingMonth)
-      .order('billing_month', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .order('billing_month', { ascending: true })
+
+    const latestPriorBill = priorBills && priorBills.length > 0 ? priorBills[priorBills.length - 1] : undefined
+    let lastReading: number | null =
+      latestPriorBill?.current_electricity_reading != null ? latestPriorBill.current_electricity_reading : null
+
+    if (lastReading == null) {
+      const { data: reading } = await supabase
+        .from('electricity_readings')
+        .select('current_reading')
+        .eq('tenant_id', t.id)
+        .lt('billing_month', billingMonth)
+        .order('billing_month', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      lastReading = reading ? reading.current_reading : null
+    }
+
+    if (lastReading == null) {
+      const startReading = t.electricity_start_reading ?? 0
+      lastReading = (priorBills ?? []).reduce((total, b) => total + (b.electricity_units || 0), startReading)
+    }
 
     results.push({
       tenant_id: t.id,
       room_id: t.room_id!,
       full_name: t.full_name,
       room_number: (t.rooms as any)?.room_number ?? '',
-      last_reading: lastReading ? lastReading.current_reading : (t.electricity_start_reading ?? 0),
+      last_reading: lastReading ?? 0,
       rate_per_unit: t.electricity_rate || (t.rooms as any)?.electricity_rate || 0,
     })
   }
