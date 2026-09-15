@@ -29,6 +29,7 @@ import { GenerateBillModal } from '../components/forms/GenerateBillModal'
 import { EditBillModal } from '../components/forms/EditBillModal'
 import { PaymentForm } from '../components/forms/PaymentForm'
 import { TenantForm } from '../components/forms/TenantForm'
+import { Field } from '../components/forms/PropertyForm'
 import { DocumentUploader } from '../components/DocumentUploader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { extractFunctionErrorMessage, friendlyError } from '../utils/errors'
@@ -773,11 +774,19 @@ function MoveOutDialog({
       onCancel={onCancel}
       onConfirm={() => onConfirm({ move_out_date: moveOutDate, final_current_reading: reading, deposit_deduction: deduction, deduction_reason: reason }).then(() => {})}
     >
-      <div className="mt-3 space-y-2 text-left">
-        <input type="date" value={moveOutDate} onChange={(e) => setMoveOutDate(e.target.value)} className="input" />
-        <input type="number" placeholder="Final meter reading" value={reading} onChange={(e) => setReading(Number(e.target.value))} className="input" />
-        <input type="number" placeholder="Deposit deduction (₹)" value={deduction} onChange={(e) => setDeduction(Number(e.target.value))} className="input" />
-        <input type="text" placeholder="Reason for deduction (optional)" value={reason} onChange={(e) => setReason(e.target.value)} className="input" />
+      <div className="mt-3 space-y-3 text-left">
+        <Field label="Move-out date">
+          <input type="date" value={moveOutDate} onChange={(e) => setMoveOutDate(e.target.value)} className="input" />
+        </Field>
+        <Field label="Final electricity meter reading">
+          <input type="number" min="0" value={reading} onChange={(e) => setReading(Number(e.target.value))} className="input" />
+        </Field>
+        <Field label="Deposit deduction (₹) — leave 0 to refund the full deposit">
+          <input type="number" min="0" value={deduction} onChange={(e) => setDeduction(Number(e.target.value))} className="input" />
+        </Field>
+        <Field label="Reason for deduction (optional)">
+          <input type="text" placeholder="e.g. damage to wall, unreturned key" value={reason} onChange={(e) => setReason(e.target.value)} className="input" />
+        </Field>
       </div>
     </ConfirmDialog>
   )
