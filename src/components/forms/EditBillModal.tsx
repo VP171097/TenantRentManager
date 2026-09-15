@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Field } from './PropertyForm'
 import { formatINR } from '../../utils/money'
 import type { Bill, ElectricityReading } from '../../types/database'
@@ -19,12 +19,20 @@ export function EditBillModal({
   open,
   bill,
   reading,
+  fallbackPreviousReading,
   onClose,
   onSubmit,
 }: {
   open: boolean
   bill: Bill | null
   reading: ElectricityReading | null
+  /** Used to default "Previous meter reading" only when `reading` is
+   * null (this bill has no electricity_readings row of its own — e.g. it
+   * was generated with "Skip / Carry Forward"). Robustly resolved via
+   * resolveLastElectricityReading rather than defaulting to 0, so
+   * reopening a skipped bill to add electricity starts from the real
+   * carried-forward reading. */
+  fallbackPreviousReading?: number
   onClose: () => void
   onSubmit: (values: EditBillValues) => Promise<unknown>
 }) {
@@ -32,22 +40,45 @@ export function EditBillModal({
   if (!open || !bill) return null
   // Keyed on bill.id so switching bills re-initializes local form state
   // instead of needing an effect to sync it.
-  return <EditBillModalContent key={bill.id} bill={bill} reading={reading} onClose={onClose} onSubmit={onSubmit} />
+  return (
+    <EditBillModalContent
+      key={bill.id}
+      bill={bill}
+      reading={reading}
+      fallbackPreviousReading={fallbackPreviousReading}
+      onClose={onClose}
+      onSubmit={onSubmit}
+    />
+  )
 }
 
 function EditBillModalContent({
   bill,
   reading,
+  fallbackPreviousReading,
   onClose,
   onSubmit,
 }: {
   bill: Bill
   reading: ElectricityReading | null
+  fallbackPreviousReading?: number
   onClose: () => void
   onSubmit: (values: EditBillValues) => Promise<unknown>
 }) {
   const [rentAmount, setRentAmount] = useState(bill.rent_amount)
-  const [previousReading, setPreviousReading] = useState(reading?.previous_reading ?? 0)
+  const [previousReading, setPreviousReading] = useState(reading?.previous_reading ?? fallbackPreviousReading ?? 0)
+  // fallbackPreviousReading resolves asynchronously (it's not available
+  // until this bill is confirmed to have no reading row of its own) and
+  // may still be undefined on first render, defaulting previousReading to
+  // 0 above. Sync it in once it arrives — but only if the field still
+  // holds that naive 0 default, so it never clobbers a value the owner
+  // has already started editing.
+  useEffect(() => {
+    if (!reading && fallbackPreviousReading != null && previousReading === 0) {
+      setPreviousReading(fallbackPreviousReading)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fallbackPreviousReading])
   const [currentReading, setCurrentReading] = useState(reading?.current_reading ?? bill.electricity_units)
   const [ratePerUnit, setRatePerUnit] = useState(
     reading?.rate_per_unit ?? (bill.electricity_units > 0 ? bill.electricity_charge / bill.electricity_units : 0)

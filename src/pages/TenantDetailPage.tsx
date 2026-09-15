@@ -12,7 +12,13 @@ import {
   dismissTenantPaidFlag,
 } from '../services/billing'
 import { listPayments, recordPayment, generateReceipt } from '../services/payments'
-import { getLatestReading, getReadingForMonth, listElectricityReadings, recordElectricityReading } from '../services/electricity'
+import {
+  getLatestReading,
+  getReadingForMonth,
+  listElectricityReadings,
+  recordElectricityReading,
+  resolveLastElectricityReading,
+} from '../services/electricity'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { ErrorState } from '../components/States'
@@ -73,6 +79,27 @@ export function TenantDetailPage() {
     queryKey: ['electricity-readings', id],
     queryFn: () => listElectricityReadings({ tenantId: id }),
     enabled: !!id,
+  })
+  // Robust "previous reading to carry forward" — unlike latestReading
+  // above (which comes back null whenever the most recent month had no
+  // electricity_readings row, e.g. a "Skip / Carry Forward" bill), this
+  // correctly skips over skipped months to the last CHARGED reading. Used
+  // to default the "Generate Bill" modal's previous reading.
+  const { data: resolvedLastReading } = useQuery({
+    queryKey: ['resolved-last-reading', id],
+    queryFn: () => resolveLastElectricityReading(id!),
+    enabled: !!id,
+  })
+  const editingBillReading = readings?.find((r) => r.billing_month === editingBill?.billing_month) ?? null
+  // Same robust resolution, but as of the bill being edited — only needed
+  // when that bill has no exact reading row of its own (e.g. it was
+  // generated with "Skip / Carry Forward", so opening Edit Bill to add
+  // electricity retroactively should start from the real carried-forward
+  // reading, not default to 0.
+  const { data: resolvedEditPreviousReading } = useQuery({
+    queryKey: ['resolved-edit-previous-reading', editingBill?.id],
+    queryFn: () => resolveLastElectricityReading(id!, editingBill!.billing_month),
+    enabled: !!id && !!editingBill && !editingBillReading,
   })
 
   const generateBillMutation = useMutation({
@@ -670,7 +697,7 @@ export function TenantDetailPage() {
         open={showGenerateBill}
         monthLabel={new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
         currentRent={currentRent}
-        defaultPreviousReading={latestReading?.current_reading ?? 0}
+        defaultPreviousReading={resolvedLastReading ?? latestReading?.current_reading ?? 0}
         defaultRatePerUnit={latestReading?.rate_per_unit ?? 0}
         onClose={() => setShowGenerateBill(false)}
         onSubmit={(values) => generateBillMutation.mutateAsync(values)}
@@ -685,7 +712,8 @@ export function TenantDetailPage() {
       <EditBillModal
         open={!!editingBill}
         bill={editingBill}
-        reading={readings?.find((r) => r.billing_month === editingBill?.billing_month) ?? null}
+        reading={editingBillReading}
+        fallbackPreviousReading={resolvedEditPreviousReading}
         onClose={() => setEditingBill(null)}
         onSubmit={(values) => editBillMutation.mutateAsync(values)}
       />
