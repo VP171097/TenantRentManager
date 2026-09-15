@@ -80,14 +80,20 @@ export function TenantDetailPage() {
     queryFn: () => listElectricityReadings({ tenantId: id }),
     enabled: !!id,
   })
+  // The month "Generate This Month's Bill" always targets — must match
+  // generateBillMutation's own computation below exactly.
+  const currentBillingMonth = new Date().toISOString().slice(0, 7) + '-01'
   // Robust "previous reading to carry forward" — unlike latestReading
   // above (which comes back null whenever the most recent month had no
   // electricity_readings row, e.g. a "Skip / Carry Forward" bill), this
   // correctly skips over skipped months to the last CHARGED reading. Used
-  // to default the "Generate Bill" modal's previous reading.
+  // to default the "Generate Bill" modal's previous reading. Scoped
+  // strictly BEFORE this month — otherwise regenerating/re-editing this
+  // exact month's own (possibly since-corrected) bill would leak its own
+  // reading back in as its "previous", instead of August's.
   const { data: resolvedLastReading } = useQuery({
-    queryKey: ['resolved-last-reading', id],
-    queryFn: () => resolveLastElectricityReading(id!),
+    queryKey: ['resolved-last-reading', id, currentBillingMonth],
+    queryFn: () => resolveLastElectricityReading(id!, currentBillingMonth),
     enabled: !!id,
   })
   const editingBillReading = readings?.find((r) => r.billing_month === editingBill?.billing_month) ?? null
@@ -112,7 +118,7 @@ export function TenantDetailPage() {
       other_charges: number
       late_fee: number
     }) => {
-      const billingMonth = new Date().toISOString().slice(0, 7) + '-01'
+      const billingMonth = currentBillingMonth
       await recordElectricityReading({
         room_id: tenant!.room_id!,
         tenant_id: id!,
