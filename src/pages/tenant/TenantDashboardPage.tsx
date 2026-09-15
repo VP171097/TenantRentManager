@@ -55,10 +55,33 @@ async function loadMyData(profileId: string) {
     .order('billing_month', { ascending: false })
     .limit(6)
     
-  // Prefer the reading snapshot on the most recent bill (migration 028) —
-  // falls back to the electricity_readings join, then the tenant's start
-  // reading, only for bills generated before that column existed.
-  let latestReading = (tenant as Tenant).electricity_start_reading
+  // "Billed Till (Units)" should always reflect the latest month's meter
+  // reading, updated every time a new bill is generated. Prefer the
+  // snapshot on the most recent bill (migration 028); if that's missing
+  // (bill predates the column) fall back to the electricity_readings join;
+  // and if even that row is missing, derive it by walking every bill's
+  // electricity_units forward from the tenant's start reading — this
+  // never depends on a reading row existing at all, since "units
+  // consumed" is always recorded correctly on the bill itself.
+  const startReading = (tenant as Tenant).electricity_start_reading ?? 0
+  const billsAscending = [...(bills ?? [])].sort(
+    (a, b) => new Date(a.billing_month).getTime() - new Date(b.billing_month).getTime()
+  )
+  // Per-bill running (from, to) unit map, walked forward from the start
+  // reading — used as the last-resort fallback for both "Billed Till" and
+  // the Electricity History table below when a bill has no snapshot and
+  // no matching electricity_readings row.
+  const cumulativeByBillId = new Map<string, { from: number; to: number }>()
+  let running = startReading
+  for (const b of billsAscending as any[]) {
+    const from = running
+    const to = from + (b.electricity_units || 0)
+    cumulativeByBillId.set(b.id, { from, to })
+    running = to
+  }
+  const cumulativeReading = running
+
+  let latestReading = cumulativeReading
   const latestBillWithReading = (bills ?? []).find((b: any) => b.current_electricity_reading != null)
   if (latestBillWithReading) {
     latestReading = (latestBillWithReading as any).current_electricity_reading
@@ -76,6 +99,7 @@ async function loadMyData(profileId: string) {
     documents: documents ?? [],
     latestReading,
     recentReadings: recentReadings ?? [],
+    cumulativeByBillId,
   }
 }
 
@@ -337,8 +361,13 @@ export function TenantDashboardPage() {
                   // join only for older bills generated before that column
                   // existed, since that join can miss/mismatch.
                   const reading = data.recentReadings.find((r: any) => r.billing_month === bill.billing_month)
-                  const fromUnit = bill.previous_electricity_reading ?? reading?.previous_reading ?? 0
-                  const toUnit = bill.current_electricity_reading ?? Math.max(reading?.current_reading ?? 0, fromUnit + bill.electricity_units)
+                  const cumulative = data.cumulativeByBillId.get(bill.id)
+                  const fromUnit = bill.previous_electricity_reading ?? reading?.previous_reading ?? cumulative?.from ?? 0
+                  const toUnit =
+                    bill.current_electricity_reading ??
+                    reading?.current_reading ??
+                    cumulative?.to ??
+                    fromUnit + bill.electricity_units
 
                   return (
                     <tr key={bill.id}>
