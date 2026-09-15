@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { listBills } from '../services/billing'
+import { listBills, dismissTenantPaidFlag } from '../services/billing'
 import { listTenants } from '../services/tenants'
 import { recordPayment, listPayments, generateReceipt, approvePayment, deletePayment } from '../services/payments'
 import { supabase } from '../lib/supabase'
@@ -38,6 +38,8 @@ export function PaymentsPage() {
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all')
+  const [prefillBillId, setPrefillBillId] = useState<string | undefined>(undefined)
+  const recordPaymentRef = useRef<HTMLDivElement>(null)
 
   const { data: bills, isLoading, error: loadError, refetch } = useQuery({ queryKey: ['bills'], queryFn: () => listBills() })
   const { data: tenants } = useQuery({ queryKey: ['tenants'], queryFn: () => listTenants() })
@@ -46,6 +48,16 @@ export function PaymentsPage() {
 
   const outstanding = useMemo(() => (bills ?? []).filter((b) => b.balance > 0), [bills])
   const tenantName = (tid: string) => tenants?.find((t) => t.id === tid)?.full_name ?? '—'
+  // Tenant "I've Paid" self-reports — a separate mechanism from
+  // manager-submitted payments awaiting owner approval (payments.
+  // is_approved), so it needs its own list here. Previously these were
+  // only visible buried on each tenant's own page.
+  const tenantMarkedPaidBills = useMemo(() => (bills ?? []).filter((b) => b.tenant_marked_paid), [bills])
+
+  function collectPayment(billId: string) {
+    setPrefillBillId(billId)
+    recordPaymentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   const mutation = useMutation({
     mutationFn: (values: { bill_id: string; amount: number; payment_date: string; method: 'cash' | 'upi' | 'bank_transfer' | 'cheque' | 'other'; reference?: string }) => {
@@ -57,7 +69,14 @@ export function PaymentsPage() {
       queryClient.invalidateQueries({ queryKey: ['bills'] })
       queryClient.invalidateQueries({ queryKey: ['payments'] })
       setError(null)
+      setPrefillBillId(undefined)
     },
+    onError: (err) => setError(friendlyError(err)),
+  })
+
+  const dismissFlagMutation = useMutation({
+    mutationFn: (billId: string) => dismissTenantPaidFlag(billId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bills'] }),
     onError: (err) => setError(friendlyError(err)),
   })
 
@@ -174,7 +193,7 @@ export function PaymentsPage() {
       </div>
 
       {/* Record Payment */}
-      <div className="card max-w-lg">
+      <div ref={recordPaymentRef} className="card max-w-lg scroll-mt-4">
         <h2 className="mb-4 text-base font-bold text-slate-900 dark:text-slate-100">Record a Payment</h2>
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-400">
@@ -188,7 +207,11 @@ export function PaymentsPage() {
             icon={<PaymentEmptyIcon className="h-full w-full" />}
           />
         ) : (
-          <PaymentForm bills={outstanding} onSubmit={(v) => mutation.mutateAsync(v)} />
+          // Keyed on prefillBillId so clicking "Collect Payment" on a
+          // tenant's self-reported bill (below) re-initializes the form
+          // with that bill pre-selected — react-hook-form's defaultValues
+          // only apply on mount, not on prop changes.
+          <PaymentForm key={prefillBillId ?? 'none'} bills={outstanding} defaultBillId={prefillBillId} onSubmit={(v) => mutation.mutateAsync(v)} />
         )}
       </div>
 
@@ -216,9 +239,9 @@ export function PaymentsPage() {
                 }`}
               >
                 Pending Approvals
-                {pendingPayments.length > 0 && (
+                {pendingPayments.length + tenantMarkedPaidBills.length > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm">
-                    {pendingPayments.length}
+                    {pendingPayments.length + tenantMarkedPaidBills.length}
                   </span>
                 )}
               </button>
@@ -244,6 +267,29 @@ export function PaymentsPage() {
         </div>
 
         <div className="space-y-2">
+          {activeTab === 'pending' &&
+            tenantMarkedPaidBills.map((b) => (
+              <div key={b.id} className="card border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30">
+                <p className="font-semibold text-amber-800 dark:text-amber-300">
+                  {tenantName(b.tenant_id)} says this is paid ({formatINR(b.balance)} still shows as due) — please confirm.
+                </p>
+                {b.tenant_marked_paid_note && (
+                  <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">Reference/note: {b.tenant_marked_paid_note}</p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button onClick={() => collectPayment(b.id)} className="btn-primary px-4">
+                    Collect Payment
+                  </button>
+                  <button
+                    onClick={() => dismissFlagMutation.mutate(b.id)}
+                    disabled={dismissFlagMutation.isPending}
+                    className="btn-secondary px-4"
+                  >
+                    Not Received / Dismiss
+                  </button>
+                </div>
+              </div>
+            ))}
           {sortedPayments.slice(0, 25).map((p) => (
             <div key={p.id} className="card flex items-center justify-between gap-3 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 min-w-0">
