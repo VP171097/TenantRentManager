@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { useCountUp } from '../hooks/useCountUp'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
@@ -13,6 +14,8 @@ interface DashboardCardProps {
   /** Optional delta text shown below the value, e.g. "+12% vs last month" */
   delta?: string
   deltaPositive?: boolean
+  /** When set, the whole card links to this route (e.g. "/properties"). */
+  to?: string
 }
 
 const VALUE_TONES: Record<string, string> = {
@@ -45,20 +48,15 @@ export function DashboardCard({
   format,
   delta,
   deltaPositive,
+  to,
 }: DashboardCardProps) {
   const animated = useCountUp(countTo ?? 0)
   const display = countTo === undefined ? value : format ? format(animated) : Math.round(animated)
 
   const DeltaIcon = deltaPositive === true ? TrendingUp : deltaPositive === false ? TrendingDown : Minus
 
-  return (
-    <div
-      className={clsx(
-        'rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800',
-        'hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default',
-        TOP_BORDER[tone],
-      )}
-    >
+  const content = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400 leading-snug">{label}</p>
         {icon && (
@@ -78,6 +76,23 @@ export function DashboardCard({
           <span>{delta}</span>
         </div>
       )}
-    </div>
+    </>
   )
+
+  const className = clsx(
+    'block rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800',
+    'hover:shadow-md hover:-translate-y-0.5 transition-all duration-200',
+    to ? 'cursor-pointer' : 'cursor-default',
+    TOP_BORDER[tone],
+  )
+
+  if (to) {
+    return (
+      <Link to={to} className={className}>
+        {content}
+      </Link>
+    )
+  }
+
+  return <div className={className}>{content}</div>
 }

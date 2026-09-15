@@ -136,16 +136,16 @@ export function DashboardPage() {
 
       {/* ── Stat grid ── */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
-        <DashboardCard label="Properties"      value={stats.properties}              countTo={stats.properties}       icon={<Building2 size={16} />} />
-        <DashboardCard label="Rooms"           value={stats.rooms}                   countTo={stats.rooms}            icon={<DoorOpen size={16} />} />
-        <DashboardCard label="Occupied"        value={stats.occupied}   tone="good"  countTo={stats.occupied}         icon={<Home size={16} />} />
-        <DashboardCard label="Vacant"          value={stats.vacant}     tone="warn"  countTo={stats.vacant}           icon={<DoorOpen size={16} />} />
-        <DashboardCard label="Active Tenants"  value={stats.activeTenants}           countTo={stats.activeTenants}    icon={<Users size={16} />} />
-        <DashboardCard label="Expected Rent"   value={formatINR(stats.expectedRent)} countTo={stats.expectedRent}    format={formatINR}  icon={<Banknote size={16} />} />
-        <DashboardCard label="Collected"       value={formatINR(stats.collected)}    countTo={stats.collected}   tone="good" format={formatINR} icon={<TrendingUp size={16} />} />
-        <DashboardCard label="Outstanding"     value={formatINR(stats.outstanding)}  countTo={stats.outstanding} tone="bad"  format={formatINR} icon={<AlertCircle size={16} />} />
-        <DashboardCard label="Credit Held"     value={formatINR(stats.credit)}       countTo={stats.credit}      tone="warn" format={formatINR} icon={<Wallet size={16} />} />
-        <DashboardCard label="Expenses (Month)" value={formatINR(monthlyExpenses ?? 0)} countTo={monthlyExpenses ?? 0} tone="bad" format={formatINR} icon={<Wallet size={16} />} />
+        <DashboardCard label="Properties"      value={stats.properties}              countTo={stats.properties}       icon={<Building2 size={16} />} to="/properties" />
+        <DashboardCard label="Rooms"           value={stats.rooms}                   countTo={stats.rooms}            icon={<DoorOpen size={16} />} to="/rooms" />
+        <DashboardCard label="Occupied"        value={stats.occupied}   tone="good"  countTo={stats.occupied}         icon={<Home size={16} />} to="/rooms" />
+        <DashboardCard label="Vacant"          value={stats.vacant}     tone="warn"  countTo={stats.vacant}           icon={<DoorOpen size={16} />} to="/rooms" />
+        <DashboardCard label="Active Tenants"  value={stats.activeTenants}           countTo={stats.activeTenants}    icon={<Users size={16} />} to="/tenants" />
+        <DashboardCard label="Expected Rent"   value={formatINR(stats.expectedRent)} countTo={stats.expectedRent}    format={formatINR}  icon={<Banknote size={16} />} to="/billing" />
+        <DashboardCard label="Collected"       value={formatINR(stats.collected)}    countTo={stats.collected}   tone="good" format={formatINR} icon={<TrendingUp size={16} />} to="/payments" />
+        <DashboardCard label="Outstanding"     value={formatINR(stats.outstanding)}  countTo={stats.outstanding} tone="bad"  format={formatINR} icon={<AlertCircle size={16} />} to="/ledger" />
+        <DashboardCard label="Credit Held"     value={formatINR(stats.credit)}       countTo={stats.credit}      tone="warn" format={formatINR} icon={<Wallet size={16} />} to="/ledger" />
+        <DashboardCard label="Expenses (Month)" value={formatINR(monthlyExpenses ?? 0)} countTo={monthlyExpenses ?? 0} tone="bad" format={formatINR} icon={<Wallet size={16} />} to="/expenses" />
       </div>
 
       {/* ── YoY comparison ── */}
