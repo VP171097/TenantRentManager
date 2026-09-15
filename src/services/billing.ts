@@ -30,18 +30,81 @@ export async function generateBill(tenantId: string, billingMonth: string, other
   return data as Bill
 }
 
-/** Bulk-generates bills for every active tenant of a property for a month. */
-export async function generateBillsForProperty(propertyId: string, billingMonth: string): Promise<Bill[]> {
+export interface BillingPreviewItem {
+  tenant_id: string
+  room_id: string
+  full_name: string
+  room_number: string
+  last_reading: number
+  rate_per_unit: number
+}
+
+export async function getBillingPreview(propertyId: string, billingMonth: string): Promise<BillingPreviewItem[]> {
   const { data: tenants, error: tErr } = await supabase
     .from('tenants')
-    .select('id')
+    .select('id, full_name, room_id, electricity_start_reading, electricity_rate, rooms(room_number, electricity_rate)')
     .eq('property_id', propertyId)
     .eq('status', 'active')
   if (tErr) throw tErr
 
-  const results: Bill[] = []
+  const results: BillingPreviewItem[] = []
   for (const t of tenants ?? []) {
-    results.push(await generateBill((t as { id: string }).id, billingMonth))
+    // Find the latest electricity reading for this tenant
+    const { data: lastReading } = await supabase
+      .from('electricity_readings')
+      .select('current_reading')
+      .eq('tenant_id', t.id)
+      .lt('billing_month', billingMonth)
+      .order('billing_month', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    results.push({
+      tenant_id: t.id,
+      room_id: t.room_id!,
+      full_name: t.full_name,
+      room_number: (t.rooms as any)?.room_number ?? '',
+      last_reading: lastReading ? lastReading.current_reading : (t.electricity_start_reading ?? 0),
+      rate_per_unit: t.electricity_rate || (t.rooms as any)?.electricity_rate || 0,
+    })
+  }
+  return results
+}
+
+export interface BillGenerationInput {
+  tenant_id: string
+  room_id: string
+  last_reading: number
+  current_reading: number
+  rate_per_unit: number
+  skip_electricity: boolean
+}
+
+/** Bulk-generates bills for active tenants, inserting electricity readings if provided. */
+export async function generateBillsForProperty(_propertyId: string, billingMonth: string, inputs: BillGenerationInput[]): Promise<Bill[]> {
+  const results: Bill[] = []
+  
+  for (const input of inputs) {
+    if (!input.skip_electricity) {
+      // Upsert electricity reading
+      const { error: elecErr } = await supabase
+        .from('electricity_readings')
+        .upsert(
+          {
+            tenant_id: input.tenant_id,
+            room_id: input.room_id,
+            billing_month: billingMonth,
+            previous_reading: input.last_reading,
+            current_reading: input.current_reading,
+            rate_per_unit: input.rate_per_unit,
+            is_meter_reset: false,
+          },
+          { onConflict: 'tenant_id, billing_month' }
+        )
+      if (elecErr) throw elecErr
+    }
+    
+    results.push(await generateBill(input.tenant_id, billingMonth))
   }
   return results
 }

@@ -10,11 +10,13 @@ const MAX_BYTES = 3 * 1024 * 1024 // 3MB — plenty for a logo/cover photo, keep
  * property's cover photo — same bucket, different path prefix. */
 export function ImageUploader({
   path,
+  bucket = 'branding',
   label = 'Upload image',
   currentUrl,
   onUploaded,
 }: {
   path: string
+  bucket?: string
   label?: string
   currentUrl?: string | null
   onUploaded: (publicUrl: string) => void
@@ -40,9 +42,9 @@ export function ImageUploader({
     try {
       const ext = file.name.split('.').pop() || 'png'
       const fullPath = `${path}-${Date.now()}.${ext}`
-      const { error: uploadErr } = await supabase.storage.from('branding').upload(fullPath, file, { upsert: true })
+      const { error: uploadErr } = await supabase.storage.from(bucket).upload(fullPath, file, { upsert: true })
       if (uploadErr) throw uploadErr
-      const { data } = supabase.storage.from('branding').getPublicUrl(fullPath)
+      const { data } = supabase.storage.from(bucket).getPublicUrl(fullPath)
       onUploaded(data.publicUrl)
     } catch (err) {
       setError(friendlyError(err))

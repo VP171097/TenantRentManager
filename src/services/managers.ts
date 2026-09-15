@@ -22,6 +22,7 @@ export async function createManager(input: {
   full_name: string
   email?: string | null
   phone?: string | null
+  avatar_url?: string | null
 }): Promise<Manager> {
   const { data, error } = await supabase.from('managers').insert(input).select().single()
   if (error) throw error
@@ -63,8 +64,11 @@ export async function upsertManagerPermission(input: {
   return data as ManagerPermission
 }
 
-export async function updateManager(managerId: string, input: { full_name?: string; phone?: string }): Promise<Manager> {
-  const { data, error } = await supabase.from('managers').update(input).eq('id', managerId).select().single()
+export async function updateManager(
+  id: string,
+  input: { full_name?: string; email?: string | null; phone?: string | null; avatar_url?: string | null }
+): Promise<Manager> {
+  const { data, error } = await supabase.from('managers').update(input).eq('id', id).select().single()
   if (error) throw error
   return data as Manager
 }

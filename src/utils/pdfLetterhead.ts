@@ -1,68 +1,146 @@
 import type jsPDF from 'jspdf'
-import { loadImageForPdf } from './pdfImage'
 
-// Professional blue/white letterhead theme, shared by the Bill and Receipt
-// PDFs. Deep blue band across the top (logo top-left, property name/address
-// in white), document title + meta just below it in white space.
-const BLUE: [number, number, number] = [30, 58, 138]
-const BLUE_LIGHT: [number, number, number] = [191, 219, 254]
+const BRAND_BLUE: [number, number, number] = [61, 71, 199]
+const GRAY_TEXT: [number, number, number] = [100, 100, 100]
+const LINE_COLOR: [number, number, number] = [20, 50, 120]
 
 export interface LetterheadOptions {
-  /** Owner's branding logo (public URL), if configured. Drawn top-left in
-   * a white chip against the blue band. Omitted gracefully when absent. */
   logoUrl?: string | null
   propertyName: string
   address?: string | null
   city?: string | null
-  /** e.g. "RENT BILL" or "PAYMENT RECEIPT" */
   docTitle: string
-  /** Right-aligned lines under the title (e.g. billing month, receipt #, date). */
   metaLines?: string[]
 }
 
-const BAND_HEIGHT = 80
+const HEADER_HEIGHT = 70
 
-/** Draws the shared letterhead header + document title/meta. Returns the
- * y-coordinate below which the tenant-info/QR blocks and table should
- * start. */
+/**
+ * Draws the RentBook letterhead.
+ */
 export async function drawLetterhead(doc: jsPDF, opts: LetterheadOptions): Promise<number> {
   const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
 
-  doc.setFillColor(...BLUE)
-  doc.rect(0, 0, pageWidth, BAND_HEIGHT, 'F')
+  // --- HEADER ---
+  
+  // 1. Logo Approximation (Left)
+  const logoX = 20
+  const logoY = 15
+  const logoSize = 24
+  
+  doc.setFillColor(...BRAND_BLUE)
+  doc.roundedRect(logoX, logoY, logoSize, logoSize, 4, 4, 'F')
+  
+  // White house/text approximation in logo
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  // Centered 'R' as a fallback logo graphic
+  doc.text('R', logoX + 12, logoY + 16, { align: 'center', baseline: 'middle' })
+  
+  // 2. RentBook Text
+  doc.setTextColor(...BRAND_BLUE)
+  doc.setFontSize(26)
+  doc.setFont('helvetica', 'bold')
+  doc.text('RentBook', logoX + logoSize + 8, logoY + 14)
+  
+  // Subtitle
+  doc.setTextColor(...GRAY_TEXT)
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'normal')
+  doc.text('Rent, Simplified.', logoX + logoSize + 9, logoY + 22)
 
-  let textX = 20
-  if (opts.logoUrl) {
-    const logo = await loadImageForPdf(opts.logoUrl, 44, 44)
-    if (logo) {
-      doc.setFillColor(255, 255, 255)
-      doc.roundedRect(16, 16, logo.w + 8, logo.h + 8, 5, 5, 'F')
-      const format = logo.dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG'
-      doc.addImage(logo.dataUrl, format, 20, 20, logo.w, logo.h)
-      textX = 16 + logo.w + 8 + 12
-    }
+  // 3. Contact Info (Right)
+  doc.setFontSize(8)
+  const rightColX = pageWidth - 20
+  const labelX = rightColX - 140 // Increased gap to prevent long website URLs from overlapping label
+  
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...BRAND_BLUE)
+  doc.text('PHONE', labelX, logoY + 4)
+  doc.setTextColor(...GRAY_TEXT)
+  doc.setFont('helvetica', 'normal')
+  doc.text('+91-7011088059', rightColX, logoY + 4, { align: 'right' })
+
+  // subtle separator
+  doc.setDrawColor(240, 240, 240)
+  doc.line(labelX, logoY + 9, rightColX, logoY + 9)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...BRAND_BLUE)
+  doc.text('EMAIL', labelX, logoY + 16)
+  doc.setTextColor(...GRAY_TEXT)
+  doc.setFont('helvetica', 'normal')
+  doc.text('vp522099@gmail.com', rightColX, logoY + 16, { align: 'right' })
+
+  // subtle separator
+  doc.line(labelX, logoY + 21, rightColX, logoY + 21)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...BRAND_BLUE)
+  doc.text('WEBSITE', labelX, logoY + 28)
+  doc.setTextColor(...GRAY_TEXT)
+  doc.setFont('helvetica', 'normal')
+  doc.text('vp171097.github.io/TenantRentManager', rightColX, logoY + 28, { align: 'right' })
+
+  // 4. Horizontal Line
+  doc.setDrawColor(...LINE_COLOR)
+  doc.setLineWidth(2)
+  doc.line(15, logoY + 32, 80, logoY + 32)
+  doc.setDrawColor(...LINE_COLOR)
+  doc.setLineWidth(0.5)
+  doc.line(80, logoY + 32, pageWidth - 15, logoY + 32)
+
+  // --- FOOTER ---
+  // We draw the footer directly here so it applies to the page
+  const footerY = pageHeight - 15
+  doc.setDrawColor(...LINE_COLOR)
+  doc.setLineWidth(0.5)
+  doc.line(15, footerY - 5, pageWidth - 15, footerY - 5)
+  
+  doc.setFontSize(8)
+  doc.setTextColor(...GRAY_TEXT)
+  doc.setFont('helvetica', 'normal')
+  const footerText = 'RENTBOOK   |   RENT, SIMPLIFIED.   |   +91-7011088059   |   vp522099@gmail.com'
+  doc.text(footerText, pageWidth / 2, footerY, { align: 'center' })
+
+  // --- DOCUMENT META ---
+  let currentY = HEADER_HEIGHT + 15 // Start a bit lower
+
+  // We still need to print the Property Name, because this bill is FOR that property
+  doc.setTextColor(0, 0, 0)
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.text(opts.propertyName, 20, currentY)
+  
+  if (opts.city) {
+    currentY += 16
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 100, 100)
+    doc.text(opts.city, 20, currentY)
   }
 
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(15)
-  doc.text(opts.propertyName, textX, 38)
+  currentY += 24 // Bigger gap before RENT BILL
 
-  doc.setFontSize(9)
-  doc.setTextColor(...BLUE_LIGHT)
-  if (opts.city) doc.text(opts.city, textX, 54)
+  // Document Title (e.g., RENT BILL)
+  doc.setTextColor(...BRAND_BLUE)
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.text(opts.docTitle, 20, currentY)
 
-  doc.setTextColor(...BLUE)
-  doc.setFontSize(13)
-  doc.text(opts.docTitle, 20, BAND_HEIGHT + 24)
-
-  doc.setTextColor(90, 90, 90)
-  doc.setFontSize(9)
+  // Meta lines (e.g. Bill #, Date)
+  doc.setTextColor(80, 80, 80)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
   ;(opts.metaLines ?? []).forEach((line, i) => {
-    doc.text(line, pageWidth - 20, BAND_HEIGHT + 16 + i * 12, { align: 'right' })
+    // We position the meta lines aligned with the document title
+    doc.text(line, pageWidth - 20, currentY - (opts.metaLines!.length - 1 - i) * 14, { align: 'right' })
   })
 
   doc.setTextColor(0, 0, 0)
-  return BAND_HEIGHT + 24
+  return currentY + 16
 }
 
-export { BLUE as LETTERHEAD_BLUE, BLUE_LIGHT as LETTERHEAD_BLUE_LIGHT }
+export { BRAND_BLUE as LETTERHEAD_BLUE, BRAND_BLUE as LETTERHEAD_BLUE_LIGHT }

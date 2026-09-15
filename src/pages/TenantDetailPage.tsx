@@ -118,7 +118,7 @@ export function TenantDetailPage() {
 
   const paymentMutation = useMutation({
     mutationFn: async (values: { bill_id: string; amount: number; payment_date: string; method: 'cash' | 'upi' | 'bank_transfer' | 'cheque' | 'other'; reference?: string }) => {
-      const payment = await recordPayment({ ...values, tenant_id: id!, recorded_by: profile?.id })
+      const payment = await recordPayment({ ...values, tenant_id: id!, recorded_by: profile?.id, is_approved: profile?.role === 'owner' })
       return payment
     },
     onSuccess: (payment) => {
@@ -313,14 +313,19 @@ export function TenantDetailPage() {
         .select('upi_id, logo_url, full_name, phone')
         .eq('id', tenant!.owner_id)
         .maybeSingle()
-      const { data: room } = await supabase.from('rooms').select('room_number').eq('id', bill.room_id).maybeSingle()
+      const { data: room } = await supabase.from('rooms').select('room_number, upi_id_id').eq('id', bill.room_id).maybeSingle()
+      let finalUpiId = (ownerProfile as { upi_id?: string } | null)?.upi_id
+      if (room?.upi_id_id) {
+        const { data: upiRecord } = await supabase.from('upi_ids').select('upi_id').eq('id', room.upi_id_id).maybeSingle()
+        if (upiRecord?.upi_id) finalUpiId = upiRecord.upi_id
+      }
       const reading = await getReadingForMonth(tenant!.id, bill.billing_month).catch(() => null)
       if (property) {
         await downloadBillPdf({
           bill,
           tenant: tenant!,
           property,
-          upiId: (ownerProfile as { upi_id?: string } | null)?.upi_id,
+          upiId: finalUpiId,
           roomNumber: (room as { room_number?: string } | null)?.room_number,
           logoUrl: (ownerProfile as { logo_url?: string } | null)?.logo_url,
           reading,
@@ -343,7 +348,12 @@ export function TenantDetailPage() {
         .select('upi_id, logo_url, full_name, phone')
         .eq('id', tenant!.owner_id)
         .maybeSingle()
-      const { data: room } = await supabase.from('rooms').select('room_number').eq('id', bill.room_id).maybeSingle()
+      const { data: room } = await supabase.from('rooms').select('room_number, upi_id_id').eq('id', bill.room_id).maybeSingle()
+      let finalUpiId = (ownerProfile as { upi_id?: string } | null)?.upi_id
+      if (room?.upi_id_id) {
+        const { data: upiRecord } = await supabase.from('upi_ids').select('upi_id').eq('id', room.upi_id_id).maybeSingle()
+        if (upiRecord?.upi_id) finalUpiId = upiRecord.upi_id
+      }
       const reading = await getReadingForMonth(tenant!.id, bill.billing_month).catch(() => null)
       let pdfBase64: string | undefined
       if (property) {
@@ -351,7 +361,7 @@ export function TenantDetailPage() {
           bill,
           tenant: tenant!,
           property,
-          upiId: (ownerProfile as { upi_id?: string } | null)?.upi_id,
+          upiId: finalUpiId,
           roomNumber: (room as { room_number?: string } | null)?.room_number,
           logoUrl: (ownerProfile as { logo_url?: string } | null)?.logo_url,
           reading,
@@ -420,11 +430,16 @@ export function TenantDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">{tenant.full_name}</h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">
-            {tenant.phone || 'No phone on file'} {tenant.email && `· ${tenant.email}`}
-          </p>
+        <div className="flex items-center gap-4">
+          {tenant.avatar_url && (
+            <img src={tenant.avatar_url} alt="" className="h-16 w-16 shrink-0 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
+          )}
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">{tenant.full_name}</h1>
+            <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              {tenant.phone || 'No phone on file'} {tenant.email && `· ${tenant.email}`}
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-3">
           <button onClick={() => setShowEditTenant(true)} className="btn-secondary px-4">
@@ -474,10 +489,12 @@ export function TenantDetailPage() {
           <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500">Current rent</span>
           <span className="font-semibold">{formatINR(currentRent)}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500">Security deposit</span>
-          <span className="font-semibold">{formatINR(tenant.security_deposit)}</span>
-        </div>
+        {tenant.security_deposit > 0 && (
+          <div className="flex justify-between">
+            <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500">Security deposit</span>
+            <span className="font-semibold">{formatINR(tenant.security_deposit)}</span>
+          </div>
+        )}
         <button onClick={() => setShowRentModal(true)} className="btn-secondary mt-2 w-full">
           Revise Rent
         </button>

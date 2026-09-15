@@ -16,6 +16,7 @@ export async function createMaintenanceRequest(input: {
   room_id?: string | null
   title: string
   description?: string
+  images?: string[]
 }): Promise<MaintenanceRequest> {
   const { data, error } = await supabase.from('maintenance_requests').insert(input).select().single()
   if (error) throw error
@@ -26,6 +27,23 @@ export async function updateMaintenanceStatus(id: string, status: MaintenanceSta
   const { data, error } = await supabase
     .from('maintenance_requests')
     .update({ status, resolved_at: status === 'resolved' ? new Date().toISOString() : null })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data as MaintenanceRequest
+}
+
+export async function updateMaintenanceResolution(id: string, updates: { status?: MaintenanceStatus; resolution_notes?: string; resolution_images?: string[] }): Promise<MaintenanceRequest> {
+  const payload: any = { ...updates }
+  if (updates.status === 'resolved') {
+    payload.resolved_at = new Date().toISOString()
+  } else if (updates.status) {
+    payload.resolved_at = null
+  }
+  const { data, error } = await supabase
+    .from('maintenance_requests')
+    .update(payload)
     .eq('id', id)
     .select()
     .single()

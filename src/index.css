@@ -1,56 +1,50 @@
 @import "tailwindcss";
 
-/* Class-based dark mode (Tailwind v4): toggling `.dark` on <html> makes
- * every `dark:` variant apply, instead of only following OS preference. */
+/* Class-based dark mode: toggling `.dark` on <html> activates all `dark:` variants */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ─── Design tokens ─────────────────────────────────────────────────── */
 @theme {
-  --color-brand-50: #eef2ff;
+  --color-brand-50:  #eef2ff;
   --color-brand-100: #e0e7ff;
   --color-brand-200: #c7d2fe;
-  --color-brand-500: #4f46e5;
-  --color-brand-600: #4338ca;
-  --color-brand-700: #3730a3;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
   --color-brand-900: #312e81;
   --color-brand-950: #1e1b4b;
-  --color-paid: #16a34a;
+
+  --color-paid:    #16a34a;
   --color-pending: #ea580c;
   --color-overdue: #dc2626;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
-html, body, #root {
-  height: 100%;
-}
-
-html {
-  color-scheme: light;
-}
-
-html.dark {
-  color-scheme: dark;
-}
+/* ─── Base ───────────────────────────────────────────────────────────── */
+html, body, #root { height: 100%; }
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+html.dark body { background-color: #020617; color: #f1f5f9; }
 
-* {
-  -webkit-tap-highlight-color: transparent;
-}
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+button, a, input, select { min-height: 2.5rem; }
+button, a { transition: all 0.15s ease-out; }
+button:active, a:active { transform: scale(0.97); }
 
-button, a, input, select {
-  min-height: 2.5rem;
-}
-
-button, a {
-  @apply transition duration-150 ease-out;
-}
-
-button:active, a:active {
-  @apply scale-[0.97];
-}
-
+/* ─── Reduced motion ─────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -60,29 +54,168 @@ button:active, a:active {
   }
 }
 
-.input {
-  @apply w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-base text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-900;
+/* ─── Keyframes ──────────────────────────────────────────────────────── */
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
 }
 
-.btn-primary {
-  @apply rounded-xl bg-brand-600 py-3 text-base font-bold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60 transition active:scale-[0.97];
+/* ─── Animation classes ──────────────────────────────────────────────── */
+@utility page-fade-in { animation: page-fade-in 0.25s ease-out; }
+@utility slide-up     { animation: slide-up 0.22s cubic-bezier(0.16,1,0.3,1); }
+@utility slide-down   { animation: slide-down 0.18s ease-out; }
+@utility fade-in      { animation: fade-in 0.2s ease-out; }
+
+/* ─── Gradient ───────────────────────────────────────────────────────── */
+@utility gradient-auth {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #4338ca 60%, #6366f1 100%);
 }
+
+/* ─── Input ──────────────────────────────────────────────────────────── */
+.input {
+  display: block;
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+.input::placeholder { color: #94a3b8; }
+.input:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+}
+html.dark .input {
+  border-color: #475569;
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+html.dark .input::placeholder { color: #64748b; }
+html.dark .input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  background-color: #4f46e5;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  transition: background-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  font-family: inherit;
+}
+.btn-primary:hover { background-color: #4338ca; box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
 .btn-secondary {
-  @apply rounded-xl border border-slate-300 dark:border-slate-600 py-3 text-base font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 transition active:scale-[0.97];
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  background-color: transparent;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+  font-family: inherit;
 }
+.btn-secondary:hover { background-color: #f8fafc; border-color: #cbd5e1; }
+.btn-secondary:active { transform: scale(0.97); }
+.btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+html.dark .btn-secondary { border-color: #475569; color: #e2e8f0; }
+html.dark .btn-secondary:hover { background-color: #1e293b; border-color: #64748b; }
 
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  background-color: #dc2626;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  transition: background-color 0.15s, transform 0.15s;
+  font-family: inherit;
+}
+.btn-danger:hover { background-color: #b91c1c; }
+.btn-danger:active { transform: scale(0.97); }
+.btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ─── Card ───────────────────────────────────────────────────────────── */
 .card {
-  @apply rounded-2xl bg-white dark:bg-slate-800 p-5 shadow-sm border border-slate-100 dark:border-slate-700;
+  border-radius: 1rem;
+  background-color: #ffffff;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  border: 1px solid #f1f5f9;
+  transition: box-shadow 0.2s;
 }
+html.dark .card { background-color: #0f172a; border-color: #1e293b; }
 
-/* Fade-in for route content (skipped under reduced motion via the media
- * query above, which zeroes animation-duration globally). */
-@keyframes page-fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+.card-hover {
+  border-radius: 1rem;
+  background-color: #ffffff;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  border: 1px solid #f1f5f9;
+  transition: box-shadow 0.2s, transform 0.2s;
 }
+.card-hover:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.1); transform: translateY(-2px); }
+html.dark .card-hover { background-color: #0f172a; border-color: #1e293b; }
 
-.page-fade-in {
-  animation: page-fade-in 0.25s ease-out;
+/* ─── Scrollbar ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { border-radius: 9999px; background: #cbd5e1; }
+html.dark ::-webkit-scrollbar-thumb { background: #475569; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ─── Focus ring ─────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
 }

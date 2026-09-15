@@ -22,9 +22,12 @@ export interface NewTenantInput {
   full_name: string
   phone?: string
   email?: string
+  avatar_url?: string
   move_in_date: string
   security_deposit: number
   initial_rent: number
+  electricity_start_reading: number
+  electricity_rate: number
 }
 
 /** Creates a tenant, marks the room occupied, and records the initial rent
@@ -74,10 +77,11 @@ export async function deleteTenant(id: string): Promise<void> {
  * SECURITY DEFINER RPC that verifies auth.uid() owns the tenant row —
  * tenants cannot use this to change rent, deposit, property, room, or
  * status. */
-export async function updateOwnTenantProfile(phone: string, email: string | null): Promise<Tenant> {
+export async function updateOwnTenantProfile(phone: string, email: string | null, avatar_url?: string | null): Promise<Tenant> {
   const { data, error } = await supabase.rpc('fn_tenant_update_own_profile', {
     p_phone: phone,
     p_email: email,
+    p_avatar_url: avatar_url || null,
   })
   if (error) throw error
   return data as Tenant

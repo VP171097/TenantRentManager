@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { ErrorState } from '../../components/States'
 import { SkeletonCardGrid } from '../../components/Skeleton'
 import { DocumentUploader } from '../../components/DocumentUploader'
+import { ImageUploader } from '../../components/ImageUploader'
 import { updateOwnTenantProfile } from '../../services/tenants'
 import { friendlyError } from '../../utils/errors'
 import type { Tenant, TenantDocument } from '../../types/database'
@@ -20,6 +21,7 @@ export function TenantProfilePage() {
   const queryClient = useQueryClient()
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [docs, setDocs] = useState<TenantDocument[]>([])
 
@@ -33,11 +35,12 @@ export function TenantProfilePage() {
     if (tenant) {
       setPhone(tenant.phone ?? '')
       setEmail(tenant.email ?? '')
+      setAvatarUrl(tenant.avatar_url ?? null)
     }
   }, [tenant])
 
   const mutation = useMutation({
-    mutationFn: () => updateOwnTenantProfile(phone, email || null),
+    mutationFn: () => updateOwnTenantProfile(phone, email || null, avatarUrl || null),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-tenant-profile', profile?.id] })
       setMessage('Contact details updated.')
@@ -53,6 +56,16 @@ export function TenantProfilePage() {
       <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">My Profile</h1>
 
       <div className="card space-y-4">
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Profile Picture</label>
+          <ImageUploader
+            path={`tenants/${tenant.id}/avatar`}
+            bucket="avatars"
+            label={avatarUrl ? 'Change avatar' : 'Upload avatar'}
+            currentUrl={avatarUrl}
+            onUploaded={setAvatarUrl}
+          />
+        </div>
         <div>
           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Full name</label>
           <p className="mt-1 text-slate-600 dark:text-slate-300">{tenant.full_name}</p>

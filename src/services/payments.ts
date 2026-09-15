@@ -18,6 +18,7 @@ export async function recordPayment(input: {
   method: Payment['method']
   reference?: string
   recorded_by?: string
+  is_approved?: boolean
 }): Promise<Payment> {
   const { data, error } = await supabase.from('payments').insert(input).select().single()
   if (error) throw error
@@ -26,6 +27,14 @@ export async function recordPayment(input: {
 
 export async function deletePayment(id: string): Promise<void> {
   const { error } = await supabase.from('payments').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function approvePayment(id: string, approvedBy: string): Promise<void> {
+  const { error } = await supabase
+    .from('payments')
+    .update({ is_approved: true, approved_by: approvedBy, approved_at: new Date().toISOString() })
+    .eq('id', id)
   if (error) throw error
 }
 

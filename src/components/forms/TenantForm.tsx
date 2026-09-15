@@ -5,7 +5,8 @@ import { tenantSchema, type TenantFormValues } from '../../utils/validation'
 import { Field } from './PropertyForm'
 import { listProperties } from '../../services/properties'
 import { listRooms } from '../../services/rooms'
-import { useState } from 'react'
+import { ImageUploader } from '../ImageUploader'
+import { useEffect, useState } from 'react'
 
 export function TenantForm({
   defaultValues,
@@ -20,6 +21,7 @@ export function TenantForm({
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<TenantFormValues>({ resolver: zodResolver(tenantSchema), defaultValues })
 
@@ -32,12 +34,31 @@ export function TenantForm({
   })
   const [showAll, setShowAll] = useState(false)
 
+  const roomId = watch('room_id')
+  useEffect(() => {
+    if (roomId && rooms && !defaultValues?.initial_rent) {
+      const selectedRoom = rooms.find((r) => r.id === roomId)
+      if (selectedRoom) {
+        setValue('initial_rent', selectedRoom.base_rent, { shouldValidate: true })
+      }
+    }
+  }, [roomId, rooms, defaultValues, setValue])
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <p className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-700 dark:bg-sky-950 dark:text-sky-300">
         Fill in what you know now. Anything left blank (phone, email) can be filled in by the tenant themselves via
         an invite link after you save.
       </p>
+      <Field label="Profile Picture (optional)" error={errors.avatar_url?.message}>
+        <ImageUploader
+          path={`tenant-avatars/${Date.now()}`}
+          bucket="avatars"
+          label="Upload Avatar"
+          currentUrl={watch('avatar_url')}
+          onUploaded={(url) => setValue('avatar_url', url, { shouldValidate: true })}
+        />
+      </Field>
       <Field label="Full name" error={errors.full_name?.message}>
         <input {...register('full_name')} className="input" />
       </Field>
@@ -82,6 +103,14 @@ export function TenantForm({
       <Field label="Monthly rent (₹)" error={errors.initial_rent?.message}>
         <input type="number" step="0.01" min="0" {...register('initial_rent')} className="input" />
       </Field>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Starting Electricity Unit" error={errors.electricity_start_reading?.message}>
+          <input type="number" step="1" min="0" {...register('electricity_start_reading')} className="input" />
+        </Field>
+        <Field label="Electricity Rate (₹/unit)" error={errors.electricity_rate?.message}>
+          <input type="number" step="0.01" min="0" {...register('electricity_rate')} className="input" />
+        </Field>
+      </div>
       <button type="submit" disabled={isSubmitting} className="btn-primary w-full">
         {isSubmitting ? 'Saving…' : submitLabel}
       </button>

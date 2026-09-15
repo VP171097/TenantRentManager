@@ -30,6 +30,7 @@ export function friendlyError(error: unknown): string {
   if (/password should be at least/i.test(message)) return 'Password must be at least 6 characters.'
   if (/unable to validate email address/i.test(message)) return 'Please enter a valid email address.'
   if (/rate limit/i.test(message)) return 'Too many attempts. Please wait a moment and try again.'
+  if (/phone logins are disabled/i.test(message)) return 'Phone sign-in is not enabled in your Supabase project. Please enable the Phone provider in Supabase Auth settings.'
 
-  return 'Something went wrong. Please try again, or contact support if this continues.'
+  return message || 'Something went wrong. Please try again, or contact support if this continues.'
 }

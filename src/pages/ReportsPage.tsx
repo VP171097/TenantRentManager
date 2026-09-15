@@ -60,8 +60,11 @@ export function ReportsPage() {
 
   const list = bills ?? []
   const totalCollected = list.reduce((s, b) => s + b.total_paid, 0)
+  const totalDue = list.reduce((s, b) => s + b.total_due, 0)
   const totalOutstanding = list.reduce((s, b) => s + (b.balance > 0 ? b.balance : 0), 0)
   const totalCredit = list.reduce((s, b) => s + (b.balance < 0 ? Math.abs(b.balance) : 0), 0)
+  const collectionRate = totalDue > 0 ? (totalCollected / totalDue) * 100 : 0
+
 
   const byMonth = new Map<string, { due: number; paid: number }>()
   for (const b of list) {
@@ -121,10 +124,17 @@ export function ReportsPage() {
     <div className="space-y-6 page-fade-in">
       <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Reports</h1>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <DashboardCard label="Total Collected" value={formatINR(totalCollected)} tone="good" countTo={totalCollected} format={formatINR} />
         <DashboardCard label="Total Outstanding" value={formatINR(totalOutstanding)} tone="bad" countTo={totalOutstanding} format={formatINR} />
         <DashboardCard label="Total Credit Held" value={formatINR(totalCredit)} tone="warn" countTo={totalCredit} format={formatINR} />
+        <DashboardCard
+          label="Collection Rate"
+          value={`${collectionRate.toFixed(1)}%`}
+          tone={collectionRate >= 95 ? 'good' : collectionRate >= 80 ? 'warn' : 'bad'}
+          countTo={collectionRate}
+          format={(v) => `${v.toFixed(1)}%`}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -179,18 +189,24 @@ export function ReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {sortedMonthly.map(([month, v], i) => (
-                <tr
-                  key={month}
-                  className={`border-t border-slate-100 dark:border-slate-700 ${i % 2 === 1 ? 'bg-slate-50/60 dark:bg-slate-900/40' : ''}`}
-                >
-                  <td className="px-4 py-3 dark:text-slate-200">
-                    {new Date(month).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
-                  </td>
-                  <td className="px-4 py-3 dark:text-slate-200">{formatINR(v.due)}</td>
-                  <td className="px-4 py-3 dark:text-slate-200">{formatINR(v.paid)}</td>
-                </tr>
-              ))}
+              {sortedMonthly.map(([month, v], i) => {
+                const shortfall = v.due - v.paid
+                const hasShortfall = shortfall > 0
+                return (
+                  <tr
+                    key={month}
+                    className={`border-t border-slate-100 dark:border-slate-700 ${
+                      hasShortfall ? 'bg-red-50/50 dark:bg-red-900/20' : i % 2 === 1 ? 'bg-slate-50/60 dark:bg-slate-900/40' : ''
+                    }`}
+                  >
+                    <td className={`px-4 py-3 dark:text-slate-200 ${hasShortfall ? 'font-medium text-red-900 dark:text-red-200' : ''}`}>
+                      {new Date(month).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className={`px-4 py-3 dark:text-slate-200 ${hasShortfall ? 'text-red-900 dark:text-red-200' : ''}`}>{formatINR(v.due)}</td>
+                    <td className={`px-4 py-3 dark:text-slate-200 ${hasShortfall ? 'text-red-900 dark:text-red-200' : ''}`}>{formatINR(v.paid)}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

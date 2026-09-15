@@ -93,11 +93,18 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 
-    const { data: created, error: createErr } = await admin.auth.admin.createUser(
-      isEmail
-        ? { email: identifier, password: body.password, email_confirm: true }
-        : { phone: identifier, password: body.password, phone_confirm: true }
-    )
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      ...(isEmail
+        ? { email: identifier, email_confirm: true }
+        : { phone: identifier, phone_confirm: true }),
+      password: body.password,
+      user_metadata: {
+        full_name: (manager as any).full_name,
+        role: 'manager',
+        owner_id: (manager as any).owner_id,
+        phone: isEmail ? null : identifier,
+      }
+    })
     if (createErr || !created?.user) {
       return jsonResponse({ error: createErr?.message ?? 'Could not create the login.' }, 400)
     }

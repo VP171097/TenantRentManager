@@ -34,7 +34,7 @@ export function PropertyDetailPage() {
   const { data: tenants } = useQuery({ queryKey: ['tenants', id], queryFn: () => listTenants(id), enabled: !!id })
 
   const createRoomMutation = useMutation({
-    mutationFn: (values: RoomFormValues) => createRoom({ ...values, property_id: id! }),
+    mutationFn: (values: RoomFormValues) => createRoom({ ...values, property_id: id!, upi_id_id: values.upi_id_id || null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms', id] })
       setShowForm(false)
@@ -140,7 +140,8 @@ export function PropertyDetailPage() {
         {showForm && (
           <div className="card mb-4 max-w-md">
             {formError && <p className="mb-3 rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{formError}</p>}
-            <RoomForm onSubmit={(v) => createRoomMutation.mutateAsync(v)} submitLabel="Add Room" />
+            <h2 className="mb-4 text-base font-bold text-slate-900 dark:text-slate-100">Add New Room</h2>
+            <RoomForm defaultValues={{ electricity_rate: 0 }} onSubmit={(v) => createRoomMutation.mutateAsync(v)} submitLabel="Add Room" />
           </div>
         )}
         {rooms && rooms.length === 0 && (

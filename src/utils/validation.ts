@@ -32,7 +32,9 @@ export const roomSchema = z.object({
   room_number: z.string().trim().min(1, 'Room number is required'),
   floor: z.string().trim().optional(),
   base_rent: z.coerce.number().min(0, 'Rent cannot be negative'),
+  electricity_rate: z.coerce.number().min(0, 'Must be positive').optional(),
   notes: z.string().trim().optional(),
+  upi_id_id: z.string().uuid().optional().or(z.literal('')),
 })
 export type RoomFormValues = z.infer<typeof roomSchema>
 
@@ -40,11 +42,14 @@ export const tenantSchema = z.object({
   full_name: z.string().trim().min(2, 'Name is required'),
   phone: optionalPhoneSchema,
   email: emailSchema,
+  avatar_url: z.string().url().optional().or(z.literal('')),
   property_id: z.string().uuid('Select a property'),
   room_id: z.string().uuid('Select a room'),
   move_in_date: z.string().min(1, 'Move-in date is required'),
   security_deposit: z.coerce.number().min(0, 'Deposit cannot be negative'),
   initial_rent: z.coerce.number().min(0, 'Rent cannot be negative'),
+  electricity_start_reading: z.coerce.number().min(0, 'Must be positive'),
+  electricity_rate: z.coerce.number().min(0, 'Must be positive'),
 })
 export type TenantFormValues = z.infer<typeof tenantSchema>
 
@@ -89,16 +94,19 @@ export const managerSchema = z.object({
   full_name: z.string().trim().min(2, 'Name is required'),
   email: z.string().trim().email('Enter a valid email address'),
   phone: phoneSchema.optional(),
+  avatar_url: z.string().url().optional().or(z.literal('')),
 })
 export type ManagerFormValues = z.infer<typeof managerSchema>
 
 export const expenseSchema = z.object({
   property_id: z.string().uuid('Select a property'),
+  floor: z.string().trim().optional().or(z.literal('')),
   room_id: z.string().uuid().optional().or(z.literal('')),
-  category: z.enum(['maintenance', 'repair', 'utility', 'tax', 'insurance', 'other']),
+  category: z.enum(['maintenance', 'repair', 'utility', 'tax', 'insurance', 'other', 'cleaning']),
   description: z.string().trim().optional(),
   amount: z.coerce.number().min(0, 'Amount cannot be negative'),
   expense_date: z.string().min(1, 'Date is required'),
+  charge_to_tenant: z.boolean().optional(),
 })
 export type ExpenseFormValues = z.infer<typeof expenseSchema>
 

@@ -8,11 +8,27 @@ import { SkeletonList } from '../components/Skeleton'
 import { BillEmptyIcon } from '../components/EmptyIcons'
 import { ExpenseForm } from '../components/forms/ExpenseForm'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { DashboardCard } from '../components/DashboardCard'
 import { friendlyError } from '../utils/errors'
 import { formatINR } from '../utils/money'
 import { downloadCsv, toCsv } from '../utils/csv'
 import type { Expense } from '../types/database'
 import type { ExpenseFormValues } from '../utils/validation'
+import { Wallet, Download, Plus, X, Pencil, Trash2, Tag } from 'lucide-react'
+
+const CATEGORY_COLORS: Record<string, string> = {
+  maintenance: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  utilities:   'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
+  repairs:     'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+  salary:      'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+  tax:         'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  insurance:   'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  other:       'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+}
+
+function categoryColor(cat: string) {
+  return CATEGORY_COLORS[cat.toLowerCase()] ?? CATEGORY_COLORS.other
+}
 
 export function ExpensesPage() {
   const { profile } = useAuth()
@@ -31,16 +47,15 @@ export function ExpensesPage() {
         owner_id: profile!.role === 'owner' ? profile!.id : profile!.owner_id!,
         property_id: values.property_id,
         room_id: values.room_id || undefined,
+        floor: values.floor || undefined,
         category: values.category,
         description: values.description || undefined,
         amount: values.amount,
         expense_date: values.expense_date,
+        charge_to_tenant: values.charge_to_tenant ?? false,
         created_by: profile?.id,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] })
-      setShowForm(false)
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['expenses'] }); setShowForm(false); setFormError(null) },
     onError: (err) => setFormError(friendlyError(err)),
   })
 
@@ -54,19 +69,13 @@ export function ExpensesPage() {
         amount: values.amount,
         expense_date: values.expense_date,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] })
-      setEditing(null)
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['expenses'] }); setEditing(null); setFormError(null) },
     onError: (err) => setFormError(friendlyError(err)),
   })
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteExpense(deleting!.id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] })
-      setDeleting(null)
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['expenses'] }); setDeleting(null) },
     onError: (err) => setFormError(friendlyError(err)),
   })
 
@@ -82,43 +91,74 @@ export function ExpensesPage() {
       amount: e.amount,
       expense_date: e.expense_date,
     }))
-    const csv = toCsv(rows, [
+    downloadCsv('expenses.csv', toCsv(rows, [
       { key: 'property', label: 'Property' },
       { key: 'category', label: 'Category' },
       { key: 'description', label: 'Description' },
       { key: 'amount', label: 'Amount' },
       { key: 'expense_date', label: 'Date' },
-    ])
-    downloadCsv('expenses.csv', csv)
+    ]))
   }
 
   const total = (expenses ?? []).reduce((s, e) => s + e.amount, 0)
 
   return (
     <div className="space-y-6 page-fade-in">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Expenses</h1>
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/30">
+            <Wallet size={20} className="text-red-600 dark:text-red-400" />
+          </div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">Expenses</h1>
+        </div>
         <div className="flex gap-2">
-          <button onClick={handleExport} className="btn-secondary px-4" disabled={!expenses || expenses.length === 0}>
-            Export CSV
+          <button onClick={handleExport} className="btn-secondary px-3 gap-1.5 text-sm" disabled={!expenses || expenses.length === 0}>
+            <Download size={15} /> Export
           </button>
-          <button onClick={() => setShowForm((s) => !s)} className="btn-primary px-5">
-            {showForm ? 'Close' : '+ Add Expense'}
+          <button
+            onClick={() => { setShowForm((s) => !s); setEditing(null) }}
+            className={`btn-primary px-4 gap-1.5 text-sm ${showForm ? 'bg-slate-600 hover:bg-slate-700' : ''}`}
+          >
+            {showForm ? <><X size={15} /> Close</> : <><Plus size={15} /> Add Expense</>}
           </button>
         </div>
       </div>
 
+      {/* Total summary card */}
+      {expenses && expenses.length > 0 && (
+        <DashboardCard
+          label="Total Expenses"
+          value={formatINR(total)}
+          tone="bad"
+          countTo={total}
+          format={formatINR}
+          icon={<Wallet size={16} />}
+        />
+      )}
+
+      {/* Add Form */}
       {showForm && (
-        <div className="card max-w-md">
-          {formError && <p className="mb-3 rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{formError}</p>}
+        <div className="card max-w-lg slide-up">
+          <h2 className="mb-4 text-base font-bold text-slate-900 dark:text-slate-100">Add New Expense</h2>
+          {formError && (
+            <div className="mb-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+              {formError}
+            </div>
+          )}
           <ExpenseForm onSubmit={(v) => createMutation.mutateAsync(v)} submitLabel="Add Expense" />
         </div>
       )}
 
+      {/* Edit Form */}
       {editing && (
-        <div className="card max-w-md">
-          <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Edit Expense</h2>
-          {formError && <p className="mb-3 rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{formError}</p>}
+        <div className="card max-w-lg slide-up">
+          <h2 className="mb-4 text-base font-bold text-slate-900 dark:text-slate-100">Edit Expense</h2>
+          {formError && (
+            <div className="mb-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+              {formError}
+            </div>
+          )}
           <ExpenseForm
             defaultValues={{
               property_id: editing.property_id,
@@ -131,53 +171,64 @@ export function ExpensesPage() {
             onSubmit={(v) => updateMutation.mutateAsync(v)}
             submitLabel="Save Changes"
           />
-          <button onClick={() => setEditing(null)} className="btn-secondary mt-3 w-full">
-            Cancel
-          </button>
+          <button onClick={() => setEditing(null)} className="btn-secondary mt-3 w-full text-sm">Cancel</button>
         </div>
       )}
 
       {isLoading && <SkeletonList />}
       {error && <ErrorState message="Could not load expenses." onRetry={() => refetch()} />}
       {expenses && expenses.length === 0 && (
-        <EmptyState title="No expenses recorded yet" description="Track maintenance, repairs, and other costs here." icon={<BillEmptyIcon className="h-full w-full" />} />
+        <EmptyState
+          title="No expenses recorded yet"
+          description="Track maintenance, repairs, and other costs here."
+          icon={<BillEmptyIcon className="h-full w-full" />}
+          action={
+            <button onClick={() => setShowForm(true)} className="btn-primary px-5 text-sm">
+              <Plus size={15} /> Add Expense
+            </button>
+          }
+        />
       )}
+
       {expenses && expenses.length > 0 && (
-        <>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Total: <span className="font-semibold text-slate-900 dark:text-slate-100">{formatINR(total)}</span>
-          </p>
-          <div className="space-y-2">
-            {expenses.map((e) => (
-              <div key={e.id} className="card flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-slate-900 dark:text-slate-100">
-                    {formatINR(e.amount)} · <span className="capitalize">{e.category}</span>
-                  </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+        <div className="space-y-2">
+          {expenses.map((e) => (
+            <div key={e.id} className="card flex items-center justify-between gap-3 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                  <Tag size={15} className="text-red-600 dark:text-red-400" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">{formatINR(e.amount)}</p>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${categoryColor(e.category)}`}>
+                      {e.category}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
                     {propertyName(e.property_id)} · {new Date(e.expense_date).toLocaleDateString('en-IN')}
                     {e.description ? ` · ${e.description}` : ''}
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setEditing(e)} className="btn-secondary px-3">
-                    Edit
-                  </button>
-                  <button onClick={() => setDeleting(e)} className="btn-secondary px-3 text-red-600 dark:text-red-400">
-                    Delete
-                  </button>
-                </div>
               </div>
-            ))}
-          </div>
-        </>
+              <div className="flex shrink-0 gap-1.5">
+                <button onClick={() => { setEditing(e); setShowForm(false) }} className="btn-secondary px-2.5 py-2 text-xs gap-1">
+                  <Pencil size={12} />
+                </button>
+                <button onClick={() => setDeleting(e)} className="btn-secondary px-2.5 py-2 text-xs text-red-600 dark:text-red-400 hover:border-red-300 dark:hover:border-red-700">
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       <ConfirmDialog
         open={!!deleting}
         title="Delete expense"
         message="This will permanently delete this expense record. This cannot be undone."
-        confirmLabel="Delete Expense"
+        confirmLabel="Delete"
         danger
         onCancel={() => setDeleting(null)}
         onConfirm={() => deleteMutation.mutate()}

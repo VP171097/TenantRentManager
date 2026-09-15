@@ -27,7 +27,7 @@ export function RoomDetailPage() {
   const { data: tenants } = useQuery({ queryKey: ['room-tenants', id], queryFn: () => listTenants(), enabled: !!id })
 
   const editMutation = useMutation({
-    mutationFn: (values: RoomFormValues) => updateRoom(id!, values),
+    mutationFn: (values: RoomFormValues) => updateRoom(id!, { ...values, upi_id_id: values.upi_id_id || null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['room', id] })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
@@ -77,7 +77,9 @@ export function RoomDetailPage() {
               room_number: room.room_number,
               floor: room.floor ?? '',
               base_rent: room.base_rent,
+              electricity_rate: room.electricity_rate,
               notes: room.notes ?? '',
+              upi_id_id: room.upi_id_id ?? '',
             }}
             onSubmit={(v) => editMutation.mutateAsync(v)}
             submitLabel="Save Changes"

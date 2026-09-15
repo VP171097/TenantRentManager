@@ -20,7 +20,9 @@ export async function createRoom(input: {
   room_number: string
   floor?: string
   base_rent: number
+  electricity_rate?: number
   notes?: string
+  upi_id_id?: string | null
 }): Promise<Room> {
   const { data, error } = await supabase.from('rooms').insert(input).select().single()
   if (error) throw error
@@ -28,8 +30,24 @@ export async function createRoom(input: {
 }
 
 export async function updateRoom(id: string, input: Partial<Room>): Promise<Room> {
+  const { data: oldRoom } = await supabase.from('rooms').select('base_rent').eq('id', id).single()
+
   const { data, error } = await supabase.from('rooms').update(input).eq('id', id).select().single()
   if (error) throw error
+
+  if (oldRoom && input.base_rent !== undefined && input.base_rent !== oldRoom.base_rent) {
+    const { data: tenant } = await supabase.from('tenants').select('id').eq('room_id', id).eq('status', 'active').maybeSingle()
+    if (tenant) {
+      await supabase.from('rent_revisions').insert({
+        tenant_id: tenant.id,
+        effective_date: new Date().toISOString().slice(0, 10),
+        rent_amount: input.base_rent,
+        change_type: 'fixed',
+        change_value: input.base_rent - oldRoom.base_rent,
+      })
+    }
+  }
+
   return data as Room
 }
 

@@ -7,6 +7,7 @@ import { listProperties } from '../../services/properties'
 import { listRooms } from '../../services/rooms'
 
 const CATEGORIES: { value: ExpenseFormValues['category']; label: string }[] = [
+  { value: 'cleaning', label: 'Cleaning' },
   { value: 'maintenance', label: 'Maintenance' },
   { value: 'repair', label: 'Repair' },
   { value: 'utility', label: 'Utility' },
@@ -42,6 +43,8 @@ export function ExpenseForm({
     enabled: !!propertyId,
   })
 
+  const uniqueFloors = Array.from(new Set((rooms || []).map((r) => r.floor).filter(Boolean) as string[]))
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <Field label="Property" error={errors.property_id?.message}>
@@ -54,13 +57,25 @@ export function ExpenseForm({
           ))}
         </select>
       </Field>
-      <Field label="Room (optional)" error={errors.room_id?.message}>
-        <select {...register('room_id')} className="input" disabled={!propertyId}>
-          <option value="">Not room-specific</option>
-          {rooms?.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.room_number}
+      <Field label="Floor (optional, to apply to all rooms on a floor)" error={errors.floor?.message}>
+        <select {...register('floor')} className="input" disabled={!propertyId}>
+          <option value="">All Floors / Not Floor-Specific</option>
+          {uniqueFloors.map((floor) => (
+            <option key={floor} value={floor}>
+              Floor {floor}
             </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Specific Room (optional)" error={errors.room_id?.message}>
+        <select {...register('room_id')} className="input" disabled={!propertyId || !!watch('floor')}>
+          <option value="">All Rooms on selected Floor/Property</option>
+          {rooms
+            ?.filter((r) => !watch('floor') || r.floor === watch('floor'))
+            .map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.room_number}
+              </option>
           ))}
         </select>
       </Field>
@@ -82,6 +97,15 @@ export function ExpenseForm({
       <Field label="Date" error={errors.expense_date?.message}>
         <input type="date" {...register('expense_date')} className="input" />
       </Field>
+      <div className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+        <input type="checkbox" id="chargeToTenant" {...register('charge_to_tenant')} className="h-4 w-4 rounded border-slate-300" />
+        <label htmlFor="chargeToTenant" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+          Charge expense to tenant(s)
+          <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">
+            If selected, the amount will be split equally and added to the unpaid bill of active tenants in the selected room(s).
+          </span>
+        </label>
+      </div>
       <button type="submit" disabled={isSubmitting} className="btn-primary w-full">
         {isSubmitting ? 'Saving…' : submitLabel}
       </button>

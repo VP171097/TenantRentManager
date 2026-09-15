@@ -16,6 +16,7 @@ import { ManagerEmptyIcon } from '../components/EmptyIcons'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { CreateManagerLoginForm } from '../components/CreateManagerLoginForm'
 import { InviteManagerForm } from '../components/InviteManagerForm'
+import { ImageUploader } from '../components/ImageUploader'
 import { friendlyError } from '../utils/errors'
 
 const PERMISSION_FIELDS: { key: string; label: string }[] = [
@@ -83,12 +84,21 @@ export function ManagersPage() {
         {managers?.map((m) => (
           <div key={m.id} className="card">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="font-bold text-slate-900 dark:text-slate-100">{m.full_name}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{m.email || m.phone}</p>
-                {!m.profile_id && (
-                  <p className="mt-1 text-xs font-semibold text-orange-600 dark:text-orange-400">No login yet</p>
+              <div className="flex items-center gap-3">
+                {m.avatar_url ? (
+                  <img src={m.avatar_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
+                ) : (
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 font-bold">
+                    {m.full_name.charAt(0).toUpperCase()}
+                  </div>
                 )}
+                <div>
+                  <p className="font-bold text-slate-900 dark:text-slate-100">{m.full_name}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{m.email || m.phone}</p>
+                  {!m.profile_id && (
+                    <p className="mt-1 text-xs font-semibold text-orange-600 dark:text-orange-400">No login yet</p>
+                  )}
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {!m.profile_id && (
@@ -139,14 +149,15 @@ export function ManagersPage() {
   )
 }
 
-function ManagerProfileEditor({ manager, onDone }: { manager: { id: string; full_name: string; phone: string | null }; onDone: () => void }) {
+function ManagerProfileEditor({ manager, onDone }: { manager: { id: string; full_name: string; phone: string | null; avatar_url: string | null }; onDone: () => void }) {
   const queryClient = useQueryClient()
   const [fullName, setFullName] = useState(manager.full_name)
   const [phone, setPhone] = useState(manager.phone ?? '')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(manager.avatar_url ?? null)
   const [error, setError] = useState<string | null>(null)
 
   const mutation = useMutation({
-    mutationFn: () => updateManager(manager.id, { full_name: fullName, phone }),
+    mutationFn: () => updateManager(manager.id, { full_name: fullName, phone, avatar_url: avatarUrl }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['managers'] })
       onDone()
@@ -157,6 +168,16 @@ function ManagerProfileEditor({ manager, onDone }: { manager: { id: string; full
   return (
     <div className="mt-4 space-y-3 border-t border-slate-100 dark:border-slate-700 pt-4">
       {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Profile Picture</label>
+        <ImageUploader
+          path={`manager-avatars/${manager.id}`}
+          bucket="avatars"
+          label="Upload Avatar"
+          currentUrl={avatarUrl}
+          onUploaded={setAvatarUrl}
+        />
+      </div>
       <div>
         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Full name</label>
         <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="input mt-1" />
@@ -221,11 +242,12 @@ function AddManagerForm({ ownerId, onDone }: { ownerId: string; onDone: () => vo
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: () =>
-      createManager({ owner_id: ownerId, full_name: fullName, email: email || null, phone: phone || null }),
+      createManager({ owner_id: ownerId, full_name: fullName, email: email || null, phone: phone || null, avatar_url: avatarUrl }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['managers'] })
       onDone()
@@ -241,6 +263,16 @@ function AddManagerForm({ ownerId, onDone }: { ownerId: string; onDone: () => vo
       }}
       className="card max-w-md space-y-3"
     >
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Profile Picture (optional)</label>
+        <ImageUploader
+          path={`manager-avatars/${Date.now()}`}
+          bucket="avatars"
+          label="Upload Avatar"
+          currentUrl={avatarUrl}
+          onUploaded={setAvatarUrl}
+        />
+      </div>
       <div>
         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Full name</label>
         <input value={fullName} onChange={(e) => setFullName(e.target.value)} required className="input mt-1" />

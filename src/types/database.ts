@@ -14,6 +14,7 @@ export interface Profile {
   owner_id: string | null // for managers/tenants: the owner they belong to
   upi_id: string | null // owner's UPI ID for collecting rent payments (only meaningful on owner rows)
   logo_url: string | null // owner's branding logo (only meaningful on owner rows), shown in header + PDFs
+  avatar_url: string | null
   created_at: string
 }
 
@@ -35,9 +36,11 @@ export interface Room {
   property_id: string
   room_number: string
   floor: string | null
-  status: RoomStatus
   base_rent: number
+  status: RoomStatus
+  electricity_rate: number
   notes: string | null
+  upi_id_id: string | null
   created_at: string
 }
 
@@ -52,12 +55,15 @@ export interface Tenant {
   full_name: string
   phone: string | null
   email: string | null
+  avatar_url: string | null
   status: TenantStatus
   move_in_date: string
   move_out_date: string | null
   security_deposit: number
   invite_token: string | null
   invite_token_expires_at: string | null
+  electricity_start_reading: number
+  electricity_rate: number
   created_at: string
 }
 
@@ -132,6 +138,9 @@ export interface Payment {
   method: PaymentMethod
   reference: string | null
   recorded_by: string | null
+  is_approved: boolean
+  approved_by: string | null
+  approved_at: string | null
   created_at: string
 }
 
@@ -151,6 +160,7 @@ export interface Manager {
   full_name: string
   email: string | null
   phone: string | null
+  avatar_url: string | null
   invite_token: string | null
   invite_token_expires_at: string | null
   created_at: string
@@ -181,7 +191,7 @@ export interface TenantRoomHistory {
   created_at: string
 }
 
-export type ExpenseCategory = 'maintenance' | 'repair' | 'utility' | 'tax' | 'insurance' | 'other'
+export type ExpenseCategory = 'maintenance' | 'repair' | 'utility' | 'tax' | 'insurance' | 'other' | 'cleaning'
 
 export interface Expense {
   id: string
@@ -192,6 +202,7 @@ export interface Expense {
   description: string | null
   amount: number
   expense_date: string
+  charge_to_tenant: boolean
   created_by: string | null
   created_at: string
 }
@@ -206,18 +217,30 @@ export interface MaintenanceRequest {
   title: string
   description: string | null
   status: MaintenanceStatus
+  images: string[]
+  resolution_images: string[]
+  resolution_notes: string | null
   created_at: string
   resolved_at: string | null
+}
+
+export interface UpiId {
+  id: string
+  owner_id: string
+  upi_id: string
+  label: string
+  created_at: string
 }
 
 export interface AuditLogEntry {
   id: string
   owner_id: string
-  actor_id: string | null
   action: string
-  entity_type: string
-  entity_id: string | null
-  details: Record<string, unknown> | null
+  table_name: string
+  record_id: string
+  old_data: Record<string, any> | null
+  new_data: Record<string, any> | null
+  performed_by: string | null
   created_at: string
 }
 
@@ -240,6 +263,8 @@ export interface Database {
       audit_log: { Row: AuditLogEntry; Insert: Partial<AuditLogEntry>; Update: Partial<AuditLogEntry> }
       expenses: { Row: Expense; Insert: Partial<Expense>; Update: Partial<Expense> }
       maintenance_requests: { Row: MaintenanceRequest; Insert: Partial<MaintenanceRequest>; Update: Partial<MaintenanceRequest> }
+      upi_ids: { Row: UpiId; Insert: Partial<UpiId>; Update: Partial<UpiId> }
+      audit_logs: { Row: AuditLogEntry; Insert: Partial<AuditLogEntry>; Update: Partial<AuditLogEntry> }
     }
   }
 }

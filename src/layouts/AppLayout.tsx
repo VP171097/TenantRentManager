@@ -1,4 +1,21 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  Building2,
+  Users,
+  FileText,
+  CreditCard,
+  BookOpen,
+  Receipt,
+  TrendingUp,
+  Wallet,
+  Wrench,
+  UserCog,
+  Settings,
+  User,
+  ChevronRight,
+  History,
+} from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { Footer } from '../components/Footer'
@@ -9,55 +26,100 @@ const USER_MENU_LINKS = [
   { to: '/settings', label: 'Settings', icon: '⚙️' },
 ]
 
-const NAV_SECTIONS: { heading: string; items: { to: string; label: string; icon: string }[] }[] = [
+type NavItem = { to: string; label: string; icon: React.ReactNode }
+type NavSection = { heading: string; items: NavItem[] }
+
+const NAV_SECTIONS: NavSection[] = [
   {
     heading: 'Overview',
-    items: [{ to: '/dashboard', label: 'Home', icon: '🏠' }],
+    items: [{ to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> }],
   },
   {
     heading: 'Property',
     items: [
-      { to: '/properties', label: 'Properties', icon: '🏢' },
-      { to: '/tenants', label: 'Tenants', icon: '👥' },
+      { to: '/properties', label: 'Properties', icon: <Building2 size={18} /> },
+      { to: '/tenants', label: 'Tenants', icon: <Users size={18} /> },
     ],
   },
   {
     heading: 'Money',
     items: [
-      { to: '/billing', label: 'Billing', icon: '🧾' },
-      { to: '/payments', label: 'Payments', icon: '💳' },
-      { to: '/ledger', label: 'Ledger', icon: '📒' },
-      { to: '/receipts', label: 'Receipts', icon: '🧻' },
-      { to: '/expenses', label: 'Expenses', icon: '💸' },
-      { to: '/reports', label: 'Reports', icon: '📊' },
+      { to: '/billing', label: 'Billing', icon: <FileText size={18} /> },
+      { to: '/payments', label: 'Payments', icon: <CreditCard size={18} /> },
+      { to: '/ledger', label: 'Ledger', icon: <BookOpen size={18} /> },
+      { to: '/receipts', label: 'Receipts', icon: <Receipt size={18} /> },
+      { to: '/expenses', label: 'Expenses', icon: <Wallet size={18} /> },
+      { to: '/reports', label: 'Reports', icon: <TrendingUp size={18} /> },
     ],
   },
   {
     heading: 'Operations',
     items: [
-      { to: '/maintenance', label: 'Maintenance', icon: '🔧' },
-      { to: '/managers', label: 'Managers', icon: '🧑‍💼' },
+      { to: '/maintenance', label: 'Maintenance', icon: <Wrench size={18} /> },
+      { to: '/managers', label: 'Managers', icon: <UserCog size={18} /> },
+      { to: '/audit', label: 'Audit Logs', icon: <History size={18} /> },
     ],
   },
   {
     heading: 'Account',
-    items: [{ to: '/settings', label: 'Settings', icon: '⚙️' }],
+    items: [{ to: '/settings', label: 'Settings', icon: <Settings size={18} /> }],
   },
 ]
 
-const MOBILE_NAV = [
-  { to: '/dashboard', label: 'Home', icon: '🏠' },
-  { to: '/tenants', label: 'Tenants', icon: '👥' },
-  { to: '/payments', label: 'Payments', icon: '💳' },
-  { to: '/ledger', label: 'Ledger', icon: '📒' },
-  { to: '/settings', label: 'More', icon: '☰' },
+type MobileNavItem = { to: string; label: string; icon: React.ReactNode }
+const MOBILE_NAV: MobileNavItem[] = [
+  { to: '/dashboard', label: 'Home', icon: <LayoutDashboard size={20} /> },
+  { to: '/tenants', label: 'Tenants', icon: <Users size={20} /> },
+  { to: '/payments', label: 'Payments', icon: <CreditCard size={20} /> },
+  { to: '/ledger', label: 'Ledger', icon: <BookOpen size={20} /> },
+  { to: '/settings', label: 'More', icon: <Settings size={20} /> },
 ]
 
 function BrandMark({ profile }: { profile: { logo_url?: string | null; full_name?: string } | null }) {
   if (profile?.logo_url) {
     return <img src={profile.logo_url} alt="RentBook" className="h-9 w-auto max-w-[9rem] object-contain" />
   }
-  return <p className="text-xl font-extrabold text-brand-700 dark:text-brand-200">RentBook</p>
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 shadow-sm">
+        <Building2 size={16} className="text-white" />
+      </div>
+      <p className="text-xl font-extrabold tracking-tight text-brand-700 dark:text-brand-200">RentBook</p>
+    </div>
+  )
+}
+
+function SidebarUserFooter({ profile }: { profile: { full_name?: string; role?: string; email?: string | null } | null }) {
+  if (!profile) return null
+  const initials = (profile.full_name || '?')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join('')
+  const roleColor =
+    profile.role === 'owner'
+      ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300'
+      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+  return (
+    <div className="border-t border-slate-200 dark:border-slate-800 px-3 py-3">
+      <NavLink
+        to="/profile"
+        className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-900 dark:text-brand-200">
+          {initials}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{profile.full_name}</p>
+          <span className={`inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize ${roleColor}`}>
+            {profile.role}
+          </span>
+        </div>
+        <User size={14} className="text-slate-400" />
+      </NavLink>
+    </div>
+  )
 }
 
 export function AppLayout() {
@@ -66,56 +128,70 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 md:flex">
-      {/* Sidebar (desktop) */}
+      {/* ── Sidebar (desktop) ── */}
       <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:border-slate-200 dark:md:border-slate-800 md:bg-white dark:md:bg-slate-900">
-        <div className="px-6 py-5">
+        {/* Brand */}
+        <div className="px-5 py-5 border-b border-slate-100 dark:border-slate-800">
           <BrandMark profile={profile} />
           <GlobalSearch className="mt-4" />
         </div>
-        <nav className="flex-1 space-y-4 overflow-y-auto px-3 pb-3">
+
+        {/* Nav */}
+        <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
           {NAV_SECTIONS.map((section) => (
             <div key={section.heading}>
-              <p className="px-4 pb-1 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
                 {section.heading}
               </p>
-              <div className="space-y-1">
-                {section.items.map((item) => (
+              <div className="space-y-0.5">
+                {section.items.filter(item => !(['/managers', '/audit'].includes(item.to) && profile?.role !== 'owner')).map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium transition-colors ${
+                      `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                         isActive
-                          ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
-                          : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                          ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300 shadow-sm'
+                          : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
                       }`
                     }
                   >
-                    <span aria-hidden>{item.icon}</span>
-                    {item.label}
+                    {({ isActive }) => (
+                      <>
+                        <span className={`transition-colors ${isActive ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`}>
+                          {item.icon}
+                        </span>
+                        <span className="flex-1">{item.label}</span>
+                        {isActive && <ChevronRight size={14} className="text-brand-500 dark:text-brand-400" />}
+                      </>
+                    )}
                   </NavLink>
                 ))}
               </div>
             </div>
           ))}
         </nav>
+
+        {/* Sidebar user footer */}
+        <SidebarUserFooter profile={profile} />
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 pb-24 md:pb-0">
-        {/* Desktop top bar: user menu, top right */}
-        <header className="sticky top-0 z-10 hidden items-center justify-end border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-3 md:flex">
+      {/* ── Main content ── */}
+      <div className="flex-1 pb-24 md:pb-0 min-w-0">
+        {/* Desktop top bar */}
+        <header className="sticky top-0 z-10 hidden items-center justify-end border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-6 py-3 md:flex">
           <UserMenu links={USER_MENU_LINKS} />
         </header>
 
         {/* Mobile header */}
-        <header className="sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 md:hidden">
+        <header className="sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-4 py-3 md:hidden">
           <div className="flex items-center justify-between">
             <BrandMark profile={profile} />
             <UserMenu links={USER_MENU_LINKS} />
           </div>
           <GlobalSearch className="mt-3" />
         </header>
+
         <main className="mx-auto flex max-w-6xl flex-col px-4 py-6">
           <div key={location.pathname} className="page-fade-in">
             <Outlet />
@@ -124,22 +200,26 @@ export function AppLayout() {
         </main>
       </div>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-20 flex border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 md:hidden">
+      {/* ── Mobile bottom nav ── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-20 flex border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md md:hidden">
         {MOBILE_NAV.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex flex-1 flex-col items-center gap-1 py-2 text-xs font-semibold transition-colors ${
+              `flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-semibold transition-all ${
                 isActive ? 'text-brand-700 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'
               }`
             }
           >
-            <span className="text-xl" aria-hidden>
-              {item.icon}
-            </span>
-            {item.label}
+            {({ isActive }) => (
+              <>
+                <span className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${isActive ? 'bg-brand-100 dark:bg-brand-950' : ''}`}>
+                  {item.icon}
+                </span>
+                {item.label}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>

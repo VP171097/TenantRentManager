@@ -22,6 +22,7 @@ import { ReportsPage } from './pages/ReportsPage'
 import { ExpensesPage } from './pages/ExpensesPage'
 import { MaintenancePage } from './pages/MaintenancePage'
 import { ManagersPage } from './pages/ManagersPage'
+import { AuditPage } from './pages/AuditPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { TenantDashboardPage } from './pages/tenant/TenantDashboardPage'
@@ -95,6 +96,7 @@ export default function App() {
           <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/maintenance" element={<MaintenancePage />} />
           <Route path="/managers" element={<ManagersPage />} />
+          <Route path="/audit" element={<AuditPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
