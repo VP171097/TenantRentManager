@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getTenant, moveOutTenant, updateTenant, deleteTenant } from '../services/tenants'
@@ -215,14 +215,25 @@ export function TenantDetailPage() {
   }
 
   const moveOutMutation = useMutation({
-    mutationFn: (values: { move_out_date: string; final_current_reading: number; deposit_deduction: number; deduction_reason: string }) =>
+    mutationFn: (values: {
+      move_out_date: string
+      previous_reading: number
+      final_current_reading: number
+      deposit_deduction: number
+      deduction_reason: string
+      bill_rent: boolean
+      bill_electricity: boolean
+    }) =>
       moveOutTenant({
         tenant_id: id!,
         move_out_date: values.move_out_date,
         final_billing_month: values.move_out_date.slice(0, 7) + '-01',
+        previous_reading: values.previous_reading,
         final_current_reading: values.final_current_reading,
         deposit_deduction: values.deposit_deduction,
         deduction_reason: values.deduction_reason,
+        bill_rent: values.bill_rent,
+        bill_electricity: values.bill_electricity,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant', id] })
@@ -712,6 +723,7 @@ export function TenantDetailPage() {
 
       <MoveOutDialog
         open={showMoveOut}
+        defaultPreviousReading={resolvedLastReading}
         onCancel={() => setShowMoveOut(false)}
         onConfirm={(values) => moveOutMutation.mutateAsync(values)}
       />
@@ -750,17 +762,43 @@ export function TenantDetailPage() {
 
 function MoveOutDialog({
   open,
+  defaultPreviousReading,
   onCancel,
   onConfirm,
 }: {
   open: boolean
+  /** The tenant's last known meter reading, used to default "Previous
+   * electricity meter reading" below — resolved the same robust way as
+   * everywhere else (resolveLastElectricityReading), never just 0. */
+  defaultPreviousReading?: number
   onCancel: () => void
-  onConfirm: (values: { move_out_date: string; final_current_reading: number; deposit_deduction: number; deduction_reason: string }) => Promise<void>
+  onConfirm: (values: {
+    move_out_date: string
+    previous_reading: number
+    final_current_reading: number
+    deposit_deduction: number
+    deduction_reason: string
+    bill_rent: boolean
+    bill_electricity: boolean
+  }) => Promise<void>
 }) {
   const [moveOutDate, setMoveOutDate] = useState(new Date().toISOString().slice(0, 10))
+  const [previousReading, setPreviousReading] = useState(defaultPreviousReading ?? 0)
   const [reading, setReading] = useState(0)
   const [deduction, setDeduction] = useState(0)
   const [reason, setReason] = useState('')
+  const [whatToBill, setWhatToBill] = useState<'both' | 'rent_only' | 'electricity_only'>('both')
+
+  // defaultPreviousReading resolves asynchronously and may still be
+  // undefined on first render — sync it in once it arrives, but only if
+  // the field still holds the naive 0 default, so it never clobbers a
+  // value already being edited.
+  useEffect(() => {
+    if (defaultPreviousReading != null && previousReading === 0) {
+      setPreviousReading(defaultPreviousReading)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultPreviousReading])
 
   if (!open) return null
 
@@ -768,15 +806,35 @@ function MoveOutDialog({
     <ConfirmDialog
       open={open}
       title="Move-out settlement"
-      message="This will generate a final bill, apply the deposit refund/deduction, and mark the tenant as moved out."
+      message="This will settle the tenant's final bill, apply the deposit refund/deduction, and mark them as moved out."
       confirmLabel="Confirm Move-out"
       danger
       onCancel={onCancel}
-      onConfirm={() => onConfirm({ move_out_date: moveOutDate, final_current_reading: reading, deposit_deduction: deduction, deduction_reason: reason }).then(() => {})}
+      onConfirm={() =>
+        onConfirm({
+          move_out_date: moveOutDate,
+          previous_reading: previousReading,
+          final_current_reading: reading,
+          deposit_deduction: deduction,
+          deduction_reason: reason,
+          bill_rent: whatToBill !== 'electricity_only',
+          bill_electricity: whatToBill !== 'rent_only',
+        }).then(() => {})
+      }
     >
       <div className="mt-3 space-y-3 text-left">
         <Field label="Move-out date">
           <input type="date" value={moveOutDate} onChange={(e) => setMoveOutDate(e.target.value)} className="input" />
+        </Field>
+        <Field label="What to bill on move-out">
+          <select value={whatToBill} onChange={(e) => setWhatToBill(e.target.value as typeof whatToBill)} className="input">
+            <option value="both">Rent + Electricity (normal)</option>
+            <option value="rent_only">Rent only — electricity already settled separately</option>
+            <option value="electricity_only">Electricity only — rent for this month already paid</option>
+          </select>
+        </Field>
+        <Field label="Previous electricity meter reading">
+          <input type="number" min="0" value={previousReading} onChange={(e) => setPreviousReading(Number(e.target.value))} className="input" />
         </Field>
         <Field label="Final electricity meter reading">
           <input type="number" min="0" value={reading} onChange={(e) => setReading(Number(e.target.value))} className="input" />

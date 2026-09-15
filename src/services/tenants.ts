@@ -107,9 +107,19 @@ export async function moveOutTenant(params: {
   tenant_id: string
   move_out_date: string
   final_billing_month: string
+  /** Overrides the auto-looked-up previous reading — the owner can see
+   * and correct the default (resolved the same robust way as
+   * elsewhere) rather than it being invisible. */
+  previous_reading?: number
   final_current_reading: number
   deposit_deduction?: number
   deduction_reason?: string
+  /** What to include in the move-out settlement bill. Both default to
+   * true (normal case). Set bill_rent false when this month's rent is
+   * already settled separately (electricity-only settlement); set
+   * bill_electricity false when electricity is settled separately. */
+  bill_rent?: boolean
+  bill_electricity?: boolean
 }): Promise<void> {
   const { error } = await supabase.rpc('fn_settle_move_out', {
     p_tenant_id: params.tenant_id,
@@ -118,6 +128,9 @@ export async function moveOutTenant(params: {
     p_final_current_reading: params.final_current_reading,
     p_deposit_deduction: params.deposit_deduction ?? 0,
     p_deduction_reason: params.deduction_reason ?? null,
+    p_previous_reading: params.previous_reading ?? null,
+    p_bill_rent: params.bill_rent ?? true,
+    p_bill_electricity: params.bill_electricity ?? true,
   })
   if (error) throw error
 }
