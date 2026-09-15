@@ -100,6 +100,10 @@ button:active, a:active { transform: scale(0.97); }
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+@keyframes card-reveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
@@ -110,6 +114,30 @@ button:active, a:active { transform: scale(0.97); }
 @utility slide-up     { animation: slide-up 0.22s cubic-bezier(0.16,1,0.3,1); }
 @utility slide-down   { animation: slide-down 0.18s ease-out; }
 @utility fade-in      { animation: fade-in 0.2s ease-out; }
+/* Staggered grid/list reveal: pair with an inline `--reveal-delay` custom
+   property (e.g. style={{ '--reveal-delay': `${i * 40}ms` }}) set per item
+   index so a list of cards cascades in instead of popping in all at once. */
+@utility card-reveal {
+  animation: card-reveal 0.35s cubic-bezier(0.16,1,0.3,1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+/* Put `stagger-grid` on a card grid's container to cascade its first 12
+   direct children in on load, no per-item JS needed. */
+@utility stagger-grid {
+  & > * { animation: card-reveal 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+  & > *:nth-child(1)  { animation-delay: 0ms; }
+  & > *:nth-child(2)  { animation-delay: 30ms; }
+  & > *:nth-child(3)  { animation-delay: 60ms; }
+  & > *:nth-child(4)  { animation-delay: 90ms; }
+  & > *:nth-child(5)  { animation-delay: 120ms; }
+  & > *:nth-child(6)  { animation-delay: 150ms; }
+  & > *:nth-child(7)  { animation-delay: 180ms; }
+  & > *:nth-child(8)  { animation-delay: 210ms; }
+  & > *:nth-child(9)  { animation-delay: 240ms; }
+  & > *:nth-child(10) { animation-delay: 270ms; }
+  & > *:nth-child(11) { animation-delay: 300ms; }
+  & > *:nth-child(12) { animation-delay: 330ms; }
+}
 
 /* ─── Gradient ───────────────────────────────────────────────────────── */
 @utility gradient-auth {

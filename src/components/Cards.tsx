@@ -40,7 +40,7 @@ export function PropertyCard({
   return (
     <Link
       to={`/properties/${property.id}`}
-      className="fade-in group block overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]"
+      className="group block overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]"
     >
       {/* Cover image or gradient placeholder */}
       {property.cover_image_url ? (
@@ -92,7 +92,7 @@ export function RoomCard({ room }: { room: Room }) {
   return (
     <Link
       to={`/rooms/${room.id}`}
-      className="fade-in group block rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]"
+      className="group block rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]"
     >
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -130,7 +130,7 @@ export function TenantCard({ tenant }: { tenant: Tenant }) {
   return (
     <Link
       to={`/tenants/${tenant.id}`}
-      className="fade-in group block rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]"
+      className="group block rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]"
     >
       <div className="flex items-start gap-3">
         {/* Avatar */}

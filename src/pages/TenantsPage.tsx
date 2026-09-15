@@ -151,7 +151,7 @@ export function TenantsPage() {
         />
       )}
       {filtered.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="stagger-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((t) => (
             <TenantCard key={t.id} tenant={t} />
           ))}

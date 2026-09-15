@@ -41,7 +41,7 @@ export function RoomsPage() {
       {filtered.length === 0 ? (
         <EmptyState title="No rooms found" icon={<RoomEmptyIcon className="h-full w-full" />} />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="stagger-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((r) => (
             <div key={r.id}>
               <p className="mb-1 text-xs font-semibold uppercase text-slate-400 dark:text-slate-500">{propertyNameFor(r.property_id)}</p>
