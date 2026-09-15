@@ -3,6 +3,8 @@ import { Field } from './PropertyForm'
 import { formatINR } from '../../utils/money'
 import type { Bill, ElectricityReading } from '../../types/database'
 import { useLockBodyScroll } from '../../hooks/useLockBodyScroll'
+import { QuickMeterDial } from '../QuickMeterDial'
+import { meterPreview } from '../../utils/meter'
 
 export interface EditBillValues {
   rent_amount: number
@@ -94,13 +96,14 @@ function EditBillModalContent({
   const [notes, setNotes] = useState(bill.notes ?? '')
   const [submitting, setSubmitting] = useState(false)
 
-  const units = isMeterReset ? Math.max(currentReading, 0) : Math.max(currentReading - previousReading, 0)
-  const electricityCharge = isBilled ? units * ratePerUnit : 0
+  const preview = meterPreview(previousReading, currentReading, ratePerUnit, isMeterReset, !isBilled)
+  const units = preview.units
+  const electricityCharge = preview.amount
   const estimatedTotal = rentAmount + electricityCharge + otherCharges + lateFee + bill.previous_balance - bill.previous_credit
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
+      <div role="dialog" aria-modal="true" aria-label="Edit Bill" data-testid="edit-bill-dialog" className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
         <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Edit Bill</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
           {new Date(bill.billing_month).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}. Use this to
@@ -110,6 +113,7 @@ function EditBillModalContent({
         <form
           onSubmit={async (e) => {
             e.preventDefault()
+            if (!preview.valid || submitting) return
             setSubmitting(true)
             try {
               await onSubmit({
@@ -136,11 +140,10 @@ function EditBillModalContent({
             To change rent going forward, use "Revise Rent" instead — this field only corrects this one bill.
           </p>
 
+          <QuickMeterDial id="edit-meter" previous={previousReading} current={Number.isFinite(currentReading) ? currentReading : ''} rate={ratePerUnit} reset={isMeterReset} deferred={!isBilled} disabled={submitting} onChange={v => setCurrentReading(v === '' ? Number.NaN : v)} />
+          <details data-testid="edit-meter-settings" className="rounded-xl border border-slate-200 p-3 dark:border-slate-700"><summary data-testid="edit-meter-settings-toggle" className="cursor-pointer text-sm font-semibold">Meter settings & replacement</summary><div className="mt-3 space-y-3">
           <Field label="Previous meter reading">
             <input type="number" step="0.01" min="0" value={previousReading} onChange={(e) => setPreviousReading(Number(e.target.value))} className="input" />
-          </Field>
-          <Field label="Current meter reading">
-            <input type="number" step="0.01" min="0" value={currentReading} onChange={(e) => setCurrentReading(Number(e.target.value))} className="input" />
           </Field>
           <Field label="Rate per unit (₹)">
             <input type="number" step="0.01" min="0" value={ratePerUnit} onChange={(e) => setRatePerUnit(Number(e.target.value))} className="input" />
@@ -149,6 +152,7 @@ function EditBillModalContent({
             <input type="checkbox" checked={isMeterReset} onChange={(e) => setIsMeterReset(e.target.checked)} />
             Meter was reset / replaced
           </label>
+          </div></details>
           <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
             <input type="checkbox" checked={!isBilled} onChange={(e) => setIsBilled(!e.target.checked)} />
             Don't charge electricity on this bill — record the reading, but defer to a later bill
@@ -187,10 +191,10 @@ function EditBillModalContent({
           </div>
 
           <div className="flex gap-3">
-            <button type="button" onClick={onClose} className="btn-secondary flex-1">
+            <button data-testid="edit-bill-cancel" type="button" disabled={submitting} onClick={onClose} className="btn-secondary flex-1">
               Cancel
             </button>
-            <button type="submit" disabled={submitting} className="btn-primary flex-1">
+            <button data-testid="edit-bill-submit" type="submit" disabled={submitting || !preview.valid} className="btn-primary flex-1">
               {submitting ? 'Saving…' : 'Save'}
             </button>
           </div>

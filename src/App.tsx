@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
-import { HashRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Link, Route, Routes, useNavigate } from 'react-router-dom'
+import { LandingPage } from './pages/LandingPage'
+import { RouteMetadata } from './components/RouteMetadata'
 import { AppLayout } from './layouts/AppLayout'
 import { TenantLayout } from './layouts/TenantLayout'
 import { ProtectedRoute } from './layouts/ProtectedRoute'
@@ -30,13 +32,6 @@ import { TenantLedgerPage } from './pages/tenant/TenantLedgerPage'
 import { TenantReceiptsPage } from './pages/tenant/TenantReceiptsPage'
 import { TenantProfilePage } from './pages/tenant/TenantProfilePage'
 
-function RootRedirect() {
-  const { session, profile, loading } = useAuth()
-  if (loading) return null
-  if (!session) return <Navigate to="/login" replace />
-  return <Navigate to={profile?.role === 'tenant' ? '/tenant/dashboard' : '/dashboard'} replace />
-}
-
 /** Redirects to /reset-password the moment Supabase detects a password-
  * recovery link, regardless of which route the browser happened to land
  * on when the link was clicked. */
@@ -57,18 +52,16 @@ function RecoveryWatcher() {
  * away — RecoveryWatcher takes over once Supabase finishes and fires the
  * PASSWORD_RECOVERY event. */
 function CatchAll() {
-  const { passwordRecovery } = useAuth()
-  const looksLikeAuthCallback = /access_token|type=recovery/.test(window.location.hash)
-  if (looksLikeAuthCallback && !passwordRecovery) return null
-  return <Navigate to="/" replace />
+  return <main className="landing-shell py-24"><p data-testid="not-found-code" className="eyebrow text-brand-700">404 · A little off track</p><h1 data-testid="not-found-title" className="mt-4 text-4xl">This page isn't here.</h1><p data-testid="not-found-description" className="my-6 text-slate-600 dark:text-slate-300">Your records are safe. Head back to RentBook to find what you need.</p><Link data-testid="not-found-home" className="btn-primary" to="/">Back to RentBook</Link></main>
 }
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
+      <RouteMetadata />
       <RecoveryWatcher />
       <Routes>
-        <Route path="/" element={<RootRedirect />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/join" element={<JoinPage />} />
@@ -116,6 +109,6 @@ export default function App() {
 
         <Route path="*" element={<CatchAll />} />
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   )
 }

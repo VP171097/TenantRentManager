@@ -22,7 +22,7 @@ A production-ready web app for Indian landlords to manage rental properties, roo
 - Supabase (Postgres + Auth + Storage) with full Row Level Security
 - TanStack Query for data fetching/caching
 - React Hook Form + Zod for forms/validation
-- React Router (`HashRouter`, for static GitHub Pages hosting)
+- React Router (`BrowserRouter`, with legacy hash-link migration and generated GitHub Pages route entry files)
 - jsPDF + jspdf-autotable for receipts
 - Vitest for unit tests
 
@@ -88,6 +88,9 @@ npm run build
 - **Installable app**: the app ships a web manifest and a minimal offline-shell service worker, so it can be "installed" from the browser (Add to Home Screen / Install App) and the UI loads even on a flaky connection. Financial data (bills, payments) is never cached — every Supabase request still requires a live connection, so there's no risk of working from stale numbers offline.
 
 ## Known limitations / future improvements
+
+### Warm Ledger enhancements
+The original app now includes a public landing page, clean routes and per-route metadata, a billing-month Money Cockpit, and shared Quick Meter Dial inputs. No Supabase schema changes are required. See [PRODUCTION_CHECKLIST.md](./PRODUCTION_CHECKLIST.md) for authentication redirect allowlists, static-host routing limitations, and the release verification gate. The prior design proposal is archived in `design-blueprint/`.
 
 - Manager/tenant account invitation is a manual step in this version (see SETUP.md) — production use should add a Supabase Edge Function (service-role, server-side only) to send email invites and link `profiles`/`tenants` rows automatically.
 - Reports are intentionally kept simple (summary + monthly collected-vs-due table + CSV export) rather than a full BI dashboard.

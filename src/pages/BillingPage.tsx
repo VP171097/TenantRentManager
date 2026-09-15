@@ -5,11 +5,15 @@ import { generateBillsForProperty, getBillingPreview, type BillGenerationInput }
 import { ErrorState } from '../components/States'
 import { Skeleton } from '../components/Skeleton'
 import { friendlyError } from '../utils/errors'
+import { QuickMeterDial } from '../components/QuickMeterDial'
+import { useSearchParams } from 'react-router-dom'
+import { currentBillingMonth } from '../utils/dashboard'
 
 export function BillingPage() {
   const queryClient = useQueryClient()
-  const [propertyId, setPropertyId] = useState('')
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7))
+  const [params] = useSearchParams()
+  const [propertyId, setPropertyId] = useState(params.get('property') ?? '')
+  const [month, setMonth] = useState(currentBillingMonth())
   const [result, setResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -17,7 +21,7 @@ export function BillingPage() {
 
   const { data: properties, isLoading, error: loadError, refetch } = useQuery({ queryKey: ['properties'], queryFn: listProperties })
   
-  const { data: previewItems } = useQuery({
+  const { data: previewItems, isFetching: previewLoading, error: previewError, refetch: refetchPreview } = useQuery({
     queryKey: ['billingPreview', propertyId, month],
     queryFn: () => getBillingPreview(propertyId, `${month}-01`),
     enabled: !!propertyId && !!month,
@@ -31,10 +35,17 @@ export function BillingPage() {
       setInputs({})
       queryClient.invalidateQueries({ queryKey: ['bills'] })
       queryClient.invalidateQueries({ queryKey: ['billingPreview'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-trend'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-activity'] })
+      queryClient.invalidateQueries({ queryKey: ['electricityReadings'] })
     },
     onError: (err) => {
       setError(friendlyError(err))
       setResult(null)
+      queryClient.invalidateQueries({ queryKey: ['bills'] })
+      queryClient.invalidateQueries({ queryKey: ['billingPreview'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
     },
   })
 
@@ -46,13 +57,13 @@ export function BillingPage() {
       // The real meter reading is always required now (migration 032 —
       // it's recorded even when "Skip / Carry Forward" defers the
       // charge), so this check no longer relaxes when val.skip is true.
-      if (val.current === '' || val.current < item.last_reading) return false
+      if (val.current === '' || !Number.isFinite(val.current) || val.current < item.last_reading) return false
     }
     return true
   }, [previewItems, inputs])
 
   const handleGenerate = () => {
-    if (!previewItems) return
+    if (!previewItems || !isValid || mutation.isPending || previewLoading) return
     const data: BillGenerationInput[] = previewItems.map((item) => {
       const val = inputs[item.tenant_id]!
       return {
@@ -84,8 +95,8 @@ export function BillingPage() {
 
   return (
     <div className="space-y-6 page-fade-in">
-      <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Generate Monthly Bills</h1>
-      <p className="text-slate-500 dark:text-slate-400">
+      <h1 data-testid="billing-title" className="text-3xl font-medium text-slate-900 dark:text-slate-100">A clearer month, one reading at a time.</h1>
+      <p data-testid="billing-description" className="text-slate-600 dark:text-slate-300">
         This creates a bill for every active tenant in the selected property for the chosen month. It's safe to click
         more than once — bills already generated for that month won't be duplicated.
       </p>
@@ -93,7 +104,7 @@ export function BillingPage() {
       <div className="card max-w-md space-y-4">
         <div>
           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Property</label>
-          <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)} className="input mt-1">
+          <select data-testid="billing-property" aria-label="Property" disabled={mutation.isPending} value={propertyId} onChange={(e) => { setPropertyId(e.target.value); setInputs({}); setResult(null); setError(null) }} className="input mt-1">
             <option value="">Select a property</option>
             {properties?.map((p) => (
               <option key={p.id} value={p.id}>
@@ -104,58 +115,30 @@ export function BillingPage() {
         </div>
         <div>
           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Billing month</label>
-          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="input mt-1" />
+          <input data-testid="billing-month" aria-label="Billing month" type="month" disabled={mutation.isPending} value={month} onChange={(e) => { setMonth(e.target.value); setInputs({}); setResult(null); setError(null) }} className="input mt-1" />
         </div>
-        {result && <p className="rounded-lg bg-green-50 dark:bg-green-950/40 px-3 py-2 text-sm text-green-700 dark:text-green-400">{result}</p>}
-        {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
+        {result && <p data-testid="billing-success" role="status" className="rounded-lg bg-green-50 dark:bg-green-950/40 px-3 py-2 text-sm text-green-700 dark:text-green-400">{result}</p>}
+        {error && <p data-testid="billing-error" role="alert" className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
       </div>
 
-      {previewItems && previewItems.length > 0 && (
-        <div className="card overflow-x-auto p-0">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 text-left text-slate-600 dark:text-slate-300">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Tenant</th>
-                <th className="px-4 py-3 font-semibold">Room</th>
-                <th className="px-4 py-3 font-semibold">Previous Unit</th>
-                <th className="px-4 py-3 font-semibold">Current Unit</th>
-                <th className="px-4 py-3 font-semibold text-center">Skip Charge This Month</th>
-              </tr>
-            </thead>
-            <tbody>
-              {previewItems.map((item) => {
-                const val = inputs[item.tenant_id] || { current: '', skip: false }
-                const isError = val.current !== '' && val.current < item.last_reading
-                return (
-                  <tr key={item.tenant_id} className="border-b border-slate-50 dark:border-slate-800/50">
-                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{item.full_name}</td>
-                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{item.room_number}</td>
-                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{item.last_reading}</td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="number"
-                        className={`input py-1 px-2 h-8 w-24 ${isError ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : ''}`}
-                        value={val.current}
-                        onChange={(e) => setInputs({ ...inputs, [item.tenant_id]: { ...val, current: e.target.value === '' ? '' : Number(e.target.value) } })}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={val.skip}
-                        onChange={(e) => setInputs({ ...inputs, [item.tenant_id]: { ...val, skip: e.target.checked } })}
-                        title="Record this meter reading, but don't charge for it this month — it carries forward and gets billed together with next month's usage."
-                      />
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-          <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+      {previewLoading && <p data-testid="billing-preview-loading" role="status" className="text-sm text-slate-600 dark:text-slate-300">Loading saved readings…</p>}
+      {previewError && <ErrorState message="Couldn't load saved meter readings. Nothing has been changed." onRetry={() => refetchPreview()} />}
+      {!previewLoading && !previewError && previewItems && previewItems.length > 0 && (
+        <div className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-2">{previewItems.map(item => {
+            const val = inputs[item.tenant_id] ?? { current: '' as const, skip: false }
+            return <article data-testid={`billing-tenant-${item.tenant_id}`} key={item.tenant_id} className="card !p-5">
+              <div className="mb-4 flex justify-between gap-3"><h2 data-testid={`billing-tenant-name-${item.tenant_id}`} className="text-lg">{item.full_name}</h2><span data-testid={`billing-room-${item.tenant_id}`} className="rounded-full bg-slate-100 px-3 py-1 text-xs dark:bg-slate-800">Room {item.room_number}</span></div>
+              <QuickMeterDial id={`billing-meter-${item.tenant_id}`} previous={item.last_reading} current={val.current} rate={item.rate_per_unit} deferred={val.skip} disabled={mutation.isPending} onChange={current => setInputs(prev => ({ ...prev, [item.tenant_id]: { ...val, current } }))} />
+              <label data-testid={`billing-defer-label-${item.tenant_id}`} className="mt-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300"><input data-testid={`billing-defer-${item.tenant_id}`} type="checkbox" disabled={mutation.isPending} checked={val.skip} onChange={e => setInputs(prev => ({ ...prev, [item.tenant_id]: { ...val, skip: e.target.checked } }))} />Record reading, carry charge to next bill</label>
+            </article>
+          })}</div>
+          <div className="card flex flex-wrap items-center justify-between gap-4">
+            <p data-testid="billing-save-note" className="max-w-lg text-xs leading-relaxed text-slate-600 dark:text-slate-300">Readings are not saved until you generate bills. Previously generated bills are kept unchanged. Review the exact meter numbers before continuing.</p>
             <button
+              data-testid="billing-generate"
               onClick={handleGenerate}
-              disabled={!isValid || mutation.isPending}
+              disabled={!isValid || mutation.isPending || previewLoading}
               className="btn-primary w-full sm:w-auto"
             >
               {mutation.isPending ? 'Generating…' : `Generate ${previewItems.length} Bill(s)`}
@@ -164,7 +147,7 @@ export function BillingPage() {
         </div>
       )}
       {previewItems && previewItems.length === 0 && (
-        <div className="card text-center text-slate-500 dark:text-slate-400 py-8">
+        <div data-testid="billing-empty" className="card text-center text-slate-500 dark:text-slate-400 py-8">
           No active tenants found for this property.
         </div>
       )}

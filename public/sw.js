@@ -5,7 +5,7 @@
 // never served stale or written while offline. This deliberately keeps
 // the app's "financial writes need a live connection" guarantee (see
 // README) intact; only the shell is cacheable.
-const CACHE_NAME = 'rrm-shell-v1'
+const CACHE_NAME = 'rrm-shell-warm-v2'
 const SCOPE_URL = new URL(self.registration.scope)
 
 self.addEventListener('install', (event) => {
@@ -21,7 +21,7 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('rrm-shell-') && k !== CACHE_NAME).map((k) => caches.delete(k))))
   )
   self.clients.claim()
 })
@@ -44,7 +44,7 @@ self.addEventListener('fetch', (event) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(SCOPE_URL.pathname, copy))
+          if (res.ok) caches.open(CACHE_NAME).then((cache) => cache.put(SCOPE_URL.pathname, copy))
           return res
         })
         .catch(() => caches.match(SCOPE_URL.pathname))

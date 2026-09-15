@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { formatINR } from '../utils/money'
+import { collectionTotals, currentBillingMonth } from '../utils/dashboard'
 
 export interface DashboardStats {
   properties: number
@@ -8,6 +9,10 @@ export interface DashboardStats {
   vacant: number
   activeTenants: number
   expectedRent: number
+  billed: number
+  collectionPercent: number
+  billCount: number
+  attentionBills: { id: string; tenantId: string; name: string; balance: number; markedPaid: boolean; status: string }[]
   collected: number
   outstanding: number
   credit: number
@@ -16,7 +21,7 @@ export interface DashboardStats {
 }
 
 /** Loads the owner-dashboard stat cards, optionally scoped to one property. */
-export async function loadDashboardStats(ownerId: string, propertyId?: string): Promise<DashboardStats> {
+export async function loadDashboardStats(ownerId: string, propertyId?: string, month = currentBillingMonth()): Promise<DashboardStats> {
   let roomsQuery = supabase
     .from('rooms')
     .select('id, room_number, status, base_rent, property_id, properties!inner(owner_id)')
@@ -24,8 +29,9 @@ export async function loadDashboardStats(ownerId: string, propertyId?: string): 
   let tenantsQuery = supabase.from('tenants').select('id, status, property_id').eq('owner_id', ownerId)
   let billsQuery = supabase
     .from('bills')
-    .select('total_due, total_paid, balance, status, property_id, properties!inner(owner_id)')
+    .select('id, tenant_id, total_due, total_paid, balance, status, tenant_marked_paid, property_id, properties!inner(owner_id), tenants(full_name)')
     .eq('properties.owner_id', ownerId)
+    .eq('billing_month', `${month}-01`)
   const propertiesQuery = supabase.from('properties').select('id').eq('owner_id', ownerId)
 
   if (propertyId) {
@@ -34,20 +40,20 @@ export async function loadDashboardStats(ownerId: string, propertyId?: string): 
     billsQuery = billsQuery.eq('property_id', propertyId)
   }
 
-  const [{ data: properties }, { data: rooms }, { data: tenants }, { data: bills }] = await Promise.all([
+  const responses = await Promise.all([
     propertiesQuery,
     roomsQuery,
     tenantsQuery,
     billsQuery,
   ])
+  for (const response of responses) if (response.error) throw response.error
+  const [{ data: properties }, { data: rooms }, { data: tenants }, { data: bills }] = responses
 
   const roomsList = (rooms ?? []) as unknown as { id: string; room_number: string; status: string; base_rent: number }[]
   const tenantsList = (tenants ?? []) as { id: string; status: string }[]
-  const billsList = (bills ?? []) as unknown as { total_due: number; total_paid: number; balance: number; status: string }[]
+  const billsList = (bills ?? []) as unknown as { id: string; tenant_id: string; total_due: number; total_paid: number; balance: number; status: string; tenant_marked_paid: boolean; tenants: { full_name: string } | null }[]
 
-  const collected = billsList.reduce((s, b) => s + (b.total_paid || 0), 0)
-  const outstanding = billsList.reduce((s, b) => s + (b.balance > 0 ? b.balance : 0), 0)
-  const credit = billsList.reduce((s, b) => s + (b.balance < 0 ? Math.abs(b.balance) : 0), 0)
+  const totals = collectionTotals(billsList)
   const expectedRent = roomsList.filter((r) => r.status === 'occupied').reduce((s, r) => s + (r.base_rent || 0), 0)
 
   return {
@@ -57,10 +63,10 @@ export async function loadDashboardStats(ownerId: string, propertyId?: string): 
     vacant: roomsList.filter((r) => r.status === 'vacant').length,
     activeTenants: tenantsList.filter((t) => t.status === 'active').length,
     expectedRent,
-    collected,
-    outstanding,
-    credit,
-    unpaidBillsCount: billsList.filter((b) => b.status === 'unpaid' || b.status === 'overdue').length,
+    ...totals,
+    billCount: billsList.length,
+    attentionBills: billsList.filter(b => b.balance > 0 || b.tenant_marked_paid).sort((a, b) => Number(b.tenant_marked_paid) - Number(a.tenant_marked_paid) || b.balance - a.balance).slice(0, 6).map(b => ({ id: b.id, tenantId: b.tenant_id, name: b.tenants?.full_name ?? 'Tenant', balance: b.balance, markedPaid: b.tenant_marked_paid, status: b.status })),
+    unpaidBillsCount: billsList.filter((b) => b.balance > 0).length,
     vacantRoomsList: roomsList.filter((r) => r.status === 'vacant').map((r) => ({ id: r.id, room_number: r.room_number })),
   }
 }
@@ -98,10 +104,10 @@ export async function loadExpiringDocuments(ownerId: string, propertyId?: string
 
 /** Total expenses recorded for the current calendar month, for the
  * dashboard's expense stat card. */
-export async function loadMonthlyExpenseTotal(ownerId: string, propertyId?: string): Promise<number> {
-  const now = new Date()
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-  let query = supabase.from('expenses').select('amount').eq('owner_id', ownerId).gte('expense_date', monthStart)
+export async function loadMonthlyExpenseTotal(ownerId: string, propertyId?: string, month = currentBillingMonth()): Promise<number> {
+  const [year, m] = month.split('-').map(Number)
+  const end = new Date(Date.UTC(year, m, 1)).toISOString().slice(0, 10)
+  let query = supabase.from('expenses').select('amount').eq('owner_id', ownerId).gte('expense_date', `${month}-01`).lt('expense_date', end)
   if (propertyId) query = query.eq('property_id', propertyId)
   const { data, error } = await query
   if (error) throw error
@@ -117,11 +123,15 @@ export interface MonthlyTrendPoint {
 
 /** Groups bills by billing_month for the last `months` calendar months
  * (including the current one), for the collection-trend chart. */
-export async function loadMonthlyTrend(ownerId: string, propertyId?: string, months = 6): Promise<MonthlyTrendPoint[]> {
+export async function loadMonthlyTrend(ownerId: string, propertyId?: string, months = 6, month = currentBillingMonth()): Promise<MonthlyTrendPoint[]> {
+  const [year, selectedMonth] = month.split('-').map(Number)
+  const start = new Date(Date.UTC(year, selectedMonth - months, 1)).toISOString().slice(0, 10)
   let query = supabase
     .from('bills')
     .select('billing_month, total_due, total_paid, property_id, properties!inner(owner_id)')
     .eq('properties.owner_id', ownerId)
+    .gte('billing_month', start)
+    .lte('billing_month', `${month}-01`)
   if (propertyId) query = query.eq('property_id', propertyId)
   const { data, error } = await query
   if (error) throw error
@@ -138,9 +148,8 @@ export async function loadMonthlyTrend(ownerId: string, propertyId?: string, mon
   }
 
   const points: MonthlyTrendPoint[] = []
-  const now = new Date()
   for (let i = months - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const d = new Date(year, selectedMonth - 1 - i, 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     const entry = byMonth.get(key) ?? { expected: 0, collected: 0 }
     points.push({

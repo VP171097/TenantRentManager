@@ -84,10 +84,23 @@ export interface BillGenerationInput {
  * the real reading (is_billed: false), it just doesn't charge for it
  * this month; fn_generate_bill reads that flag to decide the bill's
  * electricity charge. */
-export async function generateBillsForProperty(_propertyId: string, billingMonth: string, inputs: BillGenerationInput[]): Promise<Bill[]> {
+export async function generateBillsForProperty(propertyId: string, billingMonth: string, inputs: BillGenerationInput[]): Promise<Bill[]> {
   const results: Bill[] = []
+  if (!inputs.length) return results
+  // Validate the entire batch before the first write. Keep existing bills
+  // AND their readings unchanged when a user repeats generation.
+  for (const input of inputs) {
+    if (![input.current_reading, input.last_reading, input.rate_per_unit].every(Number.isFinite) || input.last_reading < 0 || input.current_reading < input.last_reading || input.rate_per_unit < 0) {
+      throw new Error('Check meter readings and rates before generating bills.')
+    }
+  }
+  const { data: existing, error: existingError } = await supabase.from('bills').select('*').eq('property_id', propertyId).eq('billing_month', billingMonth).in('tenant_id', inputs.map(i => i.tenant_id))
+  if (existingError) throw existingError
+  const existingByTenant = new Map((existing as Bill[]).map(b => [b.tenant_id, b]))
 
   for (const input of inputs) {
+    const alreadyGenerated = existingByTenant.get(input.tenant_id)
+    if (alreadyGenerated) { results.push(alreadyGenerated); continue }
     const { error: elecErr } = await supabase
       .from('electricity_readings')
       .upsert(

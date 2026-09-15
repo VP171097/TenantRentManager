@@ -147,7 +147,7 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 md:flex">
       {/* ── Sidebar (desktop) ── */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:border-slate-200 dark:md:border-slate-800 md:bg-white dark:md:bg-slate-900">
+      <aside className="hidden md:sticky md:top-0 md:h-screen md:flex md:w-60 md:shrink-0 md:flex-col md:border-r md:border-slate-200 dark:md:border-slate-800 md:bg-white dark:md:bg-slate-900">
         {/* Brand */}
         <div className="px-5 py-5 border-b border-slate-100 dark:border-slate-800">
           <BrandMark profile={profile} />
@@ -164,6 +164,7 @@ export function AppLayout() {
               <div className="space-y-0.5">
                 {section.items.map((item) => (
                   <NavLink
+                    data-testid={`sidebar-nav-${item.to.slice(1)}`}
                     key={item.to}
                     to={item.to}
                     className={({ isActive }) =>
@@ -197,7 +198,8 @@ export function AppLayout() {
       {/* ── Main content ── */}
       <div className="flex-1 pb-24 md:pb-0 min-w-0">
         {/* Desktop top bar */}
-        <header className="sticky top-0 z-10 hidden items-center justify-end border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-6 py-3 md:flex">
+        <header className="sticky top-0 z-10 hidden items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-slate-50/85 dark:bg-slate-900/80 backdrop-blur-md px-7 py-3 md:flex">
+          <p data-testid="app-header-context" className="text-xs text-slate-600 dark:text-slate-300">Your workspace <span className="mx-2 text-slate-300">/</span><span className="capitalize">{location.pathname.split('/')[1]}</span></p>
           <UserMenu links={USER_MENU_LINKS} />
         </header>
 
@@ -210,7 +212,7 @@ export function AppLayout() {
           <GlobalSearch className="mt-3" />
         </header>
 
-        <main className="mx-auto flex max-w-6xl flex-col px-4 py-6">
+        <main className="mx-auto flex max-w-7xl flex-col px-4 py-7 lg:px-7">
           <div key={location.pathname} className="page-fade-in">
             <Outlet />
           </div>
@@ -222,6 +224,7 @@ export function AppLayout() {
       <nav className="fixed bottom-0 left-0 right-0 z-20 flex border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md md:hidden">
         {MOBILE_NAV.map((item) => (
           <NavLink
+            data-testid={`mobile-nav-${item.to.slice(1)}`}
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
@@ -241,6 +244,7 @@ export function AppLayout() {
           </NavLink>
         ))}
         <button
+          data-testid="mobile-more-open"
           onClick={() => setShowMoreMenu((s) => !s)}
           className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-semibold transition-all ${
             showMoreMenu ? 'text-brand-700 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'
@@ -264,7 +268,7 @@ export function AppLayout() {
           <div className="absolute bottom-0 left-0 right-0 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-white dark:bg-slate-900 pb-[calc(env(safe-area-inset-bottom)+4.5rem)] shadow-xl">
             <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4">
               <p className="text-base font-bold text-slate-900 dark:text-slate-100">More</p>
-              <button onClick={() => setShowMoreMenu(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+              <button data-testid="mobile-more-close" aria-label="Close navigation" onClick={() => setShowMoreMenu(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
                 <X size={20} />
               </button>
             </div>
@@ -277,6 +281,7 @@ export function AppLayout() {
                   <div className="space-y-0.5">
                     {section.items.map((item) => (
                       <NavLink
+                        data-testid={`mobile-more-nav-${item.to.slice(1)}`}
                         key={item.to}
                         to={item.to}
                         className={({ isActive }) =>

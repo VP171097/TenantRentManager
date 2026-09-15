@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { generateTenantInvite, revokeTenantInvite } from '../services/tenants'
 import { friendlyError } from '../utils/errors'
 import type { Tenant } from '../types/database'
+import { appUrl } from '../utils/routes'
 
 /** Lets the owner generate a shareable link the tenant can open to set
  * their own password and log in — an alternative to the owner setting a
@@ -37,7 +38,7 @@ export function InviteTenantForm({ tenant }: { tenant: Tenant }) {
   const hasActiveInvite = !!tenant.invite_token && !isExpired
 
   const inviteLink = tenant.invite_token
-    ? `${window.location.origin}${import.meta.env.BASE_URL}#/join?token=${tenant.invite_token}`
+    ? appUrl(`/join?token=${encodeURIComponent(tenant.invite_token)}`)
     : null
 
   async function handleCopy() {

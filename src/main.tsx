@@ -5,6 +5,9 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './hooks/useAuth.tsx'
 import { applyTheme } from './hooks/useTheme'
+import { migrateLegacyRoute } from './utils/routes'
+
+migrateLegacyRoute()
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -18,7 +21,7 @@ try {
   applyTheme('system')
 }
 
-if ('serviceWorker' in navigator) {
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {
       // Offline shell is a nice-to-have — a registration failure shouldn't block the app.

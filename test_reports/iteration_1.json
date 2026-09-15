@@ -1,0 +1,95 @@
+{
+  "iteration": 1,
+  "mode": "retest",
+  "summary": "All 4 pre-existing artifacts (1 backend suite, 4 browser checks) re-verified; 4 new browser checks written for the 4 outstanding acceptance-matrix criteria and all pass on rerun. No app bugs found. Fixed two of MY OWN check scripts (dial amount assumed a fixed rate/previous-reading that doesn't hold for a brand-new tenant; bulk-generate button requires every pending row filled, not just the tenant under test) after they surfaced false failures caused by accumulated tscheck-* fixture residue across sessions, not by app defects.",
+  "passed": 9,
+  "failed": 0,
+  "flaky": 0,
+  "blocked": 0,
+  "test_error": 0,
+  "checks": [
+    {
+      "criterion": "Backend/API-bearing regression (auth + RLS on Supabase, pure unit test coverage for legacy-hash migration lives in app's own vitest suite, already confirmed clean per seed facts)",
+      "name": "test_tscheck_supabase_auth_and_rls.py",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "cd /app/backend && python -m pytest -q -> '4 passed in 2.72s'"
+    },
+    {
+      "criterion": "Clean-routing, metadata and legacy-bookmark verification (reload/back survival, per-page titles, public index / private noindex, /#/dashboard and /#/join?type=manager&token=example hash migration with query preserved, missing-invite-token clear state)",
+      "name": "routing-metadata-and-legacy-bookmark-migration",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "7 assertions passed against localhost:3000: landing title+robots(index,follow), /login title+robots(noindex,nofollow) survives reload, back-nav restores landing title, dashboard title+robots(noindex,nofollow) survives reload/back through /properties, '/#/dashboard?property=abc' -> '/dashboard?property=abc' (title Money Cockpit), '/#/join?type=manager&token=example' -> '/join?type=manager&token=example' (title Accept Invitation), '/join' with no token shows 'Invalid invite link' text. Note: initially targeted the public preview URL directly but hit transient Cloudflare 429s from rapid repeated automated navigations there (confirmed healthy via curl throughout, and an identical script passed cleanly on localhost) — moved this lane to localhost, which exercises the exact same app code, and kept a separate lightweight check against the public URL (see below) for the public-access lane specifically."
+    },
+    {
+      "criterion": "Mobile (390x844) lane: landing, dashboard, QA billing no overflow / obstructed controls; light/dark and reduced-motion usable",
+      "name": "mobile-viewport-landing-dashboard-billing-no-overflow",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "At 390x844: landing (light, dark via emulateMedia, reduced-motion) all render with document scrollWidth <= clientWidth+2 (no horizontal overflow); dashboard after login shows heading/filter with no overflow; /billing QA-property selector visible in viewport with no overflow."
+    },
+    {
+      "criterion": "Production-error / stable-public-access lane: core happy navigation at https://insights-lab-10.preview.emergentagent.com has no unexpected console/page/network errors or 502s",
+      "name": "public-preview-happy-nav-no-errors",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Landing -> /login -> login -> /dashboard -> /tenants against the live public preview URL; zero uncaught pageerrors and zero 5xx/502 responses asserted and passed."
+    },
+    {
+      "criterion": "Single-bill GenerateBillModal and EditBillModal dial integration on QA tenant inside QAWARM: shared dial, exact input/slider preview updates, meter settings/reset/defer controls remain, invalid numbers block save",
+      "name": "single-bill-generate-and-edit-modal-dial",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Created own fresh tscheck-modal-room/tenant fixture under QAWARM (282aab72-...). GenerateBillModal: generate-meter-dial visible, input fill -> units=142/amount contains 1,278 (rate fixed to 9 via settings), slider -> units=200, meter-settings toggle reveals reset checkbox, invalid reading (previous-1, non-negative) shows 'at least the previous reading' and disables submit, valid reading re-enabled and bill generated. EditBillModal opened on that same fixture bill: edit-meter-dial visible, input/slider update units to 200/250, settings toggle shows reset checkbox, defer checkbox text present, invalid reading disables submit, cancelled without further mutation."
+    },
+    {
+      "criterion": "Reusable regression: landing public warm theme + sample label",
+      "name": "landing-public-warm-theme-and-sample-label",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Re-run by name only, unchanged script, passed."
+    },
+    {
+      "criterion": "Reusable regression: auth login/reload/signout blocks dashboard",
+      "name": "auth-login-reload-and-signout-blocks-dashboard",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Re-run by name only, unchanged script, passed."
+    },
+    {
+      "criterion": "Reusable regression: dashboard money cockpit property filter zero-state",
+      "name": "dashboard-money-cockpit-property-filter-zero-state",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Re-run by name only, unchanged script, passed."
+    },
+    {
+      "criterion": "Reusable regression: quick meter dial fixture create + bulk generate bill (existing bulk reading/bill test, reused per instructions)",
+      "name": "quick-meter-dial-create-fixture-and-generate-bill",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "First rerun failed: 'billing-generate' button stayed disabled because bulk generation requires EVERY active-tenant row in QAWARM to hold a valid reading, and multiple tscheck-* fixture tenants have accumulated across earlier sessions (property now has 5 active tenants). This is app-intended all-or-nothing bulk validation, not a defect. Patched the check to fill any other pending row with a trivially valid (previous+1) reading before each generate click, leaving the tenant-under-test's own dial assertions untouched; reran and passed, including the same-bill idempotency check via a direct Supabase REST read (bill id/current_electricity_reading/total_due unchanged after a second attempt with a different, unsaved reading)."
+    }
+  ],
+  "bugs": [],
+  "action_items": [
+    "None outstanding. Infra note only: the public preview domain (insights-lab-10.preview.emergentagent.com) returned transient 429s under rapid repeated automated navigation within this same test session (Cloudflare-level rate limiting, confirmed via curl the app itself stayed healthy at 200 throughout). The detailed routing/metadata/legacy-bookmark check was moved to localhost (identical app code) and a separate lighter check confirms the public URL happy-path is clean; if a future session needs many public-URL checks, space them out or batch fewer navigations per check to avoid the same rate limit."
+  ],
+  "retest_needed": false,
+  "artifacts": {
+    "backend_tests": [
+      "/app/backend/tests/test_tscheck_supabase_auth_and_rls.py"
+    ],
+    "browser_checks": [
+      "/app/.emergent/scripts/checks/landing-public-warm-theme-and-sample-label.mjs",
+      "/app/.emergent/scripts/checks/auth-login-reload-and-signout-blocks-dashboard.mjs",
+      "/app/.emergent/scripts/checks/dashboard-money-cockpit-property-filter-zero-state.mjs",
+      "/app/.emergent/scripts/checks/quick-meter-dial-create-fixture-and-generate-bill.mjs",
+      "/app/.emergent/scripts/checks/routing-metadata-and-legacy-bookmark-migration.mjs",
+      "/app/.emergent/scripts/checks/mobile-viewport-landing-dashboard-billing-no-overflow.mjs",
+      "/app/.emergent/scripts/checks/public-preview-happy-nav-no-errors.mjs",
+      "/app/.emergent/scripts/checks/single-bill-generate-and-edit-modal-dial.mjs"
+    ]
+  }
+}

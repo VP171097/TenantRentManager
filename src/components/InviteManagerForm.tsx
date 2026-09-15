@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { generateManagerInvite, revokeManagerInvite } from '../services/managers'
 import { friendlyError } from '../utils/errors'
 import type { Manager } from '../types/database'
+import { appUrl } from '../utils/routes'
 
 /** Mirrors InviteTenantForm — lets the owner generate a shareable link
  * the manager can open to set their own password, as an alternative to
@@ -33,7 +34,7 @@ export function InviteManagerForm({ manager }: { manager: Manager }) {
   const hasActiveInvite = !!manager.invite_token && !isExpired
 
   const inviteLink = manager.invite_token
-    ? `${window.location.origin}${import.meta.env.BASE_URL}#/join?type=manager&token=${manager.invite_token}`
+    ? appUrl(`/join?type=manager&token=${encodeURIComponent(manager.invite_token)}`)
     : null
 
   async function handleCopy() {

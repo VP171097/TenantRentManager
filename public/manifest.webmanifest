@@ -2,15 +2,15 @@
   "name": "RentBook",
   "short_name": "RentBook",
   "description": "RentBook — simple rent, electricity, and tenant management for landlords.",
-  "start_url": "/TenantRentManager/",
-  "scope": "/TenantRentManager/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#4338ca",
+  "background_color": "#faf7f0",
+  "theme_color": "#0f766e",
   "icons": [
-    { "src": "/TenantRentManager/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/TenantRentManager/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/TenantRentManager/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/TenantRentManager/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
