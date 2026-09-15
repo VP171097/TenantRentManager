@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listAuditLogs, revertAuditLog } from '../services/audit'
-import { listTenants } from '../services/tenants'
-import { listProperties } from '../services/properties'
 import { SkeletonList } from '../components/Skeleton'
 import { ErrorState, EmptyState } from '../components/States'
 import { friendlyError } from '../utils/errors'
@@ -19,9 +17,6 @@ export function AuditPage() {
     queryKey: ['audit-logs'],
     queryFn: listAuditLogs
   })
-  const { data: tenants } = useQuery({ queryKey: ['tenants'], queryFn: listTenants })
-  const { data: properties } = useQuery({ queryKey: ['properties'], queryFn: listProperties })
-
   const revertMutation = useMutation({
     mutationFn: (logId: string) => revertAuditLog(logId),
     onSuccess: () => {

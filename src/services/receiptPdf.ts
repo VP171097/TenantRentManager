@@ -65,12 +65,17 @@ export async function buildReceiptPdf({
   doc.setTextColor(0, 0, 0)
   const propertyBlockBottom = bodyTop + 78 + wrappedAddress.length * 11
 
+  // Prefer the reading snapshot captured on the bill itself (never
+  // missing/stale, unlike the electricity_readings join) — fall back to
+  // the passed-in `reading` row only for older bills predating that column.
+  const billPrevReading = bill.previous_electricity_reading ?? reading?.previous_reading ?? null
+  const billCurrReading = bill.current_electricity_reading ?? reading?.current_reading ?? null
   const readingRows =
-    reading != null
+    billPrevReading != null && billCurrReading != null
       ? [
-          ['Previous reading', String(reading.previous_reading)],
-          ['Current reading', String(reading.current_reading)],
-          ['Rate per unit (₹)', formatINR(reading.rate_per_unit)],
+          ['Previous reading', String(billPrevReading)],
+          ['Current reading', String(billCurrReading)],
+          ...(reading != null ? [['Rate per unit (₹)', formatINR(reading.rate_per_unit)]] : []),
         ]
       : []
 

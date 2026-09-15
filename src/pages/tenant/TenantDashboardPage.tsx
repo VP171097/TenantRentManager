@@ -18,7 +18,7 @@ import { useEffect } from 'react'
 import {
   Home, DoorOpen, CheckCircle, Wrench, Copy,
   QrCode, ChevronDown, ChevronUp, AlertCircle, Send,
-  FileText, Phone, Calendar, Info, Zap
+  FileText, Phone, Calendar, Zap
 } from 'lucide-react'
 
 async function loadMyData(profileId: string) {
@@ -55,8 +55,14 @@ async function loadMyData(profileId: string) {
     .order('billing_month', { ascending: false })
     .limit(6)
     
+  // Prefer the reading snapshot on the most recent bill (migration 028) —
+  // falls back to the electricity_readings join, then the tenant's start
+  // reading, only for bills generated before that column existed.
   let latestReading = (tenant as Tenant).electricity_start_reading
-  if (recentReadings && recentReadings.length > 0) {
+  const latestBillWithReading = (bills ?? []).find((b: any) => b.current_electricity_reading != null)
+  if (latestBillWithReading) {
+    latestReading = (latestBillWithReading as any).current_electricity_reading
+  } else if (recentReadings && recentReadings.length > 0) {
     latestReading = recentReadings[0].current_reading
   }
 
@@ -326,10 +332,14 @@ export function TenantDashboardPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {data.bills.filter(b => b.electricity_units > 0 || b.electricity_charge > 0).slice(0, 6).map((bill: any) => {
+                  // Prefer the reading snapshot captured on the bill itself
+                  // (migration 028) — falls back to the electricity_readings
+                  // join only for older bills generated before that column
+                  // existed, since that join can miss/mismatch.
                   const reading = data.recentReadings.find((r: any) => r.billing_month === bill.billing_month)
-                  const fromUnit = reading?.previous_reading ?? 0
-                  const toUnit = Math.max(reading?.current_reading ?? 0, fromUnit + bill.electricity_units)
-                  
+                  const fromUnit = bill.previous_electricity_reading ?? reading?.previous_reading ?? 0
+                  const toUnit = bill.current_electricity_reading ?? Math.max(reading?.current_reading ?? 0, fromUnit + bill.electricity_units)
+
                   return (
                     <tr key={bill.id}>
                       <td className="py-2.5 font-medium text-slate-900 dark:text-slate-100">

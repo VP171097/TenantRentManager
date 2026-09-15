@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { listMaintenanceRequests, updateMaintenanceStatus, updateMaintenanceResolution } from '../services/maintenance'
+import { listMaintenanceRequests, updateMaintenanceResolution } from '../services/maintenance'
 import { listTenants } from '../services/tenants'
 import { listProperties } from '../services/properties'
 import { ErrorState, EmptyState } from '../components/States'
 import { SkeletonList } from '../components/Skeleton'
 import { friendlyError } from '../utils/errors'
 import type { MaintenanceStatus, MaintenanceRequest } from '../types/database'
-import { Wrench, CircleDot, Clock, CheckCircle2, AlertCircle, ChevronRight, X, User, Phone, Image as ImageIcon } from 'lucide-react'
+import { Wrench, CircleDot, Clock, CheckCircle2, AlertCircle, X, User, Phone, Image as ImageIcon } from 'lucide-react'
 import { Modal } from '../components/Modal'
 import { ImageUploader } from '../components/ImageUploader'
 
@@ -44,12 +44,6 @@ export function MaintenancePage() {
   })
   const { data: tenants } = useQuery({ queryKey: ['tenants'], queryFn: () => listTenants() })
   const { data: properties } = useQuery({ queryKey: ['properties'], queryFn: listProperties })
-
-  const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: MaintenanceStatus }) => updateMaintenanceStatus(id, status),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] }),
-    onError: (err) => setError(friendlyError(err)),
-  })
 
   const resolutionMutation = useMutation({
     mutationFn: (updates: { status?: MaintenanceStatus; resolution_notes?: string; resolution_images?: string[] }) =>
@@ -125,7 +119,6 @@ export function MaintenancePage() {
           {filtered.map((r) => {
             const tenant = tenants?.find((t) => t.id === r.tenant_id)
             const property = properties?.find((p) => p.id === r.property_id)
-            const next = NEXT_STATUS[r.status]
             const { bg, text, icon: StatusIcon } = STATUS_CONFIG[r.status]
             return (
               <div

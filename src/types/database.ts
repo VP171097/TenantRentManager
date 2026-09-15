@@ -112,6 +112,13 @@ export interface Bill {
   rent_amount: number
   electricity_units: number
   electricity_charge: number
+  // Snapshot of the meter reading used to compute this bill's electricity
+  // charge, captured at generation time so history/PDFs never depend on a
+  // fragile join against electricity_readings (which can be missing/stale
+  // for bulk-generated or edited bills). Null for older bills predating
+  // this column (migration 028).
+  previous_electricity_reading: number | null
+  current_electricity_reading: number | null
   other_charges: number
   late_fee: number
   previous_balance: number // positive = carried outstanding
