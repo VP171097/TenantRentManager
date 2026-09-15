@@ -6,6 +6,15 @@
 // mode: 'receipt' (payment confirmation with the receipt PDF attached,
 // sent automatically right after a payment is recorded).
 //
+// WhatsApp sends go through Meta's WhatsApp Business Platform (Cloud
+// API) using a pre-approved MESSAGE TEMPLATE — required for sending a
+// bill/reminder/receipt unprompted, outside the 24-hour window Meta
+// otherwise restricts free-form text to. You must create a WhatsApp
+// Business Platform app (business.facebook.com -> WhatsApp Manager),
+// get a permanent access token + phone number ID, and submit the three
+// template bodies documented in supabase/functions/README.md for
+// approval (typically ~1 day) before sends will actually deliver.
+//
 // SECRETS (set via `supabase secrets set NAME=value`, never as VITE_
 // frontend env vars — see supabase/functions/README.md):
 //   RESEND_API_KEY        - Resend API key
@@ -13,6 +22,10 @@
 //   WHATSAPP_ACCESS_TOKEN - Meta WhatsApp Cloud API access token
 //   WHATSAPP_PHONE_NUMBER_ID - Meta WhatsApp Cloud API phone number id
 //   WHATSAPP_API_VERSION  - optional, defaults to 'v20.0'
+//   WHATSAPP_TEMPLATE_BILL     - optional, defaults to 'rent_bill'
+//   WHATSAPP_TEMPLATE_REMINDER - optional, defaults to 'rent_reminder'
+//   WHATSAPP_TEMPLATE_RECEIPT  - optional, defaults to 'payment_receipt'
+//   WHATSAPP_TEMPLATE_LANG     - optional, defaults to 'en_US'
 //
 // The frontend generates the bill/receipt PDF client-side (src/services/
 // billPdf.ts, src/services/receiptPdf.ts) and passes it here as base64
@@ -239,36 +252,46 @@ async function sendWhatsApp(opts: {
   if (!to.startsWith('+')) to = `+91${to.replace(/\D/g, '')}`
   to = to.replace(/[^\d+]/g, '')
 
-  const lines = opts.isReceipt
-    ? [
-        `Hi ${opts.tenantName}, we've received your payment of ₹${opts.paymentAmount} for ${opts.monthLabel}. Thank you!`,
-        ...(opts.receiptNumber ? [`Receipt #: ${opts.receiptNumber}`] : []),
-        `Outstanding balance: ₹${opts.balanceStr}`,
-      ]
-    : opts.isReminder
-      ? [
-          `Hi ${opts.tenantName}, this is a reminder: your rent for ${opts.monthLabel} is still due.`,
-          `Outstanding: ₹${opts.balanceStr}`,
-        ]
-      : [
-          `Hi ${opts.tenantName}, here is your rent bill for ${opts.monthLabel}.`,
-          `Total due: ₹${opts.totalDue}`,
-          `Outstanding balance: ₹${opts.balanceStr}`,
-        ]
-  if (!opts.isReceipt && opts.upiId) lines.push(`Pay via UPI: ${opts.upiId}`)
+  // Sends via a pre-approved WhatsApp message template — required by Meta
+  // for any message outside a 24-hour customer-initiated conversation
+  // window (i.e. for sending a bill/reminder/receipt unprompted, which is
+  // the whole point here; free-form text only works for messages sent
+  // within 24h of the tenant messaging first, or to test numbers).
+  //
+  // Template names/language default to the ones documented in
+  // supabase/functions/README.md (submit those exact bodies to Meta for
+  // approval) but are overridable via secrets in case you named yours
+  // differently or use a non-English locale.
+  const languageCode = Deno.env.get('WHATSAPP_TEMPLATE_LANG') || 'en_US'
+  const paymentNote = opts.upiId ? `Pay via UPI: ${opts.upiId}` : 'Contact your landlord for payment options.'
 
-  // NOTE: sending free-form text messages outside a 24-hour customer-
-  // initiated conversation window is only permitted by Meta for
-  // demonstration/testing. Production use requires a pre-approved message
-  // template. Swapping to a template is a one-line change: replace the
-  // `text` payload below with e.g.
-  //   { messaging_product: 'whatsapp', to, type: 'template',
-  //     template: { name: 'bill_notification', language: { code: 'en' }, components: [...] } }
+  let templateName: string
+  let parameters: string[]
+  if (opts.isReceipt) {
+    templateName = Deno.env.get('WHATSAPP_TEMPLATE_RECEIPT') || 'payment_receipt'
+    parameters = [opts.tenantName, opts.paymentAmount || '0', opts.monthLabel, opts.receiptNumber || 'N/A', opts.balanceStr]
+  } else if (opts.isReminder) {
+    templateName = Deno.env.get('WHATSAPP_TEMPLATE_REMINDER') || 'rent_reminder'
+    parameters = [opts.tenantName, opts.monthLabel, opts.balanceStr]
+  } else {
+    templateName = Deno.env.get('WHATSAPP_TEMPLATE_BILL') || 'rent_bill'
+    parameters = [opts.tenantName, opts.monthLabel, opts.totalDue, opts.balanceStr, paymentNote]
+  }
+
   const payload = {
     messaging_product: 'whatsapp',
     to,
-    type: 'text',
-    text: { body: lines.join('\n') },
+    type: 'template',
+    template: {
+      name: templateName,
+      language: { code: languageCode },
+      components: [
+        {
+          type: 'body',
+          parameters: parameters.map((text) => ({ type: 'text', text })),
+        },
+      ],
+    },
   }
 
   const res = await fetch(`https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`, {

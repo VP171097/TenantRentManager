@@ -110,13 +110,53 @@ For **Send Bill** (WhatsApp always; Email if the tenant has one on file):
 
 | Secret | What it is | How to get it |
 |---|---|---|
-| `WHATSAPP_ACCESS_TOKEN` | Meta WhatsApp Cloud API access token | 1. Go to [developers.facebook.com](https://developers.facebook.com) and create a free developer account/app. 2. Add the **WhatsApp** product to the app. 3. Under **WhatsApp → API Setup**, copy the temporary (or generate a permanent) access token. |
-| `WHATSAPP_PHONE_NUMBER_ID` | The sending WhatsApp number's ID | Same **WhatsApp → API Setup** page, listed as "Phone number ID". |
+| `WHATSAPP_ACCESS_TOKEN` | Meta WhatsApp Business Platform access token | See **9c-i** below. |
+| `WHATSAPP_PHONE_NUMBER_ID` | The sending WhatsApp number's ID | See **9c-i** below. |
 | `WHATSAPP_API_VERSION` | Optional; defaults to `v20.0` | Only set this if Meta tells you to use a different version. |
+| `WHATSAPP_TEMPLATE_BILL` / `WHATSAPP_TEMPLATE_REMINDER` / `WHATSAPP_TEMPLATE_RECEIPT` | Optional; default to `rent_bill` / `rent_reminder` / `payment_receipt` | Only set these if you name your approved templates (9c-i, step 4) something else. |
+| `WHATSAPP_TEMPLATE_LANG` | Optional; defaults to `en_US` | Only set if you submit your templates in a different language. |
 | `RESEND_API_KEY` | Resend email API key | 1. Sign up for free at [resend.com](https://resend.com). 2. Go to **API Keys → Create API Key** and copy it. |
 | `RESEND_FROM_EMAIL` | The "from" address on bill emails | Either verify your own domain in Resend (**Domains** tab) and use e.g. `bills@yourdomain.com`, or use Resend's test sender (`onboarding@resend.dev`) while trying things out — real tenant inboxes may mark test-sender emails as spam, so verify a domain before relying on this for real tenants. |
 
-Set them via the terminal (repeat for each, replacing the value):
+#### 9c-i. Set up WhatsApp Business (one-time)
+
+This app sends bills through Meta's official **WhatsApp Business
+Platform**, using pre-approved message templates — Meta requires this for
+sending a message unprompted (a bill/reminder/receipt the tenant didn't
+ask for); free-form text only works within 24 hours of the tenant
+messaging you first, which isn't usable for real bill-sending. This setup
+only needs to be done once, and only you can do it (it needs your own
+login and phone number):
+
+1. Go to [business.facebook.com](https://business.facebook.com) and
+   create a Meta Business Account if you don't have one.
+2. In Meta Business Manager, go to **WhatsApp → Get Started** to create a
+   WhatsApp Business Platform app. Meta gives you a free test number to
+   begin with — you can add your real business number later.
+3. Under **WhatsApp → API Setup**, copy the **Phone number ID**
+   (`WHATSAPP_PHONE_NUMBER_ID`), and under **System Users** generate a
+   **permanent** access token (`WHATSAPP_ACCESS_TOKEN`) — the temporary
+   24-hour token shown by default will expire and break sending, so make
+   sure you generate a permanent one.
+4. Under **WhatsApp Manager → Message Templates → Create Template**
+   (category "Utility", language "English (US)"), submit these three
+   templates exactly as written below, and wait for Meta's approval
+   (usually same-day):
+
+   | Template name | Body |
+   |---|---|
+   | `rent_bill` | `Hi {{1}}, here is your rent bill for {{2}}. Total due: ₹{{3}}. Outstanding balance: ₹{{4}}. {{5}}` |
+   | `rent_reminder` | `Hi {{1}}, this is a reminder that your rent for {{2}} is still due. Outstanding: ₹{{3}}.` |
+   | `payment_receipt` | `Hi {{1}}, we've received your payment of ₹{{2}} for {{3}}. Receipt #{{4}}. Outstanding balance: ₹{{5}}.` |
+
+   When Meta asks for a sample value for each `{{n}}` variable, any
+   realistic example works, e.g. "Ramesh Kumar", "September 2026", "4500".
+
+Until these templates are approved, the WhatsApp step of Send Bill will
+fail (shown in the app as `whatsapp: failed: ...`) — email still sends
+independently if the tenant has one on file.
+
+Set the secrets via the terminal (repeat for each, replacing the value):
 
 ```bash
 npx supabase secrets set WHATSAPP_ACCESS_TOKEN=your-token-here --project-ref <your-project-ref>
@@ -128,8 +168,6 @@ npx supabase secrets set RESEND_FROM_EMAIL=bills@yourdomain.com --project-ref <y
 `create-tenant-login` needs no extra secrets — it uses the project's own service-role key, which Supabase provides automatically to every Edge Function.
 
 **Important:** Never set any of these as `VITE_...` variables or in `.env` — those end up in the public frontend code. They must only be set as Edge Function secrets, exactly as above.
-
-**Note on WhatsApp messages:** the free-form text message this app sends only works reliably within 24 hours of the tenant last messaging your WhatsApp Business number. For always-reliable delivery, Meta requires a pre-approved message template — this is a Meta/WhatsApp Business policy, not something this app can bypass. The code is written so switching to a template is a one-line change (see the comment in `supabase/functions/send-bill/index.ts`) once you've had a template approved in the Meta dashboard.
 
 ## Troubleshooting
 
