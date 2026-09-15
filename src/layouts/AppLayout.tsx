@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   Building2,
+  DoorOpen,
   Users,
   FileText,
   CreditCard,
@@ -15,8 +17,11 @@ import {
   User,
   ChevronRight,
   History,
+  Menu,
+  X,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { Footer } from '../components/Footer'
 import { UserMenu } from '../components/UserMenu'
@@ -38,6 +43,7 @@ const NAV_SECTIONS: NavSection[] = [
     heading: 'Property',
     items: [
       { to: '/properties', label: 'Properties', icon: <Building2 size={18} /> },
+      { to: '/rooms', label: 'Rooms', icon: <DoorOpen size={18} /> },
       { to: '/tenants', label: 'Tenants', icon: <Users size={18} /> },
     ],
   },
@@ -72,7 +78,6 @@ const MOBILE_NAV: MobileNavItem[] = [
   { to: '/tenants', label: 'Tenants', icon: <Users size={20} /> },
   { to: '/payments', label: 'Payments', icon: <CreditCard size={20} /> },
   { to: '/ledger', label: 'Ledger', icon: <BookOpen size={20} /> },
-  { to: '/settings', label: 'More', icon: <Settings size={20} /> },
 ]
 
 function BrandMark({ profile }: { profile: { logo_url?: string | null; full_name?: string } | null }) {
@@ -125,6 +130,19 @@ function SidebarUserFooter({ profile }: { profile: { full_name?: string; role?: 
 export function AppLayout() {
   const { profile } = useAuth()
   const location = useLocation()
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  useLockBodyScroll(showMoreMenu)
+
+  // Close the mobile "More" drawer whenever the route changes (tapping a
+  // link inside it navigates, which should also close it).
+  useEffect(() => {
+    setShowMoreMenu(false)
+  }, [location.pathname])
+
+  const visibleNavSections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => !(['/managers', '/audit'].includes(item.to) && profile?.role !== 'owner')),
+  }))
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 md:flex">
@@ -138,13 +156,13 @@ export function AppLayout() {
 
         {/* Nav */}
         <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
-          {NAV_SECTIONS.map((section) => (
+          {visibleNavSections.map((section) => (
             <div key={section.heading}>
               <p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
                 {section.heading}
               </p>
               <div className="space-y-0.5">
-                {section.items.filter(item => !(['/managers', '/audit'].includes(item.to) && profile?.role !== 'owner')).map((item) => (
+                {section.items.map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}
@@ -222,7 +240,64 @@ export function AppLayout() {
             )}
           </NavLink>
         ))}
+        <button
+          onClick={() => setShowMoreMenu((s) => !s)}
+          className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-semibold transition-all ${
+            showMoreMenu ? 'text-brand-700 dark:text-brand-300' : 'text-slate-500 dark:text-slate-400'
+          }`}
+        >
+          <span className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${showMoreMenu ? 'bg-brand-100 dark:bg-brand-950' : ''}`}>
+            <Menu size={20} />
+          </span>
+          More
+        </button>
       </nav>
+
+      {/* ── Mobile "More" drawer — every page the bottom nav has no room
+          for (Properties, Rooms, Billing, Receipts, Expenses, Reports,
+          Maintenance, Managers, Audit Logs, Settings). Mirrors the
+          desktop sidebar's NAV_SECTIONS so nothing is reachable on
+          desktop but hidden on mobile. ── */}
+      {showMoreMenu && (
+        <div className="fixed inset-0 z-30 md:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowMoreMenu(false)} />
+          <div className="absolute bottom-0 left-0 right-0 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-white dark:bg-slate-900 pb-[calc(env(safe-area-inset-bottom)+4.5rem)] shadow-xl">
+            <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4">
+              <p className="text-base font-bold text-slate-900 dark:text-slate-100">More</p>
+              <button onClick={() => setShowMoreMenu(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <X size={20} />
+              </button>
+            </div>
+            <nav className="space-y-4 px-3 py-4">
+              {visibleNavSections.map((section) => (
+                <div key={section.heading}>
+                  <p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                    {section.heading}
+                  </p>
+                  <div className="space-y-0.5">
+                    {section.items.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+                            isActive
+                              ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300'
+                              : 'text-slate-600 dark:text-slate-400'
+                          }`
+                        }
+                      >
+                        <span className="text-slate-400 dark:text-slate-500">{item.icon}</span>
+                        <span className="flex-1">{item.label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
