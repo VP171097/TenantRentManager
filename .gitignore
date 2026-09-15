@@ -11,3 +11,9 @@ supabase/.temp/
 frontend
 .screenshots/
 memory/test_credentials.md
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials

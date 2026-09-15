@@ -46,9 +46,9 @@ The financial engine (`src/utils/billing.ts`) is pure, dependency-free, and unit
 ## Local development
 
 ```bash
-npm install
+yarn install --frozen-lockfile
 cp .env.example .env   # fill in your Supabase project URL + anon key
-npm run dev
+yarn dev
 ```
 
 ## Environment variables
@@ -72,13 +72,15 @@ See [SETUP.md](./SETUP.md) for the full step-by-step guide: creating a Supabase 
 
 Deploys to GitHub Pages via `.github/workflows/deploy.yml` on every push to `main` (or manually via workflow_dispatch). Set `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` as repository secrets. See SETUP.md for details.
 
+Use Yarn Classic 1.22.22. The root `yarn.lock` must be committed with `package.json`; GitHub Actions uses it both for dependency caching and frozen installs. When adding a dependency, use `yarn add` and include the updated lockfile in the same change. Do not generate an unrelated replacement lockfile in CI.
+
 ## Testing
 
 ```bash
-npm run typecheck
-npm run lint
-npm run test
-npm run build
+yarn typecheck
+yarn lint
+yarn test
+yarn build
 ```
 
 ## New: dark mode, branding, and installable app
