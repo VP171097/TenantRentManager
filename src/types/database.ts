@@ -98,6 +98,13 @@ export interface ElectricityReading {
   rate_per_unit: number
   is_meter_reset: boolean
   reset_explanation: string | null
+  // migration 032: electricity_readings is the single source of truth
+  // for monthly electricity data — always written, including for a
+  // "Skip / Carry Forward" month (is_billed: false). units_consumed and
+  // amount are generated columns, always in sync with the readings.
+  is_billed: boolean
+  units_consumed: number
+  amount: number
   created_at: string
 }
 

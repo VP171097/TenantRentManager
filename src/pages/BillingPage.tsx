@@ -43,9 +43,10 @@ export function BillingPage() {
     for (const item of previewItems) {
       const val = inputs[item.tenant_id]
       if (!val) return false // Nothing entered yet
-      if (!val.skip) {
-        if (val.current === '' || val.current < item.last_reading) return false
-      }
+      // The real meter reading is always required now (migration 032 —
+      // it's recorded even when "Skip / Carry Forward" defers the
+      // charge), so this check no longer relaxes when val.skip is true.
+      if (val.current === '' || val.current < item.last_reading) return false
     }
     return true
   }, [previewItems, inputs])
@@ -58,7 +59,7 @@ export function BillingPage() {
         tenant_id: item.tenant_id,
         room_id: item.room_id,
         last_reading: item.last_reading,
-        current_reading: val.skip ? item.last_reading : Number(val.current),
+        current_reading: Number(val.current),
         rate_per_unit: item.rate_per_unit,
         skip_electricity: val.skip,
       }
@@ -118,13 +119,13 @@ export function BillingPage() {
                 <th className="px-4 py-3 font-semibold">Room</th>
                 <th className="px-4 py-3 font-semibold">Previous Unit</th>
                 <th className="px-4 py-3 font-semibold">Current Unit</th>
-                <th className="px-4 py-3 font-semibold text-center">Skip / Carry Forward</th>
+                <th className="px-4 py-3 font-semibold text-center">Skip Charge This Month</th>
               </tr>
             </thead>
             <tbody>
               {previewItems.map((item) => {
                 const val = inputs[item.tenant_id] || { current: '', skip: false }
-                const isError = !val.skip && val.current !== '' && val.current < item.last_reading
+                const isError = val.current !== '' && val.current < item.last_reading
                 return (
                   <tr key={item.tenant_id} className="border-b border-slate-50 dark:border-slate-800/50">
                     <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{item.full_name}</td>
@@ -135,7 +136,6 @@ export function BillingPage() {
                         type="number"
                         className={`input py-1 px-2 h-8 w-24 ${isError ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : ''}`}
                         value={val.current}
-                        disabled={val.skip}
                         onChange={(e) => setInputs({ ...inputs, [item.tenant_id]: { ...val, current: e.target.value === '' ? '' : Number(e.target.value) } })}
                       />
                     </td>
@@ -144,6 +144,7 @@ export function BillingPage() {
                         type="checkbox"
                         checked={val.skip}
                         onChange={(e) => setInputs({ ...inputs, [item.tenant_id]: { ...val, skip: e.target.checked } })}
+                        title="Record this meter reading, but don't charge for it this month — it carries forward and gets billed together with next month's usage."
                       />
                     </td>
                   </tr>

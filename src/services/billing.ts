@@ -78,30 +78,33 @@ export interface BillGenerationInput {
   skip_electricity: boolean
 }
 
-/** Bulk-generates bills for active tenants, inserting electricity readings if provided. */
+/** Bulk-generates bills for active tenants. Always records an
+ * electricity_readings row (migration 032 — the single source of truth
+ * for monthly electricity data) — "Skip / Carry Forward" still records
+ * the real reading (is_billed: false), it just doesn't charge for it
+ * this month; fn_generate_bill reads that flag to decide the bill's
+ * electricity charge. */
 export async function generateBillsForProperty(_propertyId: string, billingMonth: string, inputs: BillGenerationInput[]): Promise<Bill[]> {
   const results: Bill[] = []
-  
+
   for (const input of inputs) {
-    if (!input.skip_electricity) {
-      // Upsert electricity reading
-      const { error: elecErr } = await supabase
-        .from('electricity_readings')
-        .upsert(
-          {
-            tenant_id: input.tenant_id,
-            room_id: input.room_id,
-            billing_month: billingMonth,
-            previous_reading: input.last_reading,
-            current_reading: input.current_reading,
-            rate_per_unit: input.rate_per_unit,
-            is_meter_reset: false,
-          },
-          { onConflict: 'tenant_id, billing_month' }
-        )
-      if (elecErr) throw elecErr
-    }
-    
+    const { error: elecErr } = await supabase
+      .from('electricity_readings')
+      .upsert(
+        {
+          tenant_id: input.tenant_id,
+          room_id: input.room_id,
+          billing_month: billingMonth,
+          previous_reading: input.last_reading,
+          current_reading: input.current_reading,
+          rate_per_unit: input.rate_per_unit,
+          is_meter_reset: false,
+          is_billed: !input.skip_electricity,
+        },
+        { onConflict: 'tenant_id, billing_month' }
+      )
+    if (elecErr) throw elecErr
+
     results.push(await generateBill(input.tenant_id, billingMonth))
   }
   return results
@@ -173,6 +176,9 @@ export async function updateBillFull(input: {
   other_charges: number
   late_fee: number
   notes?: string
+  /** Whether electricity should be charged on this bill, or just
+   * recorded and deferred to a later bill. Defaults to true. */
+  is_billed?: boolean
 }): Promise<Bill> {
   const { data, error } = await supabase.rpc('fn_update_bill_full', {
     p_bill_id: input.bill_id,
@@ -184,6 +190,7 @@ export async function updateBillFull(input: {
     p_other_charges: input.other_charges,
     p_late_fee: input.late_fee,
     p_notes: input.notes ?? null,
+    p_is_billed: input.is_billed ?? true,
   })
   if (error) throw error
   return data as Bill

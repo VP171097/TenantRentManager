@@ -40,25 +40,35 @@ export async function getReadingForMonth(tenantId: string, billingMonth: string)
 }
 
 /** Resolves the correct "previous reading" to carry forward for a
- * tenant's next bill — robust against a missing/mismatched
- * electricity_readings row, which happens for any bill generated with
- * "Skip / Carry Forward" checked (no electricity charged, so no reading
- * row is written for that month) as well as for bills predating
- * migration 028's snapshot columns.
+ * tenant's next bill (migration 032 — electricity_readings is now
+ * always written, including for a "Skip / Carry Forward" month, with an
+ * is_billed flag). Finds the most recent row with is_billed = true and
+ * returns its current_reading — a "Skip / Carry Forward" row (is_billed
+ * = false) is correctly skipped over, exactly matching "August 0->250
+ * paid, September skipped, October should start from 250".
  *
- * Walks backward through the tenant's bills for the most recent one that
- * actually has a reading snapshot — so a skipped month (electricity
- * units 0, no snapshot) is correctly skipped over and the last CHARGED
- * reading is carried forward instead, exactly matching the "August 0->250
- * paid, September skipped, October should start from 250" behavior.
- * Falls back to the electricity_readings join (older bills), then to
- * summing every bill's electricity_units forward from the tenant's start
- * reading, as a last resort that can never come back null.
+ * Falls back to the old bill-snapshot/cumulative-sum logic only for
+ * tenants whose history predates migration 032 (no is_billed = true row
+ * exists at all, e.g. every past month happens to have been a skip) —
+ * this fallback can never come back null.
  *
  * Pass `beforeBillingMonth` to resolve as of a specific month (e.g. when
- * defaulting the "Previous meter reading" field while editing a bill) —
- * omit it to resolve the tenant's current latest reading. */
+ * defaulting the "Previous meter reading" field while editing/generating
+ * a specific bill) — omit it to resolve the tenant's current latest. */
 export async function resolveLastElectricityReading(tenantId: string, beforeBillingMonth?: string): Promise<number> {
+  let billedQuery = supabase
+    .from('electricity_readings')
+    .select('current_reading')
+    .eq('tenant_id', tenantId)
+    .eq('is_billed', true)
+    .order('billing_month', { ascending: false })
+    .limit(1)
+  if (beforeBillingMonth) billedQuery = billedQuery.lt('billing_month', beforeBillingMonth)
+  const { data: billedReading, error: brErr } = await billedQuery.maybeSingle()
+  if (brErr) throw brErr
+  if (billedReading) return billedReading.current_reading
+
+  // Pre-migration-032 fallback below.
   const { data: tenant, error: tErr } = await supabase
     .from('tenants')
     .select('electricity_start_reading')
@@ -103,6 +113,10 @@ export async function recordElectricityReading(input: {
   rate_per_unit: number
   is_meter_reset?: boolean
   reset_explanation?: string
+  /** Whether this reading is charged on this month's bill, or just
+   * recorded and deferred to a later bill ("Skip / Carry Forward").
+   * Defaults to true — the normal case. */
+  is_billed?: boolean
 }): Promise<ElectricityReading> {
   const { data, error } = await supabase
     .from('electricity_readings')

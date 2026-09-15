@@ -13,6 +13,10 @@ export interface EditBillValues {
   other_charges: number
   late_fee: number
   notes: string
+  /** false = record this reading but don't charge for it this bill
+   * (deferred to a later bill, same as "Skip / Carry Forward" at
+   * generation time). Defaults to true. */
+  is_billed: boolean
 }
 
 export function EditBillModal({
@@ -84,13 +88,14 @@ function EditBillModalContent({
     reading?.rate_per_unit ?? (bill.electricity_units > 0 ? bill.electricity_charge / bill.electricity_units : 0)
   )
   const [isMeterReset, setIsMeterReset] = useState(reading?.is_meter_reset ?? false)
+  const [isBilled, setIsBilled] = useState(reading?.is_billed ?? true)
   const [otherCharges, setOtherCharges] = useState(bill.other_charges)
   const [lateFee, setLateFee] = useState(bill.late_fee)
   const [notes, setNotes] = useState(bill.notes ?? '')
   const [submitting, setSubmitting] = useState(false)
 
   const units = isMeterReset ? Math.max(currentReading, 0) : Math.max(currentReading - previousReading, 0)
-  const electricityCharge = units * ratePerUnit
+  const electricityCharge = isBilled ? units * ratePerUnit : 0
   const estimatedTotal = rentAmount + electricityCharge + otherCharges + lateFee + bill.previous_balance - bill.previous_credit
 
   return (
@@ -116,6 +121,7 @@ function EditBillModalContent({
                 other_charges: otherCharges,
                 late_fee: lateFee,
                 notes,
+                is_billed: isBilled,
               })
             } finally {
               setSubmitting(false)
@@ -143,6 +149,10 @@ function EditBillModalContent({
             <input type="checkbox" checked={isMeterReset} onChange={(e) => setIsMeterReset(e.target.checked)} />
             Meter was reset / replaced
           </label>
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+            <input type="checkbox" checked={!isBilled} onChange={(e) => setIsBilled(!e.target.checked)} />
+            Don't charge electricity on this bill — record the reading, but defer to a later bill
+          </label>
 
           <Field label="Other charges (₹)">
             <input
@@ -167,7 +177,7 @@ function EditBillModalContent({
               <span>{units}</span>
             </div>
             <div className="flex justify-between">
-              <span>Electricity charge</span>
+              <span>Electricity charge{!isBilled && ' (deferred)'}</span>
               <span>{formatINR(electricityCharge)}</span>
             </div>
             <div className="mt-1 flex justify-between font-semibold text-slate-900 dark:text-slate-100">

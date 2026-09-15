@@ -48,45 +48,39 @@ async function loadMyData(profileId: string) {
   }
   const { data: documents } = await supabase.from('tenant_documents').select('*').eq('tenant_id', (tenant as Tenant).id).order('uploaded_at', { ascending: false })
   
+  // electricity_readings (migration 032) is now the single source of
+  // truth for monthly electricity data — always written, including for a
+  // "Skip / Carry Forward" month (is_billed: false), with units_consumed
+  // and amount pre-computed. This is now the primary source for the
+  // Electricity History table below, not the bills table.
   const { data: recentReadings } = await supabase
     .from('electricity_readings')
     .select('*')
     .eq('tenant_id', (tenant as Tenant).id)
     .order('billing_month', { ascending: false })
     .limit(6)
-    
-  // "Billed Till (Units)" should always reflect the latest month's meter
-  // reading, updated every time a new bill is generated. Prefer the
-  // snapshot on the most recent bill (migration 028); if that's missing
-  // (bill predates the column) fall back to the electricity_readings join;
-  // and if even that row is missing, derive it by walking every bill's
-  // electricity_units forward from the tenant's start reading — this
-  // never depends on a reading row existing at all, since "units
-  // consumed" is always recorded correctly on the bill itself.
-  const startReading = (tenant as Tenant).electricity_start_reading ?? 0
-  const billsAscending = [...(bills ?? [])].sort(
-    (a, b) => new Date(a.billing_month).getTime() - new Date(b.billing_month).getTime()
-  )
-  // Per-bill running (from, to) unit map, walked forward from the start
-  // reading — used as the last-resort fallback for both "Billed Till" and
-  // the Electricity History table below when a bill has no snapshot and
-  // no matching electricity_readings row.
-  const cumulativeByBillId = new Map<string, { from: number; to: number }>()
-  let running = startReading
-  for (const b of billsAscending as any[]) {
-    const from = running
-    const to = from + (b.electricity_units || 0)
-    cumulativeByBillId.set(b.id, { from, to })
-    running = to
-  }
-  const cumulativeReading = running
 
-  let latestReading = cumulativeReading
-  const latestBillWithReading = (bills ?? []).find((b: any) => b.current_electricity_reading != null)
-  if (latestBillWithReading) {
-    latestReading = (latestBillWithReading as any).current_electricity_reading
-  } else if (recentReadings && recentReadings.length > 0) {
-    latestReading = recentReadings[0].current_reading
+  // "Billed Till (Units)" should always reflect the latest CHARGED
+  // month's meter reading — i.e. skip over any deferred/is_billed=false
+  // row (its reading is still real, but hasn't been billed to date).
+  const latestBilledReading = (recentReadings ?? []).find((r) => r.is_billed)
+  let latestReading: number
+  if (latestBilledReading) {
+    latestReading = latestBilledReading.current_reading
+  } else {
+    // Fallback for tenants whose entire history predates migration 032
+    // (no electricity_readings row was ever written for a skipped bill):
+    // derive it from the bill snapshot, or by summing electricity_units
+    // forward from the tenant's start reading — this can never come back
+    // null.
+    const startReading = (tenant as Tenant).electricity_start_reading ?? 0
+    const billsAscending = [...(bills ?? [])].sort(
+      (a, b) => new Date(a.billing_month).getTime() - new Date(b.billing_month).getTime()
+    )
+    const latestBillWithReading = (bills ?? []).find((b: any) => b.current_electricity_reading != null)
+    latestReading = latestBillWithReading
+      ? (latestBillWithReading as any).current_electricity_reading
+      : billsAscending.reduce((total, b: any) => total + (b.electricity_units || 0), startReading)
   }
 
   return {
@@ -99,7 +93,6 @@ async function loadMyData(profileId: string) {
     documents: documents ?? [],
     latestReading,
     recentReadings: recentReadings ?? [],
-    cumulativeByBillId,
   }
 }
 
@@ -333,8 +326,10 @@ export function TenantDashboardPage() {
         </div>
       )}
 
-      {/* Electricity History */}
-      {data.bills.some(b => b.electricity_units > 0 || b.electricity_charge > 0) && (
+      {/* Electricity History — sourced directly from electricity_readings
+          (migration 032), the single source of truth for monthly
+          electricity data, always written including deferred months. */}
+      {data.recentReadings.length > 0 && (
         <div className="card space-y-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
@@ -342,7 +337,7 @@ export function TenantDashboardPage() {
             </div>
             <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Electricity History</h2>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -355,32 +350,19 @@ export function TenantDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {data.bills.filter(b => b.electricity_units > 0 || b.electricity_charge > 0).slice(0, 6).map((bill: any) => {
-                  // Prefer the reading snapshot captured on the bill itself
-                  // (migration 028) — falls back to the electricity_readings
-                  // join only for older bills generated before that column
-                  // existed, since that join can miss/mismatch.
-                  const reading = data.recentReadings.find((r: any) => r.billing_month === bill.billing_month)
-                  const cumulative = data.cumulativeByBillId.get(bill.id)
-                  const fromUnit = bill.previous_electricity_reading ?? reading?.previous_reading ?? cumulative?.from ?? 0
-                  const toUnit =
-                    bill.current_electricity_reading ??
-                    reading?.current_reading ??
-                    cumulative?.to ??
-                    fromUnit + bill.electricity_units
-
-                  return (
-                    <tr key={bill.id}>
-                      <td className="py-2.5 font-medium text-slate-900 dark:text-slate-100">
-                        {new Date(bill.billing_month).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })}
-                      </td>
-                      <td className="py-2.5 text-slate-600 dark:text-slate-300">{fromUnit}</td>
-                      <td className="py-2.5 text-slate-600 dark:text-slate-300">{toUnit}</td>
-                      <td className="py-2.5 text-right font-semibold text-slate-700 dark:text-slate-200">{bill.electricity_units}</td>
-                      <td className="py-2.5 text-right font-semibold text-slate-700 dark:text-slate-200">{formatINR(bill.electricity_charge)}</td>
-                    </tr>
-                  )
-                })}
+                {data.recentReadings.map((r: any) => (
+                  <tr key={r.id}>
+                    <td className="py-2.5 font-medium text-slate-900 dark:text-slate-100">
+                      {new Date(r.billing_month).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })}
+                    </td>
+                    <td className="py-2.5 text-slate-600 dark:text-slate-300">{r.previous_reading}</td>
+                    <td className="py-2.5 text-slate-600 dark:text-slate-300">{r.current_reading}</td>
+                    <td className="py-2.5 text-right font-semibold text-slate-700 dark:text-slate-200">{r.units_consumed}</td>
+                    <td className="py-2.5 text-right font-semibold text-slate-700 dark:text-slate-200">
+                      {r.is_billed ? formatINR(r.amount) : <span className="text-amber-600 dark:text-amber-400">Deferred</span>}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
