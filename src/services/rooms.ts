@@ -51,6 +51,12 @@ export async function updateRoom(id: string, input: Partial<Room>): Promise<Room
   return data as Room
 }
 
+/** Permanently deletes a room. Cascades (per schema FKs, migration 029) to
+ * any tenant currently assigned to it and, through that tenant's own
+ * cascades, their bills/payments/receipts/documents/history — plus any
+ * bills and room-transfer history rows tied directly to this room.
+ * Callers MUST confirm with the user before calling this — it destroys
+ * tenant and financial history and cannot be undone. */
 export async function deleteRoom(id: string): Promise<void> {
   const { error } = await supabase.from('rooms').delete().eq('id', id)
   if (error) throw error

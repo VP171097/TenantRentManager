@@ -99,7 +99,11 @@ export function RoomDetailPage() {
       <ConfirmDialog
         open={showDelete}
         title="Delete room"
-        message="This will permanently delete this room. If a tenant is currently assigned to it, deletion will be blocked until they are moved to another room or moved out."
+        message={
+          occupant
+            ? `This will permanently delete this room AND ${occupant.full_name} (the current tenant) — including their bills, payments, and full history. This cannot be undone. Consider using 'Move Out' on the tenant instead if you just want to mark them inactive.`
+            : 'This will permanently delete this room. This cannot be undone.'
+        }
         confirmLabel="Delete Room"
         danger
         onCancel={() => setShowDelete(false)}
