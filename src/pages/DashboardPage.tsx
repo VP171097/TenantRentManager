@@ -205,9 +205,9 @@ export function DashboardPage() {
         <div>
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <QuickAction to="/tenants"  label="Add Tenant"       icon={<User size={20} />}     color="from-violet-500 to-purple-600" />
-            <QuickAction to="/payments" label="Add Payment"      icon={<CreditCard size={20} />} color="from-emerald-500 to-teal-600" />
-            <QuickAction to="/billing"  label="Generate Bills"   icon={<FileText size={20} />}  color="from-brand-500 to-indigo-600" />
+            <QuickAction to="/tenants"  label="Add Tenant"       icon={<User size={20} />}     color="from-rose-500 to-orange-600" />
+            <QuickAction to="/payments" label="Add Payment"      icon={<CreditCard size={20} />} color="from-brand-500 to-brand-700" />
+            <QuickAction to="/billing"  label="Generate Bills"   icon={<FileText size={20} />}  color="from-gold-500 to-gold-700" />
             <QuickAction to="/ledger"   label="View Ledger"      icon={<BookOpen size={20} />}  color="from-amber-500 to-orange-600" />
             <QuickAction to="/receipts" label="Receipts"         icon={<Receipt size={20} />}   color="from-sky-500 to-blue-600" />
           </div>

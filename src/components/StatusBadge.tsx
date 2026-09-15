@@ -1,16 +1,18 @@
 import clsx from 'clsx'
 import type { BillStatus } from '../types/database'
 
+// Money-positive reads as teal (brand), matching the "Ledger" palette
+// used everywhere else (dashboard tones, buttons).
 const STYLES: Record<BillStatus, string> = {
-  paid:     'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
-  partial:  'bg-amber-100  text-amber-800  dark:bg-amber-900/40  dark:text-amber-300',
+  paid:     'bg-brand-100  text-brand-800  dark:bg-brand-900/40  dark:text-brand-300',
+  partial:  'bg-gold-100   text-gold-800   dark:bg-gold-900/40   dark:text-gold-300',
   unpaid:   'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
   overdue:  'bg-red-100    text-red-800    dark:bg-red-900/40    dark:text-red-300',
 }
 
 const DOTS: Record<BillStatus, string> = {
-  paid:    'bg-emerald-500',
-  partial: 'bg-amber-500',
+  paid:    'bg-brand-500',
+  partial: 'bg-gold-500',
   unpaid:  'bg-orange-500',
   overdue: 'bg-red-500',
 }

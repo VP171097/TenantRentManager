@@ -182,7 +182,7 @@ export function TenantDashboardPage() {
   return (
     <div className="space-y-5 page-fade-in">
       {/* Welcome banner */}
-      <div className="rounded-2xl bg-gradient-to-br from-brand-600 to-violet-600 p-5 text-white shadow-lg shadow-brand-600/20">
+      <div className="rounded-2xl bg-gradient-to-br from-brand-700 to-gold-600 p-5 text-white shadow-lg shadow-brand-600/20">
         <h1 className="text-xl font-bold">Hi, {data.tenant.full_name.split(' ')[0]} 👋</h1>
         {data.property && (
           <div className="mt-2 flex items-center gap-3 text-white/80 text-sm">
@@ -445,8 +445,8 @@ export function TenantDashboardPage() {
           {/* Lease Info */}
           <div className="card space-y-3">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
-                <Calendar size={15} className="text-indigo-600 dark:text-indigo-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 dark:bg-brand-900/30">
+                <Calendar size={15} className="text-brand-600 dark:text-brand-400" />
               </div>
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Lease Info</h3>
             </div>

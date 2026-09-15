@@ -4,12 +4,12 @@ import type { Property, Room, Tenant } from '../types/database'
 
 /* ─── Avatar helper ─────────────────────────────────────────────────── */
 const AVATAR_COLORS = [
-  'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
-  'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  'bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300',
+  'bg-gold-100 text-gold-700 dark:bg-gold-900/40 dark:text-gold-300',
   'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
-  'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
   'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-  'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
+  'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
 ]
 
 function avatarColor(name: string) {
@@ -40,7 +40,7 @@ export function PropertyCard({
   return (
     <Link
       to={`/properties/${property.id}`}
-      className="group block overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]"
+      className="fade-in group block overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]"
     >
       {/* Cover image or gradient placeholder */}
       {property.cover_image_url ? (
@@ -50,7 +50,7 @@ export function PropertyCard({
           <p className="absolute bottom-3 left-4 text-base font-bold text-white drop-shadow">{property.name}</p>
         </div>
       ) : (
-        <div className="flex h-24 items-center justify-center bg-gradient-to-br from-brand-600 to-violet-600">
+        <div className="flex h-24 items-center justify-center bg-gradient-to-br from-brand-700 to-gold-600">
           <div className="flex flex-col items-center gap-1">
             <Layers size={28} className="text-white/80" />
             <p className="text-sm font-bold text-white/90">{property.name}</p>
@@ -92,7 +92,7 @@ export function RoomCard({ room }: { room: Room }) {
   return (
     <Link
       to={`/rooms/${room.id}`}
-      className="group block rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]"
+      className="fade-in group block rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]"
     >
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -107,7 +107,7 @@ export function RoomCard({ room }: { room: Room }) {
           className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
             isOccupied
               ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300'
-              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+              : 'bg-gold-100 text-gold-700 dark:bg-gold-900/40 dark:text-gold-300'
           }`}
         >
           {isOccupied ? 'Occupied' : 'Vacant'}
@@ -130,7 +130,7 @@ export function TenantCard({ tenant }: { tenant: Tenant }) {
   return (
     <Link
       to={`/tenants/${tenant.id}`}
-      className="group block rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]"
+      className="fade-in group block rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]"
     >
       <div className="flex items-start gap-3">
         {/* Avatar */}
@@ -147,7 +147,7 @@ export function TenantCard({ tenant }: { tenant: Tenant }) {
             <span
               className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                 isActive
-                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                  ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300'
                   : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
               }`}
             >
