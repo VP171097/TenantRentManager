@@ -18,24 +18,26 @@ interface DashboardCardProps {
   to?: string
 }
 
+// "Ledger" palette: money-positive reads as teal (brand), dues/pending as
+// marigold gold, trouble as red — not the generic emerald/orange/red trio.
 const VALUE_TONES: Record<string, string> = {
   default: 'text-slate-900 dark:text-slate-100',
-  good:    'text-emerald-600 dark:text-emerald-400',
-  warn:    'text-orange-600 dark:text-orange-400',
+  good:    'text-brand-600 dark:text-brand-400',
+  warn:    'text-gold-600 dark:text-gold-400',
   bad:     'text-red-600 dark:text-red-400',
 }
 
 const ICON_BG: Record<string, string> = {
   default: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
-  good:    'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
-  warn:    'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400',
+  good:    'bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400',
+  warn:    'bg-gold-100 dark:bg-gold-900/40 text-gold-600 dark:text-gold-400',
   bad:     'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400',
 }
 
 const TOP_BORDER: Record<string, string> = {
   default: 'border-t-2 border-t-slate-200 dark:border-t-slate-700',
-  good:    'border-t-2 border-t-emerald-400 dark:border-t-emerald-500',
-  warn:    'border-t-2 border-t-orange-400 dark:border-t-orange-500',
+  good:    'border-t-2 border-t-brand-400 dark:border-t-brand-500',
+  warn:    'border-t-2 border-t-gold-400 dark:border-t-gold-500',
   bad:     'border-t-2 border-t-red-400 dark:border-t-red-500',
 }
 
@@ -65,7 +67,7 @@ export function DashboardCard({
           </div>
         )}
       </div>
-      <p className={clsx('mt-2 text-2xl font-bold tracking-tight', VALUE_TONES[tone])}>{display}</p>
+      <p className={clsx('mt-2 text-2xl font-bold tracking-tight tabular-nums', VALUE_TONES[tone])}>{display}</p>
       {delta && (
         <div className={clsx('mt-1.5 flex items-center gap-1 text-xs font-medium',
           deltaPositive === true ? 'text-emerald-600 dark:text-emerald-400'
@@ -80,7 +82,7 @@ export function DashboardCard({
   )
 
   const className = clsx(
-    'block rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800',
+    'block rounded-2xl bg-white dark:bg-[#16130f] p-5 shadow-sm border border-[#eee7d8] dark:border-[#2a251d]',
     'hover:shadow-md hover:-translate-y-0.5 transition-all duration-200',
     to ? 'cursor-pointer' : 'cursor-default',
     TOP_BORDER[tone],

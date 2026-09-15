@@ -134,6 +134,35 @@ export function DashboardPage() {
         )}
       </div>
 
+      {/* ── Hero collection band ── */}
+      <div className="gradient-auth relative overflow-hidden rounded-2xl px-6 py-6 text-white shadow-lg">
+        <div className="relative flex flex-wrap items-center justify-between gap-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/70">This month's collection</p>
+            <p className="font-display mt-1 text-4xl font-semibold tracking-tight tabular-nums">
+              {formatINR(stats.collected)}
+              <span className="ml-2 text-lg font-normal text-white/60">/ {formatINR(stats.expectedRent)}</span>
+            </p>
+            {stats.outstanding > 0 && (
+              <p className="mt-1 text-sm text-gold-200">{formatINR(stats.outstanding)} still outstanding</p>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-2.5 w-32 overflow-hidden rounded-full bg-white/20 sm:w-48">
+              <div
+                className="h-full rounded-full bg-gold-400 transition-all duration-700"
+                style={{
+                  width: `${stats.expectedRent > 0 ? Math.min(100, Math.round((stats.collected / stats.expectedRent) * 100)) : 0}%`,
+                }}
+              />
+            </div>
+            <span className="font-display text-2xl font-semibold tabular-nums">
+              {stats.expectedRent > 0 ? Math.round((stats.collected / stats.expectedRent) * 100) : 0}%
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* ── Stat grid ── */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
         <DashboardCard label="Properties"      value={stats.properties}              countTo={stats.properties}       icon={<Building2 size={16} />} to="/properties" />
