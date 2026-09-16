@@ -49,7 +49,7 @@ jobs:
           EOF
 
       - name: Build web application
-        run: yarn build
+        run: yarn build --mode capacitor
 
       - name: Add Android platform if needed
         run: |
