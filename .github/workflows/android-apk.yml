@@ -11,25 +11,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      # 3. Enable Yarn
       - name: Enable Corepack
         run: corepack enable
 
+      # 4. Install project dependencies
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # 5. Install Capacitor
       - name: Install Capacitor
         run: |
           yarn add @capacitor/core @capacitor/android
           yarn add -D @capacitor/cli
 
+      # 6. Create Capacitor configuration
       - name: Create Capacitor configuration
         run: |
           cat > capacitor.config.ts <<'EOF'
@@ -47,30 +53,64 @@ jobs:
           export default config;
           EOF
 
+      # 7. Build React/Vite application
       - name: Build web application
         run: yarn build
 
+      # 8. Add Android platform
       - name: Add Android platform
         run: yarn cap add android
 
+      # 9. Sync web app with Android
       - name: Sync Capacitor
         run: yarn cap sync android
 
+      # 10. Configure Android SDK
+      - name: Setup Android SDK
+        shell: bash
+        run: |
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+
+          if [ -f "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          elif command -v sdkmanager >/dev/null 2>&1; then
+            SDKMANAGER="$(command -v sdkmanager)"
+          else
+            SDKMANAGER="$(find "$ANDROID_SDK_ROOT" -name sdkmanager -type f 2>/dev/null | head -n 1)"
+          fi
+
+          if [ -z "$SDKMANAGER" ]; then
+            echo "ERROR: sdkmanager not found"
+            exit 1
+          fi
+
+          echo "Using sdkmanager: $SDKMANAGER"
+
+          yes | "$SDKMANAGER" --licenses || true
+
+          "$SDKMANAGER" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
+
+      # 11. Setup Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
+      # 12. Build Debug APK
       - name: Build Debug APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
+      # 13. Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: tenant-rent-manager-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
