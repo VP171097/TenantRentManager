@@ -25,11 +25,36 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Install Capacitor
+        run: |
+          yarn add @capacitor/core @capacitor/android
+          yarn add -D @capacitor/cli
+
+      - name: Create Capacitor configuration
+        run: |
+          cat > capacitor.config.ts <<'EOF'
+          import type { CapacitorConfig } from '@capacitor/cli';
+
+          const config: CapacitorConfig = {
+            appId: 'com.vivekpandey.tenantrentmanager',
+            appName: 'Tenant Rent Manager',
+            webDir: 'dist',
+            server: {
+              androidScheme: 'https'
+            }
+          };
+
+          export default config;
+          EOF
+
       - name: Build web application
         run: yarn build
 
+      - name: Add Android platform
+        run: yarn cap add android
+
       - name: Sync Capacitor
-        run: npx cap sync android
+        run: yarn cap sync android
 
       - name: Setup Java
         uses: actions/setup-java@v4
