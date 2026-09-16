@@ -7,8 +7,11 @@ import { pageTitles } from './src/utils/pageTitles.js'
 
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
-  // GitHub Pages needs /TenantRentManager/
-  // Capacitor Android needs relative ./ paths
+  // GitHub Pages:
+  // /TenantRentManager/
+  //
+  // Capacitor Android:
+  // ./  (relative assets)
   const isCapacitor = mode === 'capacitor'
 
   const base = isCapacitor
@@ -24,10 +27,12 @@ export default defineConfig(({ command, mode }) => {
       host: '0.0.0.0',
       port: Number(process.env.PORT || 3000),
       strictPort: true,
+
       allowedHosts: [
         'preview.emergentagent.com',
         '.preview.emergentagent.com',
       ],
+
       watch: {
         followSymlinks: false,
         ignored: ['**/frontend/**', '**/.emergent/**'],
@@ -43,18 +48,18 @@ export default defineConfig(({ command, mode }) => {
         apply: 'build',
 
         closeBundle() {
-          // GitHub Pages cannot rewrite routes.
-          // Real HTML entry files give routes a 200 response
-          // and private routes no longer index before JS executes.
+          // Static route HTML files are required for GitHub Pages.
+          // Capacitor uses the single dist/index.html and React Router,
+          // so we must NOT create nested route copies for Capacitor.
+
+          if (isCapacitor) {
+            return
+          }
 
           const html = readFileSync(
             resolve('dist/index.html'),
             'utf8'
           )
-
-          const routeBase = isCapacitor
-            ? './'
-            : (process.env.VITE_BASE_PATH || '/TenantRentManager/')
 
           for (const [route, title] of Object.entries(pageTitles)) {
             if (route === '/') continue
@@ -72,9 +77,10 @@ export default defineConfig(({ command, mode }) => {
             )
           }
 
+          // GitHub Pages fallback
           writeFileSync(
             resolve('dist/404.html'),
-            '<!doctype html><html lang="en"></html>'
+            html
           )
         },
       },
