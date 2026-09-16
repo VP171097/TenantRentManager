@@ -56,8 +56,13 @@ function CatchAll() {
 }
 
 export default function App() {
+  const basename =
+    import.meta.env.BASE_URL === './'
+      ? undefined
+      : import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
+
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
+    <BrowserRouter basename={basename}>
       <RouteMetadata />
       <RecoveryWatcher />
       <Routes>
