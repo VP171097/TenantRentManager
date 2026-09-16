@@ -17,6 +17,8 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
     "@hookform/resolvers": "^5.9.1",
     "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.102.1",
@@ -34,6 +36,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
