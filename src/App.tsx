@@ -1,6 +1,13 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Link, Route, Routes, useNavigate } from 'react-router-dom'
 import { LandingPage } from './pages/LandingPage'
+import { AboutPage } from './pages/AboutPage'
+import { ServicesPage } from './pages/ServicesPage'
+import { BlogPage } from './pages/BlogPage'
+import { ContactPage } from './pages/ContactPage'
+import { TermsPage } from './pages/TermsPage'
+import { PrivacyPage } from './pages/PrivacyPage'
+import { SitemapPage } from './pages/SitemapPage'
 import { RouteMetadata } from './components/RouteMetadata'
 import { AppLayout } from './layouts/AppLayout'
 import { TenantLayout } from './layouts/TenantLayout'
@@ -67,6 +74,13 @@ export default function App() {
       <RecoveryWatcher />
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/services" element={<ServicesPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/sitemap" element={<SitemapPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/join" element={<JoinPage />} />

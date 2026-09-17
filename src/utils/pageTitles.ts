@@ -1,6 +1,10 @@
 /** Shared by browser metadata and static HTML generation; no browser globals. */
 export const pageTitles: Record<string, string> = {
   '/': 'RentSlate — Rent, Simplified',
+  '/about': 'About Us · RentSlate', '/services': 'Services · RentSlate',
+  '/blog': 'Blogs · RentSlate', '/contact': 'Contact Us · RentSlate',
+  '/terms': 'Terms and Conditions · RentSlate', '/privacy': 'Privacy Policy · RentSlate',
+  '/sitemap': 'Sitemap · RentSlate',
   '/login': 'Sign In · RentSlate', '/reset-password': 'Reset Password · RentSlate',
   '/join': 'Accept Invitation · RentSlate', '/dashboard': 'Money Cockpit · RentSlate',
   '/properties': 'Properties · RentSlate', '/rooms': 'Rooms · RentSlate',

@@ -223,6 +223,31 @@ html.dark .input:focus {
 .btn-primary:active { transform: scale(0.97); }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
+/* Monochrome variant — used on the marketing/public pages (landing, about,
+   services, ...), which lean into an editorial black-on-cream look rather
+   than the app's teal accent. */
+.btn-mono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  background-color: var(--color-warm-900);
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s, transform 0.15s;
+  font-family: inherit;
+}
+.btn-mono:hover { background-color: #000000; }
+.btn-mono:active { transform: scale(0.97); }
+html.dark .btn-mono { background-color: #f4efe6; color: var(--color-warm-900); }
+html.dark .btn-mono:hover { background-color: #ffffff; }
+
 .btn-secondary {
   display: inline-flex;
   align-items: center;
