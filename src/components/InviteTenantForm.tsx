@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { generateTenantInvite, revokeTenantInvite } from '../services/tenants'
 import { friendlyError } from '../utils/errors'
+import { canShare, shareLink } from '../utils/share'
 import type { Tenant } from '../types/database'
 import { appUrl } from '../utils/routes'
+import { Share2 } from 'lucide-react'
 
 /** Lets the owner generate a shareable link the tenant can open to set
  * their own password and log in — an alternative to the owner setting a
@@ -53,6 +55,15 @@ export function InviteTenantForm({ tenant }: { tenant: Tenant }) {
     }
   }
 
+  async function handleShare() {
+    if (!inviteLink) return
+    await shareLink({
+      title: 'RentBook — Set up your login',
+      text: `${tenant.full_name}, set up your RentBook login to view your bills and payments:`,
+      url: inviteLink,
+    })
+  }
+
   return (
     <div className="card max-w-md space-y-3">
       <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -69,6 +80,11 @@ export function InviteTenantForm({ tenant }: { tenant: Tenant }) {
             Expires {new Date(tenant.invite_token_expires_at!).toLocaleDateString('en-IN')}
           </p>
           <div className="flex gap-2">
+            {canShare() && (
+              <button type="button" onClick={handleShare} className="btn-primary flex-1 gap-1.5">
+                <Share2 size={15} /> Share
+              </button>
+            )}
             <button type="button" onClick={handleCopy} className="btn-secondary flex-1">
               {copied ? 'Copied!' : 'Copy Link'}
             </button>

@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { generateManagerInvite, revokeManagerInvite } from '../services/managers'
 import { friendlyError } from '../utils/errors'
+import { canShare, shareLink } from '../utils/share'
 import type { Manager } from '../types/database'
 import { appUrl } from '../utils/routes'
+import { Share2 } from 'lucide-react'
 
 /** Mirrors InviteTenantForm — lets the owner generate a shareable link
  * the manager can open to set their own password, as an alternative to
@@ -48,6 +50,15 @@ export function InviteManagerForm({ manager }: { manager: Manager }) {
     }
   }
 
+  async function handleShare() {
+    if (!inviteLink) return
+    await shareLink({
+      title: 'RentBook — Set up your login',
+      text: `${manager.full_name}, set up your RentBook login:`,
+      url: inviteLink,
+    })
+  }
+
   return (
     <div className="space-y-3">
       <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Or invite them to set up their own login</p>
@@ -62,6 +73,11 @@ export function InviteManagerForm({ manager }: { manager: Manager }) {
             Expires {new Date(manager.invite_token_expires_at!).toLocaleDateString('en-IN')}
           </p>
           <div className="flex gap-2">
+            {canShare() && (
+              <button type="button" onClick={handleShare} className="btn-primary flex-1 gap-1.5">
+                <Share2 size={15} /> Share
+              </button>
+            )}
             <button type="button" onClick={handleCopy} className="btn-secondary flex-1">
               {copied ? 'Copied!' : 'Copy Link'}
             </button>
