@@ -66,6 +66,14 @@ with a WhatsApp API error (visible in the app as `whatsapp: failed: ...`)
   required) — giving both lets them sign in with either. Uses only the
   automatically-provided `SUPABASE_SERVICE_ROLE_KEY` — no extra secrets
   needed.
+- **`accept-tenant-invite`** — the self-service counterpart, for a tenant
+  who opens the owner's invite link and sets up their own login (lands on
+  `/join?token=...` first, then goes to sign-in once done). Requires a
+  mobile number (email optional) — unlike the owner-driven
+  `create-tenant-login`, which allows either. Also backfills the tenant's
+  `phone`/`email` columns from what they enter, not just the Auth
+  identifiers. Uses only `SUPABASE_SERVICE_ROLE_KEY` — no extra secrets
+  needed.
 - **`reset-password-by-phone`** — public, unauthenticated password reset for
   tenants/managers who log in with a phone number (no email on file, so the
   normal "send a reset link" email flow can't reach them, and there's no SMS
@@ -97,6 +105,7 @@ npx supabase link --project-ref <your-project-ref>
 npx supabase functions deploy send-bill --project-ref <your-project-ref>
 npx supabase functions deploy create-tenant-login --project-ref <your-project-ref>
 npx supabase functions deploy create-manager-login --project-ref <your-project-ref>
+npx supabase functions deploy accept-tenant-invite --project-ref <your-project-ref>
 npx supabase functions deploy reset-password-by-phone --project-ref <your-project-ref>
 npx supabase functions deploy owner-reset-login-password --project-ref <your-project-ref>
 npx supabase functions deploy attach-owner-phone --project-ref <your-project-ref>

@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { extractFunctionErrorMessage, friendlyError } from '../utils/errors'
+import { validatePassword, passwordsMatchError } from '../utils/password'
 import { Footer } from '../components/Footer'
-import { Building2, Eye, EyeOff, Mail, Lock, CheckCircle, ArrowRight } from 'lucide-react'
+import { Building2, Eye, EyeOff, Mail, Lock, Phone, CheckCircle, ArrowRight } from 'lucide-react'
 
 /** Public page a tenant OR manager lands on after opening the invite link
  * the owner shared (WhatsApp/SMS/email/in person). Sets their own password
@@ -17,6 +18,8 @@ export function JoinPage() {
   const token = searchParams.get('token') ?? ''
   const isManager = searchParams.get('type') === 'manager'
   const [identifier, setIdentifier] = useState('')
+  const [tenantPhone, setTenantPhone] = useState('')
+  const [tenantEmail, setTenantEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -28,29 +31,42 @@ export function JoinPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (password !== confirm) {
-      setError('Passwords do not match.')
+    const pwError = validatePassword(password) ?? passwordsMatchError(password, confirm)
+    if (pwError) {
+      setError(pwError)
+      return
+    }
+    if (!isManager && tenantPhone.trim().replace(/\D/g, '').length < 7) {
+      setError('Enter a valid mobile number.')
       return
     }
     setLoading(true)
     try {
       const { data, error: fnError } = await supabase.functions.invoke(
         isManager ? 'accept-manager-invite' : 'accept-tenant-invite',
-        { body: { token, identifier, password } }
+        {
+          body: isManager
+            ? { token, identifier, password }
+            : { token, phone: tenantPhone.trim(), email: tenantEmail.trim() || undefined, password },
+        }
       )
-      
+
       if (fnError) {
         setError(await extractFunctionErrorMessage(fnError))
         return
       }
-      
-      const result = data as { success?: boolean; identifier?: string; isEmail?: boolean; error?: string }
+
+      const result = data as { success?: boolean; identifier?: string; isEmail?: boolean; phone?: string; email?: string | null; error?: string }
       if (result.error) {
         setError(result.error)
         return
       }
-      
-      setDone({ identifier: result.identifier ?? identifier, isEmail: !!result.isEmail })
+
+      setDone(
+        isManager
+          ? { identifier: result.identifier ?? identifier, isEmail: !!result.isEmail }
+          : { identifier: result.phone ?? tenantPhone.trim(), isEmail: false }
+      )
     } catch (err) {
       setError(friendlyError(err))
     } finally {
@@ -129,22 +145,63 @@ export function JoinPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                      Email or mobile number
-                    </label>
-                    <div className="relative">
-                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        required
-                        value={identifier}
-                        onChange={(e) => setIdentifier(e.target.value)}
-                        placeholder="email@example.com or 9876543210"
-                        className="input pl-10"
-                        autoComplete="off"
-                      />
+                  {isManager ? (
+                    <div>
+                      <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        Email or mobile number
+                      </label>
+                      <div className="relative">
+                        <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          required
+                          value={identifier}
+                          onChange={(e) => setIdentifier(e.target.value)}
+                          placeholder="email@example.com or 9876543210"
+                          className="input pl-10"
+                          autoComplete="off"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          Mobile number
+                        </label>
+                        <div className="relative">
+                          <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="tel"
+                            required
+                            value={tenantPhone}
+                            onChange={(e) => setTenantPhone(e.target.value)}
+                            placeholder="9876543210"
+                            className="input pl-10"
+                            autoComplete="tel"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          Email (optional)
+                        </label>
+                        <div className="relative">
+                          <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="email"
+                            value={tenantEmail}
+                            onChange={(e) => setTenantEmail(e.target.value)}
+                            placeholder="email@example.com"
+                            className="input pl-10"
+                            autoComplete="email"
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          Add this too and you'll be able to sign in with either your mobile number or email.
+                        </p>
+                      </div>
+                    </>
+                  )}
 
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -155,10 +212,10 @@ export function JoinPage() {
                       <input
                         type={showPassword ? 'text' : 'password'}
                         required
-                        minLength={6}
+                        minLength={8}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Min 6 characters"
+                        placeholder="Min 8 characters, a letter and a number"
                         className="input pl-10 pr-11"
                         autoComplete="new-password"
                       />
@@ -182,7 +239,7 @@ export function JoinPage() {
                       <input
                         type={showConfirm ? 'text' : 'password'}
                         required
-                        minLength={6}
+                        minLength={8}
                         value={confirm}
                         onChange={(e) => setConfirm(e.target.value)}
                         placeholder="Repeat your password"
