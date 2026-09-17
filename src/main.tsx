@@ -38,3 +38,13 @@ createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </StrictMode>
 )
+
+// Hide the static HTML splash screen once React has taken over — a fade-out
+// avoids a jarring cut from splash to blank-white while data loads.
+const splash = document.getElementById('app-splash')
+if (splash) {
+  requestAnimationFrame(() => {
+    splash.classList.add('app-splash-hidden')
+    setTimeout(() => splash.remove(), 300)
+  })
+}

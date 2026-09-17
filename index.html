@@ -28,9 +28,29 @@
       @media (prefers-color-scheme: dark) { html { background: #0c0a08; } }
       #root:has(> .app-shell-fallback) { min-height: 100vh; }
       .app-shell-fallback { display: none; }
+
+      #app-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #faf7f0;
+        transition: opacity 0.25s ease;
+      }
+      @media (prefers-color-scheme: dark) { #app-splash { background: #0c0a08; } }
+      #app-splash img {
+        width: min(45vw, 220px);
+        height: min(45vw, 220px);
+        object-fit: contain;
+        border-radius: 28px;
+      }
+      #app-splash.app-splash-hidden { opacity: 0; pointer-events: none; }
     </style>
   </head>
   <body>
+    <div id="app-splash"><img src="./assets/splash.png" alt="" /></div>
     <div id="root"><main class="app-shell-fallback"><h1>RentBook — Rent, Simplified</h1><p>Less chasing rent. More room for life.</p><p>Manage properties, tenants, rent collections, electricity readings and PDF receipts in one organised place. Built for small property owners in India.</p><a href="login">Sign in to RentBook</a></main></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
