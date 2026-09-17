@@ -163,6 +163,13 @@ button:active, a:active { transform: scale(0.97); }
   background: linear-gradient(135deg, #042f2e 0%, #0f766e 35%, #115e59 65%, #d97706 100%);
 }
 
+/* Wrapped in Tailwind's `components` layer so utility classes used
+   alongside these (e.g. `pl-10` for an icon-padded input, `w-full` on a
+   button) always win — unlayered CSS otherwise beats every `@layer`,
+   including `utilities`, regardless of source order, which silently
+   broke every icon+input combo across the app (icon and placeholder text
+   overlapping). */
+@layer components {
 /* ─── Input ──────────────────────────────────────────────────────────── */
 .input {
   display: block;
@@ -286,6 +293,7 @@ html.dark .card { background-color: #16130f; border-color: #2a251d; box-shadow: 
 .card-hover:hover { box-shadow: 0 16px 32px -8px rgba(28,26,22,0.16); transform: translateY(-2px); }
 html.dark .card-hover { background-color: #16130f; border-color: #2a251d; }
 html.dark .card-hover:hover { box-shadow: 0 16px 32px -8px rgba(0,0,0,0.5); }
+} /* end @layer components */
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
