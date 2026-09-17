@@ -50,6 +50,14 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Change these two lines — and nothing else in the codebase — when
+          # moving to a custom domain or back to the default github.io one.
+          # Custom domain (served from the root): VITE_SITE_URL: https://yourdomain.com/
+          #                                        VITE_BASE_PATH: /
+          # Default github.io project page:       VITE_SITE_URL: https://vp171097.github.io/TenantRentManager/
+          #                                        VITE_BASE_PATH: /TenantRentManager/
+          VITE_SITE_URL: https://vp171097.github.io/TenantRentManager/
+          VITE_BASE_PATH: /TenantRentManager/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

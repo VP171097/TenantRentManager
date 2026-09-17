@@ -82,7 +82,12 @@ export async function drawLetterhead(doc: jsPDF, opts: LetterheadOptions): Promi
   doc.text('WEBSITE', labelX, logoY + 28)
   doc.setTextColor(...GRAY_TEXT)
   doc.setFont('helvetica', 'normal')
-  doc.text('vp171097.github.io/TenantRentManager', rightColX, logoY + 28, { align: 'right' })
+  // Read from the page's actual current location at generation time, not a
+  // baked-in constant — this line then always matches wherever the app is
+  // actually being served from (default github.io URL or a custom domain),
+  // with no code change needed if that ever moves.
+  const siteHost = `${window.location.host}${import.meta.env.BASE_URL}`.replace(/\/$/, '')
+  doc.text(siteHost, rightColX, logoY + 28, { align: 'right' })
 
   // 4. Horizontal Line
   doc.setDrawColor(...LINE_COLOR)
