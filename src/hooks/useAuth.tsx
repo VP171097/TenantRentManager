@@ -20,6 +20,26 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+// Module-scoped (not per-render) so a StrictMode double-invoke or repeated
+// auth events for the same session don't fire this more than once per tab.
+const phoneAttachAttempted = new Set<string>()
+
+/** Owner signup keeps the real email-confirmation flow, but also collects
+ * a phone number (carried as metadata, not yet a real Auth identifier).
+ * Once we have an authenticated session, promote it into a real,
+ * sign-in-able phone number — no SMS OTP needed since the caller is
+ * already verified by having a session at all. Fire-and-forget: failure
+ * just means they keep signing in with email only. */
+function attachPendingOwnerPhone(session: Session) {
+  const userId = session.user.id
+  if (phoneAttachAttempted.has(userId)) return
+  if (session.user.phone) return
+  const pendingPhone = (session.user.user_metadata as { phone?: string } | null)?.phone
+  if (!pendingPhone) return
+  phoneAttachAttempted.add(userId)
+  supabase.functions.invoke('attach-owner-phone', { body: {} }).catch(() => {})
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -57,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mounted || request !== version) return
         setProfile(error ? null : data as Profile)
         setProfileError(error || !data ? 'Your account profile could not be loaded. Sign out and try again, or contact your property owner.' : null)
+        if (!error && data && (data as Profile).role === 'owner') attachPendingOwnerPhone(next)
       } catch {
         if (mounted && request === version) setProfileError('Connection interrupted while loading your profile. Please sign out and try again.')
       } finally {

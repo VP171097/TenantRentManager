@@ -60,10 +60,12 @@ add yourself, so it's not usable for real tenants). Do this once:
 Until the templates are approved, `send-bill`'s WhatsApp step will fail
 with a WhatsApp API error (visible in the app as `whatsapp: failed: ...`)
 — email (if the tenant has one on file) still sends independently.
-- **`create-tenant-login`** — creates a Supabase Auth user for a tenant with
-  an owner-chosen password and either an email or phone identifier (no SMS
-  OTP required). Uses only the automatically-provided
-  `SUPABASE_SERVICE_ROLE_KEY` — no extra secrets needed.
+- **`create-tenant-login`** / **`create-manager-login`** — create a Supabase
+  Auth user for a tenant/manager with an owner-chosen password and an email
+  AND/OR a phone number as real, confirmed identifiers (no SMS OTP
+  required) — giving both lets them sign in with either. Uses only the
+  automatically-provided `SUPABASE_SERVICE_ROLE_KEY` — no extra secrets
+  needed.
 - **`reset-password-by-phone`** — public, unauthenticated password reset for
   tenants/managers who log in with a phone number (no email on file, so the
   normal "send a reset link" email flow can't reach them, and there's no SMS
@@ -77,14 +79,15 @@ with a WhatsApp API error (visible in the app as `whatsapp: failed: ...`)
   self-service). Verifies the caller actually owns that tenant/manager
   before touching anything. Uses only `SUPABASE_SERVICE_ROLE_KEY` — no
   extra secrets needed.
-- **`create-owner-account`** — creates a new owner account (signup) with
-  BOTH an email and a phone number set as real, confirmed Supabase Auth
-  identifiers, so the owner can sign in afterwards with either one. A
-  plain client-side `signUp()` only supports one identifier per call, and
-  attaching a second one afterwards normally needs an SMS OTP step this
-  app doesn't have — so this runs the whole signup server-side with the
-  Auth Admin API instead. Uses only `SUPABASE_SERVICE_ROLE_KEY` — no extra
-  secrets needed.
+- **`attach-owner-phone`** — owner signup keeps the real email-confirmation
+  flow (`signUp()`, confirmation email, click to verify), with the phone
+  number entered at signup carried as metadata only. Once the owner has
+  confirmed their email and signed in for the first time, this
+  self-service function (callable only on the caller's own account)
+  promotes that metadata phone into a real, confirmed phone identifier —
+  so from then on they can sign in with either email or phone, with no SMS
+  OTP step. Uses only `SUPABASE_SERVICE_ROLE_KEY` — no extra secrets
+  needed.
 
 ## Deploy
 
@@ -93,9 +96,10 @@ npx supabase login
 npx supabase link --project-ref <your-project-ref>
 npx supabase functions deploy send-bill --project-ref <your-project-ref>
 npx supabase functions deploy create-tenant-login --project-ref <your-project-ref>
+npx supabase functions deploy create-manager-login --project-ref <your-project-ref>
 npx supabase functions deploy reset-password-by-phone --project-ref <your-project-ref>
 npx supabase functions deploy owner-reset-login-password --project-ref <your-project-ref>
-npx supabase functions deploy create-owner-account --project-ref <your-project-ref>
+npx supabase functions deploy attach-owner-phone --project-ref <your-project-ref>
 ```
 
 ## Secrets

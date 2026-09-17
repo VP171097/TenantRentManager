@@ -31,6 +31,7 @@ export function LoginPage() {
   const [resetSent, setResetSent] = useState(false)
   const [resetKind, setResetKind] = useState<'email' | 'phone' | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [confirmationSent, setConfirmationSent] = useState(false)
 
   useEffect(() => {
     if (authLoading || !session || !profile) return
@@ -82,17 +83,19 @@ export function LoginPage() {
         // The AuthProvider loads the actual role; the effect then navigates.
       } else {
         const fullPhone = `${signupCountryDial}${signupPhone.trim().replace(/\D/g, '')}`
-        const { data, error: fnError } = await supabase.functions.invoke('create-owner-account', {
-          body: { email: email.trim(), phone: fullPhone, password, full_name: fullName.trim() },
+        // Only email goes through Supabase's real signup/confirmation flow.
+        // The phone is carried as metadata for now — once the owner
+        // confirms their email and signs in for the first time,
+        // attach-owner-phone (called from useAuth) promotes it into a
+        // real, sign-in-able phone identifier, no SMS OTP needed since
+        // they're already an authenticated, verified caller by then.
+        const { data, error: err } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: { emailRedirectTo: appUrl('/login'), data: { role: 'owner', full_name: fullName.trim(), phone: fullPhone } },
         })
-        if (fnError) throw new Error(await extractFunctionErrorMessage(fnError))
-        const result = data as { success?: boolean; error?: string }
-        if (result.error) throw new Error(result.error)
-        // Account is created fully confirmed (no email/SMS verification
-        // step, same trust model as owner-created tenant/manager logins) —
-        // sign the owner straight in.
-        const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
         if (err) throw err
+        if (!data.session) setConfirmationSent(true)
       }
     } catch (err) {
       setError(friendlyError(err))
@@ -106,6 +109,7 @@ export function LoginPage() {
     setError(null)
     setResetSent(false)
     setResetKind(null)
+    setConfirmationSent(false)
     setPassword('')
     setConfirmPassword('')
     setSignupPhone('')
@@ -117,6 +121,7 @@ export function LoginPage() {
     setError(null)
     setResetSent(false)
     setResetKind(null)
+    setConfirmationSent(false)
     setEmail('')
     setSignupPhone('')
     setSignupCountryDial(DEFAULT_COUNTRY_DIAL.dial)
@@ -233,7 +238,11 @@ export function LoginPage() {
                 </div>
 
             {/* Reset sent success */}
-            {mode === 'forgot' && resetSent ? (
+            {confirmationSent ? (
+              <div data-testid="signup-confirmation" role="status" className="rounded-xl bg-brand-50 p-4 text-sm text-brand-900 dark:bg-brand-950 dark:text-brand-100">
+                Check your email to confirm your account, then sign in. If no message arrives, the account may already exist.
+              </div>
+            ) : mode === 'forgot' && resetSent ? (
               <div className="space-y-4">
                 <div className="flex flex-col items-center gap-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 px-4 py-6 text-center">
                   <CheckCircle size={36} className="text-emerald-500" />

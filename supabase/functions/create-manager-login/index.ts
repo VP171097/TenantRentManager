@@ -1,9 +1,10 @@
 // Supabase Edge Function: create-manager-login
 //
 // Creates a login (Supabase Auth user) for a manager using an owner-chosen
-// password, with EITHER an email OR a phone number as the identifier — no
-// SMS OTP step. Mirrors create-tenant-login exactly, for managers instead
-// of tenants.
+// password, with an email AND/OR a phone number as real, confirmed Auth
+// identifiers — no SMS OTP step. Providing both lets the manager sign in
+// with either one. Mirrors create-tenant-login exactly, for managers
+// instead of tenants.
 //
 // Authorization: only the manager's OWNING OWNER may create a login for
 // that manager. Verified via a request-scoped client (RLS-scoped, so the
@@ -28,13 +29,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function isEmailIdentifier(identifier: string): boolean {
-  return EMAIL_RE.test(identifier.trim())
-}
-
-function normalizePhoneIdentifier(identifier: string): string {
+function normalizePhone(identifier: string): string {
   const trimmed = identifier.trim()
   if (trimmed.startsWith('+')) return trimmed.replace(/[\s-]/g, '')
   const digits = trimmed.replace(/\D/g, '')
@@ -44,7 +39,8 @@ function normalizePhoneIdentifier(identifier: string): string {
 
 interface Body {
   managerId: string
-  identifier: string
+  email?: string
+  phone?: string
   password: string
 }
 
@@ -57,9 +53,12 @@ Deno.serve(async (req) => {
     if (!authHeader) return jsonResponse({ error: 'Missing Authorization header' }, 401)
 
     const body = (await req.json().catch(() => null)) as Body | null
-    if (!body?.managerId || !body?.identifier || !body?.password) {
-      return jsonResponse({ error: 'managerId, identifier and password are required' }, 400)
+    if (!body?.managerId || !body?.password) {
+      return jsonResponse({ error: 'managerId and password are required' }, 400)
     }
+    const email = body.email?.trim() ? body.email.trim().toLowerCase() : undefined
+    const phone = body.phone?.trim() ? normalizePhone(body.phone) : undefined
+    if (!email && !phone) return jsonResponse({ error: 'Provide an email or a mobile number (or both).' }, 400)
     if (body.password.length < 8 || !/[a-zA-Z]/.test(body.password) || !/[0-9]/.test(body.password)) {
       return jsonResponse({ error: 'Password must be at least 8 characters, with a letter and a number.' }, 400)
     }
@@ -88,21 +87,17 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'This manager already has a login.' }, 400)
     }
 
-    const isEmail = isEmailIdentifier(body.identifier)
-    const identifier = isEmail ? body.identifier.trim().toLowerCase() : normalizePhoneIdentifier(body.identifier)
-
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
-      ...(isEmail
-        ? { email: identifier, email_confirm: true }
-        : { phone: identifier, phone_confirm: true }),
+      ...(email ? { email, email_confirm: true } : {}),
+      ...(phone ? { phone, phone_confirm: true } : {}),
       password: body.password,
       user_metadata: {
         full_name: (manager as any).full_name,
         role: 'manager',
         owner_id: (manager as any).owner_id,
-        phone: isEmail ? null : identifier,
+        phone: phone ?? null,
       }
     })
     if (createErr || !created?.user) {
@@ -115,8 +110,8 @@ Deno.serve(async (req) => {
       id: newUserId,
       role: 'manager',
       full_name: (manager as any).full_name,
-      email: isEmail ? identifier : null,
-      phone: isEmail ? null : identifier,
+      email: email ?? null,
+      phone: phone ?? null,
       owner_id: (manager as any).owner_id,
     })
     if (profileErr) return jsonResponse({ error: `Login created but profile setup failed: ${profileErr.message}` }, 500)
@@ -124,7 +119,7 @@ Deno.serve(async (req) => {
     const { error: linkErr } = await admin.from('managers').update({ profile_id: newUserId }).eq('id', body.managerId)
     if (linkErr) return jsonResponse({ error: `Login created but manager link failed: ${linkErr.message}` }, 500)
 
-    return jsonResponse({ success: true, identifier })
+    return jsonResponse({ success: true, email: email ?? null, phone: phone ?? null })
   } catch (err) {
     return jsonResponse({ error: (err as Error).message ?? 'Unexpected error' }, 500)
   }
