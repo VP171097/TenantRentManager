@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom'
 import { PublicHeader } from '../components/PublicHeader'
 import { PublicFooter } from '../components/PublicFooter'
+import { BLOG_POSTS } from '../data/blogPosts'
 
 const LINKS: { to: string; label: string }[] = [
   { to: '/', label: 'Home' },
   { to: '/about', label: 'About Us' },
   { to: '/services', label: 'Services' },
   { to: '/blog', label: 'Blogs' },
+  ...BLOG_POSTS.map((post) => ({ to: `/blog/${post.slug}`, label: post.title })),
   { to: '/contact', label: 'Contact Us' },
   { to: '/login', label: 'Sign in' },
   { to: '/login?mode=signup', label: 'Register' },
