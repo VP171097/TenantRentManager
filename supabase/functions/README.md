@@ -77,6 +77,14 @@ with a WhatsApp API error (visible in the app as `whatsapp: failed: ...`)
   self-service). Verifies the caller actually owns that tenant/manager
   before touching anything. Uses only `SUPABASE_SERVICE_ROLE_KEY` — no
   extra secrets needed.
+- **`create-owner-account`** — creates a new owner account (signup) with
+  BOTH an email and a phone number set as real, confirmed Supabase Auth
+  identifiers, so the owner can sign in afterwards with either one. A
+  plain client-side `signUp()` only supports one identifier per call, and
+  attaching a second one afterwards normally needs an SMS OTP step this
+  app doesn't have — so this runs the whole signup server-side with the
+  Auth Admin API instead. Uses only `SUPABASE_SERVICE_ROLE_KEY` — no extra
+  secrets needed.
 
 ## Deploy
 
@@ -87,6 +95,7 @@ npx supabase functions deploy send-bill --project-ref <your-project-ref>
 npx supabase functions deploy create-tenant-login --project-ref <your-project-ref>
 npx supabase functions deploy reset-password-by-phone --project-ref <your-project-ref>
 npx supabase functions deploy owner-reset-login-password --project-ref <your-project-ref>
+npx supabase functions deploy create-owner-account --project-ref <your-project-ref>
 ```
 
 ## Secrets

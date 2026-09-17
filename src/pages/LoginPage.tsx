@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { friendlyError, extractFunctionErrorMessage } from '../utils/errors'
 import { validatePassword, passwordsMatchError } from '../utils/password'
 import { useAuth } from '../hooks/useAuth'
 import { isEmailIdentifier, normalizePhoneIdentifier } from '../utils/upi'
+import { COUNTRY_DIAL_CODES, DEFAULT_COUNTRY_DIAL } from '../utils/countries'
 import { Footer } from '../components/Footer'
-import { Building2, Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle, Users, ArrowLeft } from 'lucide-react'
+import { Building2, Eye, EyeOff, Mail, Lock, Phone, User, ArrowRight, CheckCircle, Users, ArrowLeft } from 'lucide-react'
 import { appUrl } from '../utils/routes'
 
 type Mode = 'signin' | 'signup' | 'forgot'
@@ -20,6 +21,8 @@ export function LoginPage() {
   const [audience, setAudience] = useState<Audience | null>(initialAudience)
   const [mode, setMode] = useState<Mode>(params.get('mode') === 'signup' ? 'signup' : 'signin')
   const [email, setEmail] = useState('')
+  const [signupPhone, setSignupPhone] = useState('')
+  const [signupCountryDial, setSignupCountryDial] = useState(DEFAULT_COUNTRY_DIAL.dial)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [fullName, setFullName] = useState('')
@@ -28,7 +31,6 @@ export function LoginPage() {
   const [resetSent, setResetSent] = useState(false)
   const [resetKind, setResetKind] = useState<'email' | 'phone' | null>(null)
   const [showPassword, setShowPassword] = useState(false)
-  const [confirmationSent, setConfirmationSent] = useState(false)
 
   useEffect(() => {
     if (authLoading || !session || !profile) return
@@ -47,6 +49,10 @@ export function LoginPage() {
         setError(pwError)
         return
       }
+    }
+    if (mode === 'signup' && signupPhone.trim().replace(/\D/g, '').length < 7) {
+      setError('Enter a valid mobile number.')
+      return
     }
     setLoading(true)
     try {
@@ -75,13 +81,18 @@ export function LoginPage() {
         if (err) throw err
         // The AuthProvider loads the actual role; the effect then navigates.
       } else {
-        const { data, error: err } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: { emailRedirectTo: appUrl('/login'), data: { role: 'owner', full_name: fullName.trim() } },
+        const fullPhone = `${signupCountryDial}${signupPhone.trim().replace(/\D/g, '')}`
+        const { data, error: fnError } = await supabase.functions.invoke('create-owner-account', {
+          body: { email: email.trim(), phone: fullPhone, password, full_name: fullName.trim() },
         })
+        if (fnError) throw new Error(await extractFunctionErrorMessage(fnError))
+        const result = data as { success?: boolean; error?: string }
+        if (result.error) throw new Error(result.error)
+        // Account is created fully confirmed (no email/SMS verification
+        // step, same trust model as owner-created tenant/manager logins) —
+        // sign the owner straight in.
+        const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
         if (err) throw err
-        if (!data.session) setConfirmationSent(true)
       }
     } catch (err) {
       setError(friendlyError(err))
@@ -95,9 +106,10 @@ export function LoginPage() {
     setError(null)
     setResetSent(false)
     setResetKind(null)
-    setConfirmationSent(false)
     setPassword('')
     setConfirmPassword('')
+    setSignupPhone('')
+    setSignupCountryDial(DEFAULT_COUNTRY_DIAL.dial)
   }
 
   function resetFormState() {
@@ -105,8 +117,9 @@ export function LoginPage() {
     setError(null)
     setResetSent(false)
     setResetKind(null)
-    setConfirmationSent(false)
     setEmail('')
+    setSignupPhone('')
+    setSignupCountryDial(DEFAULT_COUNTRY_DIAL.dial)
     setPassword('')
     setConfirmPassword('')
     setFullName('')
@@ -126,8 +139,8 @@ export function LoginPage() {
   const isPhoneReset = mode === 'forgot' && forgotIdentifier !== '' && !isEmailIdentifier(forgotIdentifier)
 
   const modeTitle: Record<Mode, string> = {
-    signin: audience === 'tenant' ? 'Tenant sign in' : 'Owner sign in',
-    signup: 'Create your account',
+    signin: audience === 'tenant' ? 'Your rent, all in one place' : 'Run your rentals, hassle-free',
+    signup: 'Start your landlord journey',
     forgot: 'Reset your password',
   }
   const modeSubtitle: Record<Mode, string> = {
@@ -147,7 +160,6 @@ export function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-sm">
-        <Link data-testid="login-back-home" to="/" className="mb-5 inline-flex items-center text-sm text-brand-700 dark:text-brand-300">← Back to RentBook</Link>
         {/* Card */}
         <div className="rounded-3xl bg-white/10 p-0.5 shadow-2xl backdrop-blur-sm dark:bg-white/5">
           <div className="rounded-[22px] bg-white dark:bg-slate-900 p-8">
@@ -221,7 +233,7 @@ export function LoginPage() {
                 </div>
 
             {/* Reset sent success */}
-            {confirmationSent ? <div data-testid="signup-confirmation" role="status" className="rounded-xl bg-brand-50 p-4 text-sm text-brand-900 dark:bg-brand-950 dark:text-brand-100">Check your email to confirm your account, then sign in. If no message arrives, the account may already exist.</div> : mode === 'forgot' && resetSent ? (
+            {mode === 'forgot' && resetSent ? (
               <div className="space-y-4">
                 <div className="flex flex-col items-center gap-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 px-4 py-6 text-center">
                   <CheckCircle size={36} className="text-emerald-500" />
@@ -256,6 +268,46 @@ export function LoginPage() {
                         We use your mobile number + full name to confirm it's you, since there's no email to send a reset link to.
                       </p>
                     )}
+                  </div>
+                )}
+
+                {mode === 'signup' && (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">Mobile number</label>
+                    <div className="flex gap-2">
+                      <div className="relative shrink-0">
+                        <select
+                          data-testid="login-signup-country"
+                          aria-label="Country code"
+                          value={signupCountryDial}
+                          onChange={(e) => setSignupCountryDial(e.target.value)}
+                          className="input w-[6.5rem] appearance-none pr-6"
+                        >
+                          {COUNTRY_DIAL_CODES.map((c) => (
+                            <option key={c.code} value={c.dial}>
+                              {c.flag} {c.dial}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="relative flex-1">
+                        <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          data-testid="login-signup-phone"
+                          aria-label="Mobile number"
+                          type="tel"
+                          autoComplete="tel-national"
+                          required
+                          value={signupPhone}
+                          onChange={(e) => setSignupPhone(e.target.value)}
+                          placeholder="9876543210"
+                          className="input pl-10"
+                        />
+                      </div>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      You'll be able to sign in with either your email or this mobile number.
+                    </p>
                   </div>
                 )}
 
