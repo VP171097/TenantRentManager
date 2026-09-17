@@ -1,13 +1,84 @@
 import { PublicHeader } from '../components/PublicHeader'
 import { PublicFooter } from '../components/PublicFooter'
 
-const SECTIONS: { title: string; body: string }[] = [
-  { title: '1. Using RentSlate', body: 'RentSlate is a tool for property owners to manage properties, tenants, rent and electricity billing. By creating an account you agree to use it lawfully and to keep your login credentials secure.' },
-  { title: '2. Your account', body: 'You are responsible for the accuracy of the property, tenant and billing information you enter. Owners are responsible for any managers or co-owners they invite and the access granted to them.' },
-  { title: '3. Data ownership', body: 'The records you create — properties, tenants, bills, payments, documents — belong to you. RentSlate stores them on your behalf to provide the service; see the Privacy Policy for details on how that data is handled.' },
-  { title: '4. Payments', body: 'RentSlate helps you track and record rent and electricity payments; it does not process or hold funds itself. Any UPI details shown to tenants are provided by the owner for their own reference.' },
-  { title: '5. Availability', body: 'RentSlate is provided as-is. While we aim for it to be reliable, we don’t guarantee uninterrupted access and aren’t liable for losses arising from downtime or data entry errors.' },
-  { title: '6. Changes', body: 'These terms may be updated from time to time as the service evolves. Continued use after a change means you accept the updated terms.' },
+interface Section {
+  title: string
+  paragraphs: string[]
+  bullets?: string[]
+}
+
+const SECTIONS: Section[] = [
+  {
+    title: '1. Acceptance of these terms',
+    paragraphs: [
+      'These Terms and Conditions ("Terms") govern your access to and use of RentSlate (the "Service"), a web application for managing rental properties, tenants, rent, electricity billing and related records. By creating an account or otherwise using the Service, you agree to be bound by these Terms. If you do not agree, please do not use the Service.',
+      'You must be at least 18 years old and legally capable of entering into a binding contract under Indian law to use the Service.',
+    ],
+  },
+  {
+    title: '2. Accounts and roles',
+    paragraphs: [
+      'The Service supports three kinds of accounts: property owners (and co-owners, who have the same access as the owner), managers (with permissions the owner controls), and tenants (who can view their own bills, payments and receipts).',
+      'You are responsible for maintaining the confidentiality of your login credentials and for all activity that occurs under your account. Notify us immediately if you suspect unauthorised access.',
+      'Property owners are responsible for the accuracy of the data they enter and for the conduct of any manager or co-owner they invite, including the level of access granted to them.',
+    ],
+  },
+  {
+    title: '3. Acceptable use',
+    paragraphs: ['You agree not to:'],
+    bullets: [
+      'Use the Service for any unlawful purpose, or to store or transmit content that is defamatory, fraudulent, or infringes another person’s rights.',
+      'Attempt to gain unauthorised access to another user’s account, data, or any part of the Service’s infrastructure.',
+      'Interfere with or disrupt the Service, or attempt to reverse-engineer, scrape, or bulk-extract data beyond your own account’s normal use.',
+      'Use the Service to harass, threaten, or send unsolicited communications to tenants, managers or any other party beyond what’s reasonably needed to manage a tenancy.',
+    ],
+  },
+  {
+    title: '4. Your content and data ownership',
+    paragraphs: [
+      'You retain ownership of all property, tenant, billing, payment and document records you create or upload ("Your Content"). We store and process Your Content solely to provide the Service to you, as described in the Privacy Policy.',
+      'You are solely responsible for ensuring you have the right to enter and store any personal information about tenants, managers or other individuals that you add to the Service, and for complying with applicable data protection law (including India’s Digital Personal Data Protection Act, 2023) in doing so.',
+    ],
+  },
+  {
+    title: '5. Payments and billing accuracy',
+    paragraphs: [
+      'RentSlate helps you calculate, record and track rent and electricity charges, payments and outstanding balances. It does not process, hold, or transmit funds itself — any UPI ID or payment details shown to a tenant are supplied by the property owner for the tenant’s own reference when paying directly.',
+      'We are not responsible for errors in bills or receipts arising from incorrect data entered by a user (e.g. a wrong meter reading, rent amount, or rate), or for disputes between an owner and a tenant over amounts owed.',
+    ],
+  },
+  {
+    title: '6. Availability and disclaimers',
+    paragraphs: [
+      'The Service is provided on an "as is" and "as available" basis. We aim for it to be reliable, but we do not guarantee uninterrupted, error-free, or continuous availability, and we are not liable for any loss or damage arising from downtime, data entry errors, or reliance on figures generated by the Service.',
+      'To the maximum extent permitted by law, we disclaim all warranties, express or implied, regarding the Service, and our liability for any claim relating to your use of the Service is limited to the amount (if any) you have paid us in the twelve months preceding the claim.',
+    ],
+  },
+  {
+    title: '7. Suspension and termination',
+    paragraphs: [
+      'We may suspend or terminate your access to the Service if you violate these Terms, misuse the Service, or if required to do so by law. You may stop using the Service, or request deletion of your account, at any time by contacting us.',
+      'Sections of these Terms that by their nature should survive termination (including data ownership, disclaimers, and limitation of liability) will continue to apply.',
+    ],
+  },
+  {
+    title: '8. Changes to these terms',
+    paragraphs: [
+      'We may update these Terms from time to time as the Service evolves. We will update the "Last updated" date below when we do. Continued use of the Service after a change takes effect constitutes acceptance of the revised Terms.',
+    ],
+  },
+  {
+    title: '9. Governing law and jurisdiction',
+    paragraphs: [
+      'These Terms are governed by the laws of India. Any disputes arising out of or relating to these Terms or the Service will be subject to the exclusive jurisdiction of the courts of India.',
+    ],
+  },
+  {
+    title: '10. Contact us',
+    paragraphs: [
+      'If you have questions about these Terms, reach us via the Contact Us page, or write to vp522099@gmail.com.',
+    ],
+  },
 ]
 
 export function TermsPage() {
@@ -17,12 +88,32 @@ export function TermsPage() {
       <main className="landing-shell max-w-3xl py-20">
         <p className="eyebrow text-brand-700 dark:text-brand-300">Legal</p>
         <h1 className="mt-3 text-4xl">Terms and Conditions</h1>
-        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">Last updated {new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long' })}</p>
-        <div className="mt-12 space-y-8">
+        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+          Last updated {new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long' })}
+        </p>
+        <p className="mt-6 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+          Please read these Terms and Conditions carefully before using RentSlate.
+        </p>
+        <div className="mt-12 space-y-10">
           {SECTIONS.map((s) => (
             <div key={s.title}>
               <h2 className="text-xl font-semibold">{s.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{s.body}</p>
+              <div className="mt-2 space-y-3">
+                {s.paragraphs.map((p, i) => (
+                  <p key={i} className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                    {p}
+                  </p>
+                ))}
+                {s.bullets && (
+                  <ul className="list-disc space-y-2 pl-5">
+                    {s.bullets.map((b, i) => (
+                      <li key={i} className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           ))}
         </div>
