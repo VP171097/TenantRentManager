@@ -20,9 +20,19 @@
     <link rel="canonical" href="https://vp171097.github.io/TenantRentManager/" />
     <meta name="twitter:card" content="summary" />
     <title>RentBook — Rent, Simplified</title>
+    <style>
+      /* Matches the app's real background instantly (before the CSS bundle
+         or React has loaded) so refreshing/first-load never flashes
+         unstyled black-on-white content — just a blank, correctly-themed
+         screen for the split second before React mounts over it. */
+      html { background: #faf7f0; }
+      @media (prefers-color-scheme: dark) { html { background: #0c0a08; } }
+      #root:has(> .app-shell-fallback) { min-height: 100vh; }
+      .app-shell-fallback { display: none; }
+    </style>
   </head>
   <body>
-    <div id="root"><main><h1>RentBook — Rent, Simplified</h1><p>Less chasing rent. More room for life.</p><p>Manage properties, tenants, rent collections, electricity readings and PDF receipts in one organised place. Built for small property owners in India.</p><a href="%BASE_URL%login">Sign in to RentBook</a></main></div>
+    <div id="root"><main class="app-shell-fallback"><h1>RentBook — Rent, Simplified</h1><p>Less chasing rent. More room for life.</p><p>Manage properties, tenants, rent collections, electricity readings and PDF receipts in one organised place. Built for small property owners in India.</p><a href="login">Sign in to RentBook</a></main></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
