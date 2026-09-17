@@ -252,6 +252,8 @@ export function TenantDetailPage() {
         property_id: values.property_id,
         room_id: values.room_id,
         security_deposit: values.security_deposit,
+        electricity_start_reading: values.electricity_start_reading,
+        electricity_rate: values.electricity_rate,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant', id] })
@@ -517,6 +519,8 @@ export function TenantDetailPage() {
               move_in_date: tenant.move_in_date,
               security_deposit: tenant.security_deposit,
               initial_rent: currentRent,
+              electricity_start_reading: tenant.electricity_start_reading ?? 0,
+              electricity_rate: tenant.electricity_rate ?? 0,
             }}
             onSubmit={(v) => editTenantMutation.mutateAsync(v)}
             submitLabel="Save Changes"

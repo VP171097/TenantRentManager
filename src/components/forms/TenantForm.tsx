@@ -82,10 +82,17 @@ export function TenantForm({
         <select {...register('room_id')} className="input" disabled={!propertyId}>
           <option value="">Select a room</option>
           {rooms
-            ?.filter((r) => showAll || r.status === 'vacant')
+            // Always keep the tenant's own currently-assigned room in the
+            // list, even though it's "occupied" (by them) — otherwise,
+            // since a native <select> can't display a value that has no
+            // matching <option>, the browser silently falls back to the
+            // blank option, and submitting without touching this field
+            // would send room_id: '' and unassign the tenant's real room.
+            ?.filter((r) => showAll || r.status === 'vacant' || r.id === defaultValues?.room_id)
             .map((r) => (
               <option key={r.id} value={r.id}>
-                {r.room_number} {r.status === 'occupied' ? '(occupied)' : ''}
+                {r.room_number}{' '}
+                {r.id === defaultValues?.room_id ? '(current)' : r.status === 'occupied' ? '(occupied)' : ''}
               </option>
             ))}
         </select>
