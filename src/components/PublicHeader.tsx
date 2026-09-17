@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, BookOpen, Moon, Sun } from 'lucide-react'
+import { ArrowRight, Building2, Moon, Sun } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsDarkMode, useTheme } from '../hooks/useTheme'
 
@@ -28,7 +28,7 @@ export function PublicHeader() {
           className="flex items-center gap-2.5 text-xl font-bold tracking-tight"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-800 text-white">
-            <BookOpen size={20} />
+            <Building2 size={20} />
           </span>
           RentSlate<span className="text-brand-700">.</span>
         </Link>
