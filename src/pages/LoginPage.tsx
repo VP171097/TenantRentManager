@@ -6,15 +6,18 @@ import { validatePassword, passwordsMatchError } from '../utils/password'
 import { useAuth } from '../hooks/useAuth'
 import { isEmailIdentifier, normalizePhoneIdentifier } from '../utils/upi'
 import { Footer } from '../components/Footer'
-import { Building2, Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle } from 'lucide-react'
+import { Building2, Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle, Users, ArrowLeft } from 'lucide-react'
 import { appUrl } from '../utils/routes'
 
 type Mode = 'signin' | 'signup' | 'forgot'
+type Audience = 'owner' | 'tenant'
 
 export function LoginPage() {
   const navigate = useNavigate()
   const { profile, session, loading: authLoading } = useAuth()
   const [params] = useSearchParams()
+  const initialAudience: Audience | null = params.get('mode') === 'signup' ? 'owner' : params.get('as') === 'tenant' ? 'tenant' : params.get('as') === 'owner' ? 'owner' : null
+  const [audience, setAudience] = useState<Audience | null>(initialAudience)
   const [mode, setMode] = useState<Mode>(params.get('mode') === 'signup' ? 'signup' : 'signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -97,16 +100,38 @@ export function LoginPage() {
     setConfirmPassword('')
   }
 
+  function resetFormState() {
+    setMode('signin')
+    setError(null)
+    setResetSent(false)
+    setResetKind(null)
+    setConfirmationSent(false)
+    setEmail('')
+    setPassword('')
+    setConfirmPassword('')
+    setFullName('')
+  }
+
+  function chooseAudience(next: Audience) {
+    setAudience(next)
+    resetFormState()
+  }
+
+  function backToAudiencePicker() {
+    setAudience(null)
+    resetFormState()
+  }
+
   const forgotIdentifier = email.trim()
   const isPhoneReset = mode === 'forgot' && forgotIdentifier !== '' && !isEmailIdentifier(forgotIdentifier)
 
   const modeTitle: Record<Mode, string> = {
-    signin: 'Welcome back',
+    signin: audience === 'tenant' ? 'Tenant sign in' : 'Owner sign in',
     signup: 'Create your account',
     forgot: 'Reset your password',
   }
   const modeSubtitle: Record<Mode, string> = {
-    signin: 'Sign in to manage your properties',
+    signin: audience === 'tenant' ? 'Sign in to view your bills and payments' : 'Sign in to manage your properties',
     signup: 'Set up your owner account to get started',
     forgot: isPhoneReset
       ? 'Confirm your mobile number and name to set a new password'
@@ -137,11 +162,63 @@ export function LoginPage() {
               </div>
             </div>
 
-            {/* Title */}
-            <div className="mb-6">
-              <h2 data-testid="login-title" className="text-2xl font-bold text-slate-900 dark:text-white">{modeTitle[mode]}</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{modeSubtitle[mode]}</p>
-            </div>
+            {!audience ? (
+              <>
+                {/* Title */}
+                <div className="mb-6">
+                  <h2 data-testid="login-title" className="text-2xl font-bold text-slate-900 dark:text-white">Sign in to RentBook</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">First, tell us who you are</p>
+                </div>
+
+                {/* Audience selector */}
+                <div className="space-y-3">
+                  <button
+                    data-testid="login-audience-owner"
+                    type="button"
+                    onClick={() => chooseAudience('owner')}
+                    className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-4 text-left transition-colors hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/30"
+                  >
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 dark:bg-brand-900/40">
+                      <Building2 size={20} className="text-brand-700 dark:text-brand-300" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-900 dark:text-slate-100">I'm a Property Owner</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Manage properties, tenants and rent</p>
+                    </div>
+                    <ArrowRight size={16} className="shrink-0 text-slate-400" />
+                  </button>
+                  <button
+                    data-testid="login-audience-tenant"
+                    type="button"
+                    onClick={() => chooseAudience('tenant')}
+                    className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-4 text-left transition-colors hover:border-gold-400 hover:bg-gold-50 dark:hover:bg-gold-950/20"
+                  >
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gold-100 dark:bg-gold-900/40">
+                      <Users size={20} className="text-gold-700 dark:text-gold-300" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-900 dark:text-slate-100">I'm a Tenant or Manager</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">View your bills, payments and receipts</p>
+                    </div>
+                    <ArrowRight size={16} className="shrink-0 text-slate-400" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={backToAudiencePicker}
+                  className="mb-4 -mt-1 inline-flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
+                >
+                  <ArrowLeft size={12} /> Change
+                </button>
+
+                {/* Title */}
+                <div className="mb-6">
+                  <h2 data-testid="login-title" className="text-2xl font-bold text-slate-900 dark:text-white">{modeTitle[mode]}</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{modeSubtitle[mode]}</p>
+                </div>
 
             {/* Reset sent success */}
             {confirmationSent ? <div data-testid="signup-confirmation" role="status" className="rounded-xl bg-brand-50 p-4 text-sm text-brand-900 dark:bg-brand-950 dark:text-brand-100">Check your email to confirm your account, then sign in. If no message arrives, the account may already exist.</div> : mode === 'forgot' && resetSent ? (
@@ -301,17 +378,23 @@ export function LoginPage() {
             {!(mode === 'forgot' && resetSent) && (
               <div className="mt-5 text-center">
                 {mode !== 'forgot' ? (
-                  <button
-                    data-testid="login-switch-mode"
-                    onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
-                    className="text-sm text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
-                  >
-                    {mode === 'signin' ? (
-                      <>New owner? <span className="font-semibold text-brand-600 dark:text-brand-400">Create an account</span></>
-                    ) : (
-                      <>Already have an account? <span className="font-semibold text-brand-600 dark:text-brand-400">Sign in</span></>
-                    )}
-                  </button>
+                  audience === 'owner' ? (
+                    <button
+                      data-testid="login-switch-mode"
+                      onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
+                      className="text-sm text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                    >
+                      {mode === 'signin' ? (
+                        <>New owner? <span className="font-semibold text-brand-600 dark:text-brand-400">Create an account</span></>
+                      ) : (
+                        <>Already have an account? <span className="font-semibold text-brand-600 dark:text-brand-400">Sign in</span></>
+                      )}
+                    </button>
+                  ) : (
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Don't have a login? Ask your property owner to set one up for you.
+                    </p>
+                  )
                 ) : (
                   mode === 'forgot' && !resetSent && (
                     <button
@@ -323,6 +406,8 @@ export function LoginPage() {
                   )
                 )}
               </div>
+            )}
+              </>
             )}
           </div>
         </div>
