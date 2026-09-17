@@ -44,6 +44,18 @@ export function TenantForm({
     }
   }, [roomId, rooms, defaultValues, setValue])
 
+  // The room already has its own electricity rate on file — don't make
+  // the owner re-enter it for every tenant in that room. Auto-fill it
+  // (still editable below, for the rare tenant on a different rate).
+  useEffect(() => {
+    if (roomId && rooms && !defaultValues?.electricity_rate) {
+      const selectedRoom = rooms.find((r) => r.id === roomId)
+      if (selectedRoom?.electricity_rate) {
+        setValue('electricity_rate', selectedRoom.electricity_rate, { shouldValidate: true })
+      }
+    }
+  }, [roomId, rooms, defaultValues, setValue])
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <p className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-700 dark:bg-sky-950 dark:text-sky-300">
@@ -118,6 +130,11 @@ export function TenantForm({
           <input type="number" step="0.01" min="0" {...register('electricity_rate')} className="input" />
         </Field>
       </div>
+      {roomId && rooms?.find((r) => r.id === roomId)?.electricity_rate ? (
+        <p className="-mt-2 text-xs text-slate-500 dark:text-slate-400">
+          Pre-filled from this room's electricity rate — change it only if this tenant pays a different rate.
+        </p>
+      ) : null}
       <button type="submit" disabled={isSubmitting} className="btn-primary w-full">
         {isSubmitting ? 'Saving…' : submitLabel}
       </button>
