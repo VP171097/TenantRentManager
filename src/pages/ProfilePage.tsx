@@ -17,15 +17,6 @@ export function ProfilePage() {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const logoMutation = useMutation({
-    mutationFn: async (logoUrl: string) => {
-      const { error: err } = await supabase.from('profiles').update({ logo_url: logoUrl }).eq('id', profile!.id)
-      if (err) throw err
-    },
-    onSuccess: async () => { await refreshProfile(); setMessage('Logo updated.'); setError(null) },
-    onError: (err) => setError(friendlyError(err)),
-  })
-
   const mutation = useMutation({
     mutationFn: async () => {
       const trimmedUpi = upiId.trim()
@@ -125,19 +116,6 @@ export function ProfilePage() {
 
         {profile.role === 'owner' && (
           <>
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">Branding logo</label>
-              <ImageUploader
-                path={`${profile.id}/logo`}
-                label={profile.logo_url ? 'Change logo' : 'Upload logo'}
-                currentUrl={profile.logo_url}
-                onUploaded={(url) => logoMutation.mutate(url)}
-              />
-              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-                Shown in the app header and on generated PDFs.
-              </p>
-            </div>
-
             <div>
               <label className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
                 <Wallet size={14} className="text-slate-400" /> UPI ID

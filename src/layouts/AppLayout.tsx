@@ -80,10 +80,9 @@ const MOBILE_NAV: MobileNavItem[] = [
   { to: '/ledger', label: 'Ledger', icon: <BookOpen size={20} /> },
 ]
 
-function BrandMark({ profile }: { profile: { logo_url?: string | null; full_name?: string } | null }) {
-  if (profile?.logo_url) {
-    return <img src={profile.logo_url} alt="RentBook" className="h-14 w-auto max-w-[11rem] object-contain" />
-  }
+// RentBook's own branding is always shown, app-wide — every owner uses
+// the same default look, no per-owner logo customization.
+function BrandMark() {
   return (
     <div className="flex items-center gap-2.5">
       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600 shadow-md shrink-0">
@@ -150,7 +149,7 @@ export function AppLayout() {
       <aside className="hidden md:sticky md:top-0 md:h-screen md:flex md:w-60 md:shrink-0 md:flex-col md:border-r md:border-slate-200 dark:md:border-slate-800 md:bg-white dark:md:bg-slate-900">
         {/* Brand */}
         <div className="px-5 py-5 border-b border-slate-100 dark:border-slate-800">
-          <BrandMark profile={profile} />
+          <BrandMark />
           <GlobalSearch className="mt-4" />
         </div>
 
@@ -206,7 +205,7 @@ export function AppLayout() {
         {/* Mobile header */}
         <header className="sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-4 py-3 md:hidden">
           <div className="flex items-center justify-between">
-            <BrandMark profile={profile} />
+            <BrandMark />
             <UserMenu links={USER_MENU_LINKS} />
           </div>
           <GlobalSearch className="mt-3" />
