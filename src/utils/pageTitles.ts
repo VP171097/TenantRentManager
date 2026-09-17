@@ -1,8 +1,11 @@
+import { BLOG_POSTS, type BlogPost } from '../data/blogPosts.ts'
+
 /** Shared by browser metadata and static HTML generation; no browser globals. */
 export const pageTitles: Record<string, string> = {
   '/': 'RentSlate — Rent, Simplified',
   '/about': 'About Us · RentSlate', '/services': 'Services · RentSlate',
   '/blog': 'Blogs · RentSlate', '/contact': 'Contact Us · RentSlate',
+  ...Object.fromEntries(BLOG_POSTS.map((post: BlogPost) => [`/blog/${post.slug}`, `${post.title} · RentSlate`])),
   '/terms': 'Terms and Conditions · RentSlate', '/privacy': 'Privacy Policy · RentSlate',
   '/sitemap': 'Sitemap · RentSlate',
   '/login': 'Sign In · RentSlate', '/reset-password': 'Reset Password · RentSlate',
