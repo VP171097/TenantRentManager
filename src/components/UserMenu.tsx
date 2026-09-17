@@ -65,9 +65,17 @@ export function UserMenu({ links }: { links: UserMenuLink[] }) {
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white shadow-sm">
-          {initials}
-        </span>
+        {profile?.avatar_url ? (
+          <img
+            src={profile.avatar_url}
+            alt=""
+            className="h-8 w-8 shrink-0 rounded-full object-cover shadow-sm"
+          />
+        ) : (
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white shadow-sm">
+            {initials}
+          </span>
+        )}
         <span className="hidden max-w-[8rem] truncate sm:inline text-slate-700 dark:text-slate-200">
           {profile?.full_name ?? 'Account'}
         </span>
@@ -85,9 +93,17 @@ export function UserMenu({ links }: { links: UserMenuLink[] }) {
           {/* Header */}
           <div className="border-b border-slate-100 dark:border-slate-700 px-4 py-3.5 bg-slate-50/80 dark:bg-slate-900/50">
             <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">
-                {initials}
-              </span>
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt=""
+                  className="h-9 w-9 shrink-0 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">
+                  {initials}
+                </span>
+              )}
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
                   {profile?.full_name}
