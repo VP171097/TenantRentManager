@@ -6,19 +6,10 @@ import { resolve } from 'node:path'
 import { pageTitles } from './src/utils/pageTitles.js'
 
 // https://vite.dev/config/
-export default defineConfig(({ command, mode }) => {
-  // GitHub Pages:
-  // /TenantRentManager/
-  //
-  // Capacitor Android:
-  // ./  (relative assets)
-  const isCapacitor = mode === 'capacitor'
-
-  const base = isCapacitor
-    ? './'
-    : command === 'serve'
-      ? '/'
-      : (process.env.VITE_BASE_PATH || '/TenantRentManager/')
+export default defineConfig(({ command }) => {
+  // GitHub Pages serves this app from /TenantRentManager/; the dev server
+  // serves from /.
+  const base = command === 'serve' ? '/' : (process.env.VITE_BASE_PATH || '/TenantRentManager/')
 
   return {
     base,
@@ -49,12 +40,6 @@ export default defineConfig(({ command, mode }) => {
 
         closeBundle() {
           // Static route HTML files are required for GitHub Pages.
-          // Capacitor uses the single dist/index.html and React Router,
-          // so we must NOT create nested route copies for Capacitor.
-
-          if (isCapacitor) {
-            return
-          }
 
           const html = readFileSync(
             resolve('dist/index.html'),
