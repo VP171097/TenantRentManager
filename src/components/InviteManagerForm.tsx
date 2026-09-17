@@ -53,8 +53,8 @@ export function InviteManagerForm({ manager }: { manager: Manager }) {
   async function handleShare() {
     if (!inviteLink) return
     await shareLink({
-      title: 'RentBook — Set up your login',
-      text: `${manager.full_name}, set up your RentBook login:`,
+      title: 'RentSlate — Set up your login',
+      text: `${manager.full_name}, set up your RentSlate login:`,
       url: inviteLink,
     })
   }

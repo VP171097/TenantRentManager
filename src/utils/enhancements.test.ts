@@ -32,5 +32,5 @@ describe('clean routes preserve links and auth callbacks', () => {
     expect(legacyRouteTarget('#access_token=secret&type=recovery', '/')).toBeNull()
     expect(legacyRouteTarget('#//evil.example', '/')).toBeNull()
   })
-  it('gives detail routes their domain title', () => expect(routeTitle('/tenants/uuid')).toBe('Tenants · RentBook'))
+  it('gives detail routes their domain title', () => expect(routeTitle('/tenants/uuid')).toBe('Tenants · RentSlate'))
 })

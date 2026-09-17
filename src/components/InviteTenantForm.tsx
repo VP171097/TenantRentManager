@@ -58,8 +58,8 @@ export function InviteTenantForm({ tenant }: { tenant: Tenant }) {
   async function handleShare() {
     if (!inviteLink) return
     await shareLink({
-      title: 'RentBook — Set up your login',
-      text: `${tenant.full_name}, set up your RentBook login to view your bills and payments:`,
+      title: 'RentSlate — Set up your login',
+      text: `${tenant.full_name}, set up your RentSlate login to view your bills and payments:`,
       url: inviteLink,
     })
   }

@@ -174,7 +174,7 @@ export function LoginPage() {
                 <Building2 size={20} className="text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">RentBook</h1>
+                <h1 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">RentSlate</h1>
                 <p className="text-xs text-slate-400 dark:text-slate-500">Rent, Simplified.</p>
               </div>
             </div>
@@ -183,7 +183,7 @@ export function LoginPage() {
               <>
                 {/* Title */}
                 <div className="mb-6">
-                  <h2 data-testid="login-title" className="text-2xl font-bold text-slate-900 dark:text-white">Sign in to RentBook</h2>
+                  <h2 data-testid="login-title" className="text-2xl font-bold text-slate-900 dark:text-white">Sign in to RentSlate</h2>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">First, tell us who you are</p>
                 </div>
 

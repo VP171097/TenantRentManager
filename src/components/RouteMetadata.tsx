@@ -7,8 +7,8 @@ export function RouteMetadata() {
   useEffect(() => {
     document.title = routeTitle(pathname)
     const description = pathname === '/'
-      ? 'RentBook helps Indian landlords manage rent collections, electricity readings, tenants and receipts in one organised place.'
-      : `${routeTitle(pathname).split(' · ')[0]}. Sign in securely to access your RentBook account.`
+      ? 'RentSlate helps Indian landlords manage rent collections, electricity readings, tenants and receipts in one organised place.'
+      : `${routeTitle(pathname).split(' · ')[0]}. Sign in securely to access your RentSlate account.`
     document.querySelector('meta[name="description"]')?.setAttribute('content', description)
     document.querySelector('meta[name="robots"]')?.setAttribute('content', pathname === '/' ? 'index,follow' : 'noindex,nofollow')
     document.querySelector('meta[property="og:title"]')?.setAttribute('content', document.title)

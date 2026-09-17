@@ -16,7 +16,7 @@ export interface LetterheadOptions {
 const HEADER_HEIGHT = 70
 
 /**
- * Draws the RentBook letterhead.
+ * Draws the RentSlate letterhead.
  */
 export async function drawLetterhead(doc: jsPDF, opts: LetterheadOptions): Promise<number> {
   const pageWidth = doc.internal.pageSize.getWidth()
@@ -39,11 +39,11 @@ export async function drawLetterhead(doc: jsPDF, opts: LetterheadOptions): Promi
   // Centered 'R' as a fallback logo graphic
   doc.text('R', logoX + 12, logoY + 16, { align: 'center', baseline: 'middle' })
   
-  // 2. RentBook Text
+  // 2. RentSlate Text
   doc.setTextColor(...BRAND_BLUE)
   doc.setFontSize(26)
   doc.setFont('helvetica', 'bold')
-  doc.text('RentBook', logoX + logoSize + 8, logoY + 14)
+  doc.text('RentSlate', logoX + logoSize + 8, logoY + 14)
   
   // Subtitle
   doc.setTextColor(...GRAY_TEXT)

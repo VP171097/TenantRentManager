@@ -25,7 +25,7 @@ export function TenantLayout() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 shadow-sm">
             <Building2 size={16} className="text-white" />
           </div>
-          <p className="text-lg font-extrabold tracking-tight text-brand-700 dark:text-brand-200">RentBook</p>
+          <p className="text-lg font-extrabold tracking-tight text-brand-700 dark:text-brand-200">RentSlate</p>
         </div>
         <UserMenu links={USER_MENU_LINKS} />
       </header>

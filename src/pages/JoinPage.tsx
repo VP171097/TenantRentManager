@@ -112,7 +112,7 @@ export function JoinPage() {
                 <Building2 size={20} className="text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">RentBook</h1>
+                <h1 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">RentSlate</h1>
                 <p className="text-xs text-slate-400 dark:text-slate-500">Rent, Simplified.</p>
               </div>
             </div>
@@ -140,7 +140,7 @@ export function JoinPage() {
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Set up your account</h2>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    {isManager ? 'The property owner' : 'Your landlord'} invited you to join RentBook.
+                    {isManager ? 'The property owner' : 'Your landlord'} invited you to join RentSlate.
                   </p>
                 </div>
 

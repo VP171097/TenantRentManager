@@ -1,7 +1,7 @@
 {
-  "name": "RentBook",
-  "short_name": "RentBook",
-  "description": "RentBook — simple rent, electricity, and tenant management for landlords.",
+  "name": "RentSlate",
+  "short_name": "RentSlate",
+  "description": "RentSlate — simple rent, electricity, and tenant management for landlords.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

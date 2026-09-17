@@ -27,8 +27,8 @@ import {
 
 async function handleShareApp() {
   await shareLink({
-    title: 'RentBook — Rent, Simplified',
-    text: 'I manage my rentals with RentBook — rent, electricity bills and receipts, all in one place. Give it a try:',
+    title: 'RentSlate — Rent, Simplified',
+    text: 'I manage my rentals with RentSlate — rent, electricity bills and receipts, all in one place. Give it a try:',
     url: appUrl('/'),
   })
 }
@@ -124,7 +124,7 @@ export function DashboardPage() {
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-white/15 pt-5"><p data-testid="collection-outstanding" className="text-sm text-gold-200">{stats.billCount === 0 ? 'No bills for this period. A fresh start.' : stats.outstanding > 0 ? `${formatINR(stats.outstanding)} left to collect` : 'All billed dues collected. Nicely done.'}</p><Link data-testid="collection-record-payment" className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/20" to="/payments">Record payment <ArrowUpRight size={15} /></Link></div>
       </section>
       <section className="card flex flex-col justify-between !p-6"><div><p data-testid="dashboard-actions-heading" className="eyebrow text-slate-600 dark:text-slate-300">Less admin. More done.</p><h2 data-testid="dashboard-actions-title" className="mt-2 text-2xl">Make your next move.</h2></div><div className="mt-5 space-y-2">{[{ to: '/billing', label: 'Read meters & generate bills', icon: <Zap size={17} />, id: 'bills' }, { to: '/payments', label: 'Record a payment', icon: <CreditCard size={17} />, id: 'payment' }, { to: '/tenants', label: 'Manage your tenants', icon: <Users size={17} />, id: 'tenants' }].map(a => <Link key={a.id} data-testid={`dashboard-action-${a.id}`} to={a.to} className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-medium hover:bg-brand-50 dark:bg-slate-800 dark:hover:bg-brand-950"><span className="text-brand-700 dark:text-brand-300">{a.icon}</span><span className="flex-1">{a.label}</span><ChevronRight size={14} /></Link>)}
-      {canShare() && <button data-testid="dashboard-action-share" type="button" onClick={handleShareApp} className="flex w-full items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-medium hover:bg-brand-50 dark:bg-slate-800 dark:hover:bg-brand-950"><span className="text-brand-700 dark:text-brand-300"><Share2 size={17} /></span><span className="flex-1 text-left">Refer RentBook to another owner</span><ChevronRight size={14} /></button>}
+      {canShare() && <button data-testid="dashboard-action-share" type="button" onClick={handleShareApp} className="flex w-full items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-medium hover:bg-brand-50 dark:bg-slate-800 dark:hover:bg-brand-950"><span className="text-brand-700 dark:text-brand-300"><Share2 size={17} /></span><span className="flex-1 text-left">Refer RentSlate to another owner</span><ChevronRight size={14} /></button>}
       </div></section>
     </div>
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">{[

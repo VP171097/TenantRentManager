@@ -6,9 +6,9 @@ export function legacyRouteTarget(hash: string, base: string): string | null {
 }
 
 export function migrateLegacyRoute() {
-  const saved = sessionStorage.getItem('rentbook-route')
+  const saved = sessionStorage.getItem('rentslate-route')
   if (saved) {
-    sessionStorage.removeItem('rentbook-route')
+    sessionStorage.removeItem('rentslate-route')
     if (saved.startsWith(import.meta.env.BASE_URL) && !saved.startsWith('//')) window.history.replaceState(null, '', saved)
   }
   const target = legacyRouteTarget(window.location.hash, import.meta.env.BASE_URL)
@@ -20,5 +20,5 @@ export function appUrl(path: string): string {
 }
 
 export function routeTitle(path: string): string {
-  return pageTitles[path] ?? pageTitles[`/${path.split('/')[1]}`] ?? 'Page Not Found · RentBook'
+  return pageTitles[path] ?? pageTitles[`/${path.split('/')[1]}`] ?? 'Page Not Found · RentSlate'
 }

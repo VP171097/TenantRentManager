@@ -52,7 +52,7 @@ function RecoveryWatcher() {
  * away — RecoveryWatcher takes over once Supabase finishes and fires the
  * PASSWORD_RECOVERY event. */
 function CatchAll() {
-  return <main className="landing-shell py-24"><p data-testid="not-found-code" className="eyebrow text-brand-700">404 · A little off track</p><h1 data-testid="not-found-title" className="mt-4 text-4xl">This page isn't here.</h1><p data-testid="not-found-description" className="my-6 text-slate-600 dark:text-slate-300">Your records are safe. Head back to RentBook to find what you need.</p><Link data-testid="not-found-home" className="btn-primary" to="/">Back to RentBook</Link></main>
+  return <main className="landing-shell py-24"><p data-testid="not-found-code" className="eyebrow text-brand-700">404 · A little off track</p><h1 data-testid="not-found-title" className="mt-4 text-4xl">This page isn't here.</h1><p data-testid="not-found-description" className="my-6 text-slate-600 dark:text-slate-300">Your records are safe. Head back to RentSlate to find what you need.</p><Link data-testid="not-found-home" className="btn-primary" to="/">Back to RentSlate</Link></main>
 }
 
 export default function App() {

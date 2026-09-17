@@ -35,7 +35,7 @@ export default defineConfig(({ command }) => {
       tailwindcss(),
 
       {
-        name: 'rentbook-static-routes',
+        name: 'rentslate-static-routes',
         apply: 'build',
 
         closeBundle() {

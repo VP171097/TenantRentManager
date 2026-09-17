@@ -80,7 +80,7 @@ const MOBILE_NAV: MobileNavItem[] = [
   { to: '/ledger', label: 'Ledger', icon: <BookOpen size={20} /> },
 ]
 
-// RentBook's own branding is always shown, app-wide — every owner uses
+// RentSlate's own branding is always shown, app-wide — every owner uses
 // the same default look, no per-owner logo customization.
 function BrandMark() {
   return (
@@ -89,7 +89,7 @@ function BrandMark() {
         <Building2 size={22} className="text-white" />
       </div>
       <div className="min-w-0 leading-tight">
-        <p className="text-2xl font-extrabold tracking-tight text-brand-700 dark:text-brand-200">RentBook</p>
+        <p className="text-2xl font-extrabold tracking-tight text-brand-700 dark:text-brand-200">RentSlate</p>
         <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500">Rent, Simplified.</p>
       </div>
     </div>

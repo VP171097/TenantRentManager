@@ -27,7 +27,7 @@ export function SettingsPage() {
       <div className="card space-y-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Appearance</h2>
-          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Choose how RentBook looks on your device.</p>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Choose how RentSlate looks on your device.</p>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {THEME_OPTIONS.map((opt) => {
