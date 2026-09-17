@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { friendlyError } from '../utils/errors'
+import { friendlyError, extractFunctionErrorMessage } from '../utils/errors'
 import { useAuth } from '../hooks/useAuth'
 import { isEmailIdentifier, normalizePhoneIdentifier } from '../utils/upi'
 import { Footer } from '../components/Footer'
@@ -21,6 +21,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  const [resetKind, setResetKind] = useState<'email' | 'phone' | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [confirmationSent, setConfirmationSent] = useState(false)
 
@@ -37,9 +38,21 @@ export function LoginPage() {
     setLoading(true)
     try {
       if (mode === 'forgot') {
-        const redirectTo = appUrl('/reset-password')
-        const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo })
-        if (err) throw err
+        const identifier = email.trim()
+        if (isEmailIdentifier(identifier)) {
+          const redirectTo = appUrl('/reset-password')
+          const { error: err } = await supabase.auth.resetPasswordForEmail(identifier, { redirectTo })
+          if (err) throw err
+          setResetKind('email')
+        } else {
+          const { data, error: fnError } = await supabase.functions.invoke('reset-password-by-phone', {
+            body: { phone: identifier, full_name: fullName.trim(), new_password: password },
+          })
+          if (fnError) throw new Error(await extractFunctionErrorMessage(fnError))
+          const result = data as { success?: boolean; error?: string }
+          if (result.error) throw new Error(result.error)
+          setResetKind('phone')
+        }
         setResetSent(true)
       } else if (mode === 'signin') {
         const identifier = email.trim()
@@ -68,8 +81,12 @@ export function LoginPage() {
     setMode(next)
     setError(null)
     setResetSent(false)
+    setResetKind(null)
     setConfirmationSent(false)
   }
+
+  const forgotIdentifier = email.trim()
+  const isPhoneReset = mode === 'forgot' && forgotIdentifier !== '' && !isEmailIdentifier(forgotIdentifier)
 
   const modeTitle: Record<Mode, string> = {
     signin: 'Welcome back',
@@ -79,7 +96,9 @@ export function LoginPage() {
   const modeSubtitle: Record<Mode, string> = {
     signin: 'Sign in to manage your properties',
     signup: 'Set up your owner account to get started',
-    forgot: "Enter your email and we'll send a reset link",
+    forgot: isPhoneReset
+      ? 'Confirm your mobile number and name to set a new password'
+      : "Enter your email and we'll send a reset link, or your mobile number to reset it directly",
   }
 
   return (
@@ -118,7 +137,7 @@ export function LoginPage() {
                 <div className="flex flex-col items-center gap-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 px-4 py-6 text-center">
                   <CheckCircle size={36} className="text-emerald-500" />
                   <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                    Reset link sent! Check your inbox.
+                    {resetKind === 'phone' ? 'Password updated! Sign in with your new password.' : 'Reset link sent! Check your inbox.'}
                   </p>
                 </div>
                 <button onClick={() => switchMode('signin')} className="btn-primary w-full gap-2">
@@ -127,7 +146,7 @@ export function LoginPage() {
               </div>
             ) : (
               <form data-testid="login-form" onSubmit={handleSubmit} className="space-y-4">
-                {mode === 'signup' && (
+                {(mode === 'signup' || isPhoneReset) && (
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">Full name</label>
                     <div className="relative">
@@ -139,37 +158,44 @@ export function LoginPage() {
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Your full name"
+                        placeholder="Exactly as your landlord has it on file"
                         className="input pl-10"
                       />
                     </div>
+                    {isPhoneReset && (
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        We use your mobile number + full name to confirm it's you, since there's no email to send a reset link to.
+                      </p>
+                    )}
                   </div>
                 )}
 
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    {mode === 'signin' ? 'Email or Mobile Number' : 'Email'}
+                    {mode === 'signup' ? 'Email' : 'Email or Mobile Number'}
                   </label>
                   <div className="relative">
                     <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       data-testid="login-email"
-                      aria-label={mode === 'signin' ? 'Email or Mobile Number' : 'Email'}
+                      aria-label={mode === 'signup' ? 'Email' : 'Email or Mobile Number'}
                       autoComplete="username"
-                      type={mode === 'signin' ? 'text' : 'email'}
+                      type={mode === 'signup' ? 'email' : 'text'}
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder={mode === 'signin' ? 'email@example.com or 9876543210' : 'email@example.com'}
+                      placeholder={mode === 'signup' ? 'email@example.com' : 'email@example.com or 9876543210'}
                       className="input pl-10"
                     />
                   </div>
                 </div>
 
-                {mode !== 'forgot' && (
+                {(mode !== 'forgot' || isPhoneReset) && (
                   <div>
                     <div className="mb-1.5 flex items-center justify-between">
-                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Password</label>
+                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        {isPhoneReset ? 'New password' : 'Password'}
+                      </label>
                       {mode === 'signin' && (
                         <button
                           data-testid="login-forgot-password"
@@ -185,8 +211,8 @@ export function LoginPage() {
                       <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
                         data-testid="login-password"
-                        aria-label="Password"
-                        autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                        aria-label={isPhoneReset ? 'New password' : 'Password'}
+                        autoComplete={mode === 'signup' || isPhoneReset ? 'new-password' : 'current-password'}
                         type={showPassword ? 'text' : 'password'}
                         required
                         minLength={6}
@@ -226,7 +252,9 @@ export function LoginPage() {
                       ? 'Sign in'
                       : mode === 'signup'
                         ? 'Create account'
-                        : 'Send reset link'}
+                        : isPhoneReset
+                          ? 'Reset password'
+                          : 'Send reset link'}
                 </button>
               </form>
             )}

@@ -64,6 +64,13 @@ with a WhatsApp API error (visible in the app as `whatsapp: failed: ...`)
   an owner-chosen password and either an email or phone identifier (no SMS
   OTP required). Uses only the automatically-provided
   `SUPABASE_SERVICE_ROLE_KEY` — no extra secrets needed.
+- **`reset-password-by-phone`** — public, unauthenticated password reset for
+  tenants/managers who log in with a phone number (no email on file, so the
+  normal "send a reset link" email flow can't reach them, and there's no SMS
+  OTP provider configured). The caller proves it's them by supplying the
+  exact phone number AND full name on file for their tenant/manager record;
+  if both match, the password is updated immediately. Uses only
+  `SUPABASE_SERVICE_ROLE_KEY` — no extra secrets needed.
 
 ## Deploy
 
@@ -72,6 +79,7 @@ npx supabase login
 npx supabase link --project-ref <your-project-ref>
 npx supabase functions deploy send-bill --project-ref <your-project-ref>
 npx supabase functions deploy create-tenant-login --project-ref <your-project-ref>
+npx supabase functions deploy reset-password-by-phone --project-ref <your-project-ref>
 ```
 
 ## Secrets

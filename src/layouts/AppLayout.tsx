@@ -82,14 +82,14 @@ const MOBILE_NAV: MobileNavItem[] = [
 
 function BrandMark({ profile }: { profile: { logo_url?: string | null; full_name?: string } | null }) {
   if (profile?.logo_url) {
-    return <img src={profile.logo_url} alt="RentBook" className="h-9 w-auto max-w-[9rem] object-contain" />
+    return <img src={profile.logo_url} alt="RentBook" className="h-14 w-auto max-w-[11rem] object-contain" />
   }
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 shadow-sm">
-        <Building2 size={16} className="text-white" />
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600 shadow-md shrink-0">
+        <Building2 size={22} className="text-white" />
       </div>
-      <p className="text-xl font-extrabold tracking-tight text-brand-700 dark:text-brand-200">RentBook</p>
+      <p className="text-2xl font-extrabold tracking-tight text-brand-700 dark:text-brand-200">RentBook</p>
     </div>
   )
 }
