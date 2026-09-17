@@ -11,6 +11,7 @@ import { RoomCard, TenantCard } from '../components/Cards'
 import { RoomForm } from '../components/forms/RoomForm'
 import { PropertyForm } from '../components/forms/PropertyForm'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Modal } from '../components/Modal'
 import { ImageUploader } from '../components/ImageUploader'
 import { friendlyError } from '../utils/errors'
 import type { PropertyFormValues, RoomFormValues } from '../utils/validation'
@@ -95,8 +96,8 @@ export function PropertyDetailPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <button onClick={() => setShowEdit((s) => !s)} className="btn-secondary px-4">
-            {showEdit ? 'Close' : 'Edit'}
+          <button onClick={() => setShowEdit(true)} className="btn-secondary px-4">
+            Edit
           </button>
           <button onClick={() => setShowDelete(true)} className="btn-secondary px-4 text-red-600 dark:text-red-400">
             Delete Property
@@ -106,16 +107,13 @@ export function PropertyDetailPage() {
 
       {editError && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{editError}</p>}
 
-      {showEdit && (
-        <div className="card max-w-md space-y-5">
-          <div>
-            <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Edit Property</h2>
-            <PropertyForm
-              defaultValues={{ name: property.name, code: property.code, address: property.address ?? '', city: property.city ?? '' }}
-              onSubmit={(v) => editPropertyMutation.mutateAsync(v)}
-              submitLabel="Save Changes"
-            />
-          </div>
+      <Modal open={showEdit} title="Edit Property" onClose={() => setShowEdit(false)}>
+        <div className="space-y-5">
+          <PropertyForm
+            defaultValues={{ name: property.name, code: property.code, address: property.address ?? '', city: property.city ?? '' }}
+            onSubmit={(v) => editPropertyMutation.mutateAsync(v)}
+            submitLabel="Save Changes"
+          />
           <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Cover photo</label>
             <div className="mt-1">
@@ -128,7 +126,7 @@ export function PropertyDetailPage() {
             </div>
           </div>
         </div>
-      )}
+      </Modal>
 
       <section>
         <div className="mb-3 flex items-center justify-between">

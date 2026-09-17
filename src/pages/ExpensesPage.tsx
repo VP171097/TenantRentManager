@@ -8,6 +8,7 @@ import { SkeletonList } from '../components/Skeleton'
 import { BillEmptyIcon } from '../components/EmptyIcons'
 import { ExpenseForm } from '../components/forms/ExpenseForm'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Modal } from '../components/Modal'
 import { DashboardCard } from '../components/DashboardCard'
 import { friendlyError } from '../utils/errors'
 import { formatINR } from '../utils/money'
@@ -151,14 +152,13 @@ export function ExpensesPage() {
       )}
 
       {/* Edit Form */}
-      {editing && (
-        <div className="card max-w-lg slide-up">
-          <h2 className="mb-4 text-base font-bold text-slate-900 dark:text-slate-100">Edit Expense</h2>
-          {formError && (
-            <div className="mb-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-400">
-              {formError}
-            </div>
-          )}
+      <Modal open={!!editing} title="Edit Expense" onClose={() => setEditing(null)}>
+        {formError && (
+          <div className="mb-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+            {formError}
+          </div>
+        )}
+        {editing && (
           <ExpenseForm
             defaultValues={{
               property_id: editing.property_id,
@@ -171,9 +171,8 @@ export function ExpensesPage() {
             onSubmit={(v) => updateMutation.mutateAsync(v)}
             submitLabel="Save Changes"
           />
-          <button onClick={() => setEditing(null)} className="btn-secondary mt-3 w-full text-sm">Cancel</button>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {isLoading && <SkeletonList />}
       {error && <ErrorState message="Could not load expenses." onRetry={() => refetch()} />}

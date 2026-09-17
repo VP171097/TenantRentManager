@@ -24,6 +24,7 @@ import { useAuth } from '../hooks/useAuth'
 import { ErrorState } from '../components/States'
 import { SkeletonCardGrid } from '../components/Skeleton'
 import { LedgerTable } from '../components/LedgerTable'
+import { Modal } from '../components/Modal'
 import { RentRevisionModal } from '../components/forms/RentRevisionModal'
 import { GenerateBillModal } from '../components/forms/GenerateBillModal'
 import { EditBillModal } from '../components/forms/EditBillModal'
@@ -506,30 +507,24 @@ export function TenantDetailPage() {
         </div>
       </div>
 
-      {showEditTenant && (
-        <div className="card max-w-md">
-          <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Edit Tenant</h2>
-          <TenantForm
-            defaultValues={{
-              full_name: tenant.full_name,
-              phone: tenant.phone ?? '',
-              email: tenant.email ?? '',
-              property_id: tenant.property_id,
-              room_id: tenant.room_id ?? '',
-              move_in_date: tenant.move_in_date,
-              security_deposit: tenant.security_deposit,
-              initial_rent: currentRent,
-              electricity_start_reading: tenant.electricity_start_reading ?? 0,
-              electricity_rate: tenant.electricity_rate ?? 0,
-            }}
-            onSubmit={(v) => editTenantMutation.mutateAsync(v)}
-            submitLabel="Save Changes"
-          />
-          <button onClick={() => setShowEditTenant(false)} className="btn-secondary mt-3 w-full">
-            Cancel
-          </button>
-        </div>
-      )}
+      <Modal open={showEditTenant} title="Edit Tenant" onClose={() => setShowEditTenant(false)}>
+        <TenantForm
+          defaultValues={{
+            full_name: tenant.full_name,
+            phone: tenant.phone ?? '',
+            email: tenant.email ?? '',
+            property_id: tenant.property_id,
+            room_id: tenant.room_id ?? '',
+            move_in_date: tenant.move_in_date,
+            security_deposit: tenant.security_deposit,
+            initial_rent: currentRent,
+            electricity_start_reading: tenant.electricity_start_reading ?? 0,
+            electricity_rate: tenant.electricity_rate ?? 0,
+          }}
+          onSubmit={(v) => editTenantMutation.mutateAsync(v)}
+          submitLabel="Save Changes"
+        />
+      </Modal>
 
       {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
 

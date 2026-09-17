@@ -10,6 +10,7 @@ import { TenantCard } from '../components/Cards'
 import { RoomForm } from '../components/forms/RoomForm'
 import { TenantForm } from '../components/forms/TenantForm'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Modal } from '../components/Modal'
 import { friendlyError } from '../utils/errors'
 import type { RoomFormValues, TenantFormValues } from '../utils/validation'
 
@@ -93,8 +94,8 @@ export function RoomDetailPage() {
               {showAddTenant ? 'Close' : 'Add Tenant'}
             </button>
           )}
-          <button onClick={() => setShowEdit((s) => !s)} className="btn-secondary px-4">
-            {showEdit ? 'Close' : 'Edit'}
+          <button onClick={() => setShowEdit(true)} className="btn-secondary px-4">
+            Edit
           </button>
           <button onClick={() => setShowDelete(true)} className="btn-secondary px-4 text-red-600 dark:text-red-400">
             Delete Room
@@ -104,23 +105,20 @@ export function RoomDetailPage() {
 
       {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
 
-      {showEdit && (
-        <div className="card max-w-sm">
-          <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Edit Room</h2>
-          <RoomForm
-            defaultValues={{
-              room_number: room.room_number,
-              floor: room.floor ?? '',
-              base_rent: room.base_rent,
-              electricity_rate: room.electricity_rate,
-              notes: room.notes ?? '',
-              upi_id_id: room.upi_id_id ?? '',
-            }}
-            onSubmit={(v) => editMutation.mutateAsync(v)}
-            submitLabel="Save Changes"
-          />
-        </div>
-      )}
+      <Modal open={showEdit} title="Edit Room" onClose={() => setShowEdit(false)}>
+        <RoomForm
+          defaultValues={{
+            room_number: room.room_number,
+            floor: room.floor ?? '',
+            base_rent: room.base_rent,
+            electricity_rate: room.electricity_rate,
+            notes: room.notes ?? '',
+            upi_id_id: room.upi_id_id ?? '',
+          }}
+          onSubmit={(v) => editMutation.mutateAsync(v)}
+          submitLabel="Save Changes"
+        />
+      </Modal>
 
       {showAddTenant && !occupant && (
         <div className="card max-w-sm">

@@ -14,6 +14,7 @@ import { ErrorState, EmptyState } from '../components/States'
 import { SkeletonList } from '../components/Skeleton'
 import { ManagerEmptyIcon } from '../components/EmptyIcons'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Modal } from '../components/Modal'
 import { CreateManagerLoginForm } from '../components/CreateManagerLoginForm'
 import { InviteManagerForm } from '../components/InviteManagerForm'
 import { ImageUploader } from '../components/ImageUploader'
@@ -106,8 +107,8 @@ export function ManagersPage() {
                     {loginManagerId === m.id ? 'Close' : 'Set Up Login'}
                   </button>
                 )}
-                <button onClick={() => setEditingManagerId(editingManagerId === m.id ? null : m.id)} className="btn-secondary px-4">
-                  {editingManagerId === m.id ? 'Close' : 'Edit'}
+                <button onClick={() => setEditingManagerId(m.id)} className="btn-secondary px-4">
+                  Edit
                 </button>
                 <button
                   onClick={() => setExpandedManagerId(expandedManagerId === m.id ? null : m.id)}
@@ -128,7 +129,9 @@ export function ManagersPage() {
                 </div>
               </div>
             )}
-            {editingManagerId === m.id && <ManagerProfileEditor manager={m} onDone={() => setEditingManagerId(null)} />}
+            <Modal open={editingManagerId === m.id} title="Edit Manager" onClose={() => setEditingManagerId(null)}>
+              <ManagerProfileEditor manager={m} onDone={() => setEditingManagerId(null)} />
+            </Modal>
             {expandedManagerId === m.id && properties && (
               <ManagerPermissionsEditor managerId={m.id} properties={properties} />
             )}
