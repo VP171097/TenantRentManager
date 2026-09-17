@@ -81,7 +81,16 @@ Deno.serve(async (req) => {
     if (!manager) return jsonResponse({ error: 'Manager not found or not accessible.' }, 404)
 
     if ((manager as any).owner_id !== user.id) {
-      return jsonResponse({ error: 'Only the property owner can create a manager login.' }, 403)
+      const { data: coOwner } = await callerClient
+        .from('managers')
+        .select('id')
+        .eq('profile_id', user.id)
+        .eq('owner_id', (manager as any).owner_id)
+        .eq('is_co_owner', true)
+        .maybeSingle()
+      if (!coOwner) {
+        return jsonResponse({ error: 'Only the property owner (or a co-owner) can create a manager login.' }, 403)
+      }
     }
     if ((manager as any).profile_id) {
       return jsonResponse({ error: 'This manager already has a login.' }, 400)

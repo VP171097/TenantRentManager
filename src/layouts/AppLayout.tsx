@@ -128,7 +128,7 @@ function SidebarUserFooter({ profile }: { profile: { full_name?: string; role?: 
 }
 
 export function AppLayout() {
-  const { profile } = useAuth()
+  const { profile, isCoOwner } = useAuth()
   const location = useLocation()
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   useLockBodyScroll(showMoreMenu)
@@ -141,7 +141,7 @@ export function AppLayout() {
 
   const visibleNavSections = NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => !(['/managers', '/audit'].includes(item.to) && profile?.role !== 'owner')),
+    items: section.items.filter((item) => !(['/managers', '/audit'].includes(item.to) && profile?.role !== 'owner' && !isCoOwner)),
   }))
 
   return (

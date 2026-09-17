@@ -177,6 +177,7 @@ export interface Manager {
   avatar_url: string | null
   invite_token: string | null
   invite_token_expires_at: string | null
+  is_co_owner: boolean
   created_at: string
 }
 

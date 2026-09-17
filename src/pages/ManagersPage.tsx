@@ -72,7 +72,8 @@ export function ManagersPage() {
       </div>
       <p className="text-slate-500 dark:text-slate-400">
         Add a manager, then either set a password for them yourself or send them an invite link to set their own.
-        Once they have a login, set what they can access here.
+        Once they have a login, set what they can access here — or make them a co-owner for full access to
+        everything, no per-property setup needed.
       </p>
 
       {showAddForm && profile && (
@@ -95,7 +96,14 @@ export function ManagersPage() {
                   </div>
                 )}
                 <div>
-                  <p className="font-bold text-slate-900 dark:text-slate-100">{m.full_name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-slate-900 dark:text-slate-100">{m.full_name}</p>
+                    {m.is_co_owner && (
+                      <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
+                        Co-owner
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">{m.email || m.phone}</p>
                   {!m.profile_id && (
                     <p className="mt-1 text-xs font-semibold text-orange-600 dark:text-orange-400">No login yet</p>
@@ -111,12 +119,14 @@ export function ManagersPage() {
                 <button onClick={() => setEditingManagerId(m.id)} className="btn-secondary px-4">
                   Edit
                 </button>
-                <button
-                  onClick={() => setExpandedManagerId(expandedManagerId === m.id ? null : m.id)}
-                  className="btn-secondary px-4"
-                >
-                  Permissions
-                </button>
+                {!m.is_co_owner && (
+                  <button
+                    onClick={() => setExpandedManagerId(expandedManagerId === m.id ? null : m.id)}
+                    className="btn-secondary px-4"
+                  >
+                    Permissions
+                  </button>
+                )}
                 <button onClick={() => setToRemove(m.id)} className="btn-secondary px-4 text-red-600 dark:text-red-400">
                   Remove
                 </button>
@@ -158,15 +168,22 @@ export function ManagersPage() {
   )
 }
 
-function ManagerProfileEditor({ manager, onDone }: { manager: { id: string; full_name: string; phone: string | null; avatar_url: string | null }; onDone: () => void }) {
+function ManagerProfileEditor({
+  manager,
+  onDone,
+}: {
+  manager: { id: string; full_name: string; phone: string | null; avatar_url: string | null; is_co_owner: boolean }
+  onDone: () => void
+}) {
   const queryClient = useQueryClient()
   const [fullName, setFullName] = useState(manager.full_name)
   const [phone, setPhone] = useState(manager.phone ?? '')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(manager.avatar_url ?? null)
+  const [isCoOwner, setIsCoOwner] = useState(manager.is_co_owner)
   const [error, setError] = useState<string | null>(null)
 
   const mutation = useMutation({
-    mutationFn: () => updateManager(manager.id, { full_name: fullName, phone, avatar_url: avatarUrl }),
+    mutationFn: () => updateManager(manager.id, { full_name: fullName, phone, avatar_url: avatarUrl, is_co_owner: isCoOwner }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['managers'] })
       onDone()
@@ -195,6 +212,14 @@ function ManagerProfileEditor({ manager, onDone }: { manager: { id: string; full
         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Mobile number</label>
         <input value={phone} onChange={(e) => setPhone(e.target.value)} className="input mt-1" />
       </div>
+      <label className="flex items-start gap-2 rounded-xl bg-brand-50 dark:bg-brand-950/30 p-3 text-sm text-slate-700 dark:text-slate-200">
+        <input type="checkbox" checked={isCoOwner} onChange={(e) => setIsCoOwner(e.target.checked)} className="mt-0.5" />
+        <span>
+          <span className="font-semibold">Make this a co-owner</span>
+          <br />
+          Full access to everything — every property, tenant, bill and manager — no per-property permissions to set up.
+        </span>
+      </label>
       <button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="btn-primary w-full">
         {mutation.isPending ? 'Saving…' : 'Save Changes'}
       </button>
@@ -252,11 +277,19 @@ function AddManagerForm({ ownerId, onDone }: { ownerId: string; onDone: () => vo
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [isCoOwner, setIsCoOwner] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: () =>
-      createManager({ owner_id: ownerId, full_name: fullName, email: email || null, phone: phone || null, avatar_url: avatarUrl }),
+      createManager({
+        owner_id: ownerId,
+        full_name: fullName,
+        email: email || null,
+        phone: phone || null,
+        avatar_url: avatarUrl,
+        is_co_owner: isCoOwner,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['managers'] })
       onDone()
@@ -294,8 +327,18 @@ function AddManagerForm({ ownerId, onDone }: { ownerId: string; onDone: () => vo
         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Mobile number (optional)</label>
         <input value={phone} onChange={(e) => setPhone(e.target.value)} className="input mt-1" />
       </div>
+      <label className="flex items-start gap-2 rounded-xl bg-brand-50 dark:bg-brand-950/30 p-3 text-sm text-slate-700 dark:text-slate-200">
+        <input type="checkbox" checked={isCoOwner} onChange={(e) => setIsCoOwner(e.target.checked)} className="mt-0.5" />
+        <span>
+          <span className="font-semibold">Make this a co-owner</span>
+          <br />
+          Full access to everything — every property, tenant, bill and manager — no per-property permissions to set up.
+        </span>
+      </label>
       <p className="text-xs text-slate-500 dark:text-slate-400">
-        You'll set up their login (password or invite link) and permissions next.
+        {isCoOwner
+          ? "You'll set up their login (password or invite link) next."
+          : "You'll set up their login (password or invite link) and permissions next."}
       </p>
       {error && <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
       <button type="submit" disabled={mutation.isPending} className="btn-primary w-full">

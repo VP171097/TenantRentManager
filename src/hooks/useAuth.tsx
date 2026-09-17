@@ -7,6 +7,10 @@ import { useQueryClient } from '@tanstack/react-query'
 interface AuthContextValue {
   session: Session | null
   profile: Profile | null
+  /** True when the signed-in manager has been flagged as a co-owner
+   * (full access, no per-property permissions). Always false for
+   * owners/tenants. */
+  isCoOwner: boolean
   loading: boolean
   profileError: string | null
   /** True once Supabase detects a password-recovery link in the URL (the
@@ -43,6 +47,7 @@ function attachPendingOwnerPhone(session: Session) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [isCoOwner, setIsCoOwner] = useState(false)
   const [loading, setLoading] = useState(true)
   const [passwordRecovery, setPasswordRecovery] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
@@ -68,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true)
       if (!next) {
         setProfile(null)
+        setIsCoOwner(false)
         setProfileError(null)
         setLoading(false)
         return
@@ -75,9 +81,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { data, error } = await supabase.from('profiles').select('*').eq('id', next.user.id).single()
         if (!mounted || request !== version) return
-        setProfile(error ? null : data as Profile)
+        const nextProfile = error ? null : (data as Profile)
+        setProfile(nextProfile)
         setProfileError(error || !data ? 'Your account profile could not be loaded. Sign out and try again, or contact your property owner.' : null)
-        if (!error && data && (data as Profile).role === 'owner') attachPendingOwnerPhone(next)
+        if (nextProfile?.role === 'owner') attachPendingOwnerPhone(next)
+        if (nextProfile?.role === 'manager') {
+          const { data: managerRow } = await supabase
+            .from('managers')
+            .select('is_co_owner')
+            .eq('profile_id', next.user.id)
+            .maybeSingle()
+          if (mounted && request === version) setIsCoOwner(!!managerRow?.is_co_owner)
+        } else {
+          setIsCoOwner(false)
+        }
       } catch {
         if (mounted && request === version) setProfileError('Connection interrupted while loading your profile. Please sign out and try again.')
       } finally {
@@ -114,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error
     queryClient.clear()
     setProfile(null)
+    setIsCoOwner(false)
     setSession(null)
   }
 
@@ -122,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         session,
         profile,
+        isCoOwner,
         loading,
         profileError,
         passwordRecovery,

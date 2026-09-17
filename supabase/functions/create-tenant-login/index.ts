@@ -88,10 +88,19 @@ Deno.serve(async (req) => {
     if (tErr) return jsonResponse({ error: tErr.message }, 500)
     if (!tenant) return jsonResponse({ error: 'Tenant not found or not accessible.' }, 404)
 
-    // Only the OWNER may create tenant logins (not managers), matching the
-    // spec: "verify caller is the owning owner".
+    // The owner, or a co-owner acting for them, may create tenant logins
+    // (regular managers may not).
     if ((tenant as any).owner_id !== user.id) {
-      return jsonResponse({ error: 'Only the property owner can create a tenant login.' }, 403)
+      const { data: coOwner } = await callerClient
+        .from('managers')
+        .select('id')
+        .eq('profile_id', user.id)
+        .eq('owner_id', (tenant as any).owner_id)
+        .eq('is_co_owner', true)
+        .maybeSingle()
+      if (!coOwner) {
+        return jsonResponse({ error: 'Only the property owner (or a co-owner) can create a tenant login.' }, 403)
+      }
     }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)

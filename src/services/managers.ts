@@ -23,6 +23,7 @@ export async function createManager(input: {
   email?: string | null
   phone?: string | null
   avatar_url?: string | null
+  is_co_owner?: boolean
 }): Promise<Manager> {
   const { data, error } = await supabase.from('managers').insert(input).select().single()
   if (error) throw error
@@ -66,7 +67,7 @@ export async function upsertManagerPermission(input: {
 
 export async function updateManager(
   id: string,
-  input: { full_name?: string; email?: string | null; phone?: string | null; avatar_url?: string | null }
+  input: { full_name?: string; email?: string | null; phone?: string | null; avatar_url?: string | null; is_co_owner?: boolean }
 ): Promise<Manager> {
   const { data, error } = await supabase.from('managers').update(input).eq('id', id).select().single()
   if (error) throw error

@@ -82,7 +82,16 @@ Deno.serve(async (req) => {
     if (rowErr) return jsonResponse({ error: rowErr.message }, 500)
     if (!row) return jsonResponse({ error: `${body.kind === 'tenant' ? 'Tenant' : 'Manager'} not found or not accessible.` }, 404)
     if ((row as any).owner_id !== user.id) {
-      return jsonResponse({ error: 'Only the property owner can reset this login.' }, 403)
+      const { data: coOwner } = await callerClient
+        .from('managers')
+        .select('id')
+        .eq('profile_id', user.id)
+        .eq('owner_id', (row as any).owner_id)
+        .eq('is_co_owner', true)
+        .maybeSingle()
+      if (!coOwner) {
+        return jsonResponse({ error: 'Only the property owner (or a co-owner) can reset this login.' }, 403)
+      }
     }
     if (!(row as any).profile_id) {
       return jsonResponse({ error: 'This person does not have a login yet — create one first.' }, 400)
