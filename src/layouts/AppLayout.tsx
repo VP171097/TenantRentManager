@@ -88,7 +88,10 @@ function BrandMark() {
       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600 shadow-md shrink-0">
         <Building2 size={22} className="text-white" />
       </div>
-      <p className="text-2xl font-extrabold tracking-tight text-brand-700 dark:text-brand-200">RentBook</p>
+      <div className="min-w-0 leading-tight">
+        <p className="text-2xl font-extrabold tracking-tight text-brand-700 dark:text-brand-200">RentBook</p>
+        <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500">Rent, Simplified.</p>
+      </div>
     </div>
   )
 }

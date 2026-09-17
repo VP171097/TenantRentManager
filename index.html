@@ -34,23 +34,43 @@
         inset: 0;
         z-index: 9999;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 14px;
         background: #faf7f0;
         transition: opacity 0.25s ease;
       }
       @media (prefers-color-scheme: dark) { #app-splash { background: #0c0a08; } }
-      #app-splash img {
-        width: min(45vw, 220px);
-        height: min(45vw, 220px);
-        object-fit: contain;
-        border-radius: 28px;
+      #app-splash .app-splash-mark {
+        display: flex;
+        height: min(22vw, 96px);
+        width: min(22vw, 96px);
+        align-items: center;
+        justify-content: center;
+        border-radius: 24px;
+        background: #0d9488;
+        box-shadow: 0 8px 24px rgba(13,148,136,0.3);
       }
+      #app-splash .app-splash-mark svg { width: 55%; height: 55%; color: #fff; }
+      #app-splash .app-splash-wordmark { font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 28px; color: #0f766e; }
+      @media (prefers-color-scheme: dark) { #app-splash .app-splash-wordmark { color: #5eead4; } }
+      #app-splash .app-splash-tagline { font-family: 'DM Sans', system-ui, sans-serif; font-size: 12px; color: #78716c; letter-spacing: 0.02em; }
       #app-splash.app-splash-hidden { opacity: 0; pointer-events: none; }
     </style>
   </head>
   <body>
-    <div id="app-splash"><img src="%BASE_URL%assets/splash.png" alt="" /></div>
+    <div id="app-splash">
+      <div class="app-splash-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 12h4" /><path d="M10 8h4" /><path d="M14 21v-3a2 2 0 0 0-4 0v3" />
+          <path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" />
+          <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
+        </svg>
+      </div>
+      <div class="app-splash-wordmark">RentBook</div>
+      <div class="app-splash-tagline">Rent, Simplified.</div>
+    </div>
     <div id="root"><main class="app-shell-fallback"><h1>RentBook — Rent, Simplified</h1><p>Less chasing rent. More room for life.</p><p>Manage properties, tenants, rent collections, electricity readings and PDF receipts in one organised place. Built for small property owners in India.</p><a href="login">Sign in to RentBook</a></main></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
