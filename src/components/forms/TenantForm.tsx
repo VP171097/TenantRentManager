@@ -81,7 +81,7 @@ export function TenantForm({
         <input {...register('email')} className="input" />
       </Field>
       <Field label="Property" error={errors.property_id?.message}>
-        <select {...register('property_id')} className="input">
+        <select key={properties ? 'properties-loaded' : 'properties-loading'} {...register('property_id')} className="input">
           <option value="">Select a property</option>
           {properties?.map((p) => (
             <option key={p.id} value={p.id}>
@@ -91,7 +91,22 @@ export function TenantForm({
         </select>
       </Field>
       <Field label="Room" error={errors.room_id?.message}>
-        <select {...register('room_id')} className="input" disabled={!propertyId}>
+        <select
+          // Remount once the room list finishes loading: this is an
+          // uncontrolled <select> (bound via register's ref), so the
+          // browser only picks a matching <option> at the moment the
+          // element is attached. Rooms load asynchronously, so on first
+          // paint the only <option> is "Select a room" — once the real
+          // options arrive a beat later, a plain re-render can't
+          // retroactively re-select the tenant's room. Changing `key`
+          // forces React to tear down and recreate the element, so
+          // RHF's ref callback re-applies the stored value against the
+          // now-complete option list.
+          key={rooms ? 'rooms-loaded' : 'rooms-loading'}
+          {...register('room_id')}
+          className="input"
+          disabled={!propertyId}
+        >
           <option value="">Select a room</option>
           {rooms
             // Always keep the tenant's own currently-assigned room in the
