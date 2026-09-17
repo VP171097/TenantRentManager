@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { friendlyError } from '../utils/errors'
+import { validatePassword, passwordsMatchError } from '../utils/password'
 import { useAuth } from '../hooks/useAuth'
 import { Footer } from '../components/Footer'
 
@@ -22,8 +23,9 @@ export function ResetPasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (password !== confirm) {
-      setError('Passwords do not match.')
+    const pwError = validatePassword(password) ?? passwordsMatchError(password, confirm)
+    if (pwError) {
+      setError(pwError)
       return
     }
     setLoading(true)
@@ -61,18 +63,19 @@ export function ResetPasswordPage() {
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                 />
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">At least 8 characters, with a letter and a number.</p>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Confirm new password</label>
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"

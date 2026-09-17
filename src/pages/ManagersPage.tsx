@@ -16,6 +16,7 @@ import { ManagerEmptyIcon } from '../components/EmptyIcons'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Modal } from '../components/Modal'
 import { CreateManagerLoginForm } from '../components/CreateManagerLoginForm'
+import { OwnerResetPasswordForm } from '../components/OwnerResetPasswordForm'
 import { InviteManagerForm } from '../components/InviteManagerForm'
 import { ImageUploader } from '../components/ImageUploader'
 import { friendlyError } from '../utils/errors'
@@ -127,6 +128,11 @@ export function ManagersPage() {
                 <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
                   <InviteManagerForm manager={m} />
                 </div>
+              </div>
+            )}
+            {m.profile_id && (
+              <div className="mt-4 border-t border-slate-100 dark:border-slate-700 pt-4">
+                <OwnerResetPasswordForm kind="manager" id={m.id} />
               </div>
             )}
             <Modal open={editingManagerId === m.id} title="Edit Manager" onClose={() => setEditingManagerId(null)}>

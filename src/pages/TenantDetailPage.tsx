@@ -40,6 +40,7 @@ import { downloadReceiptPdf, receiptPdfBase64 } from '../services/receiptPdf'
 import { downloadBillPdf, billPdfBase64 } from '../services/billPdf'
 import { downloadLeasePdf } from '../services/leasePdf'
 import { CreateTenantLoginForm } from '../components/CreateTenantLoginForm'
+import { OwnerResetPasswordForm } from '../components/OwnerResetPasswordForm'
 import { InviteTenantForm } from '../components/InviteTenantForm'
 import type { TenantDocument, Bill } from '../types/database'
 import type { TenantFormValues } from '../utils/validation'
@@ -660,6 +661,7 @@ export function TenantDetailPage() {
           </p>
         )}
         <CreateTenantLoginForm tenant={tenant} />
+        {tenant.profile_id && <OwnerResetPasswordForm kind="tenant" id={tenant.id} />}
         <InviteTenantForm tenant={tenant} />
       </section>
 

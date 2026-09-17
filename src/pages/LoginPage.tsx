@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { friendlyError, extractFunctionErrorMessage } from '../utils/errors'
+import { validatePassword, passwordsMatchError } from '../utils/password'
 import { useAuth } from '../hooks/useAuth'
 import { isEmailIdentifier, normalizePhoneIdentifier } from '../utils/upi'
 import { Footer } from '../components/Footer'
@@ -17,6 +18,7 @@ export function LoginPage() {
   const [mode, setMode] = useState<Mode>(params.get('mode') === 'signup' ? 'signup' : 'signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -35,6 +37,14 @@ export function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    const isPhoneReset = mode === 'forgot' && !isEmailIdentifier(email.trim())
+    if (mode === 'signup' || isPhoneReset) {
+      const pwError = validatePassword(password) ?? passwordsMatchError(password, confirmPassword)
+      if (pwError) {
+        setError(pwError)
+        return
+      }
+    }
     setLoading(true)
     try {
       if (mode === 'forgot') {
@@ -83,6 +93,8 @@ export function LoginPage() {
     setResetSent(false)
     setResetKind(null)
     setConfirmationSent(false)
+    setPassword('')
+    setConfirmPassword('')
   }
 
   const forgotIdentifier = email.trim()
@@ -215,7 +227,7 @@ export function LoginPage() {
                         autoComplete={mode === 'signup' || isPhoneReset ? 'new-password' : 'current-password'}
                         type={showPassword ? 'text' : 'password'}
                         required
-                        minLength={6}
+                        minLength={mode === 'signup' || isPhoneReset ? 8 : 6}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
@@ -230,6 +242,32 @@ export function LoginPage() {
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
+                    </div>
+                    {(mode === 'signup' || isPhoneReset) && (
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">At least 8 characters, with a letter and a number.</p>
+                    )}
+                  </div>
+                )}
+
+                {(mode === 'signup' || isPhoneReset) && (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      {isPhoneReset ? 'Confirm new password' : 'Confirm password'}
+                    </label>
+                    <div className="relative">
+                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        data-testid="login-confirm-password"
+                        aria-label={isPhoneReset ? 'Confirm new password' : 'Confirm password'}
+                        autoComplete="new-password"
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        minLength={8}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="input pl-10"
+                      />
                     </div>
                   </div>
                 )}

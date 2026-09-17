@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
     if (!body?.managerId || !body?.identifier || !body?.password) {
       return jsonResponse({ error: 'managerId, identifier and password are required' }, 400)
     }
-    if (body.password.length < 6) {
-      return jsonResponse({ error: 'Password must be at least 6 characters.' }, 400)
+    if (body.password.length < 8 || !/[a-zA-Z]/.test(body.password) || !/[0-9]/.test(body.password)) {
+      return jsonResponse({ error: 'Password must be at least 8 characters, with a letter and a number.' }, 400)
     }
 
     const callerClient = createClient(SUPABASE_URL, ANON_KEY, {

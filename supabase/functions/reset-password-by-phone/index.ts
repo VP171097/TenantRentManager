@@ -63,8 +63,8 @@ Deno.serve(async (req) => {
     if (!body?.phone || !body?.full_name || !body?.new_password) {
       return jsonResponse({ error: 'Mobile number, full name and new password are required.' }, 400)
     }
-    if (body.new_password.length < 6) {
-      return jsonResponse({ error: 'Password must be at least 6 characters.' }, 400)
+    if (body.new_password.length < 8 || !/[a-zA-Z]/.test(body.new_password) || !/[0-9]/.test(body.new_password)) {
+      return jsonResponse({ error: 'Password must be at least 8 characters, with a letter and a number.' }, 400)
     }
 
     const phone = normalizePhone(body.phone)
