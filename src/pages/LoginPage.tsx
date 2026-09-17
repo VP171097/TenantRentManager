@@ -200,7 +200,7 @@ export function LoginPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-slate-900 dark:text-slate-100">I'm a Property Owner</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Manage properties, tenants and rent</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Manage properties, tenants and rent — co-owners too</p>
                     </div>
                     <ArrowRight size={16} className="shrink-0 text-slate-400" />
                   </button>
@@ -215,7 +215,7 @@ export function LoginPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-slate-900 dark:text-slate-100">I'm a Tenant or Manager</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">View your bills, payments and receipts</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">View or manage bills, payments and receipts</p>
                     </div>
                     <ArrowRight size={16} className="shrink-0 text-slate-400" />
                   </button>
