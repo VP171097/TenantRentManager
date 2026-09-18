@@ -21,16 +21,21 @@ export function ReceiptsPage() {
   async function handleDownload(receiptId: string) {
     const receipt = receipts?.find((r) => r.id === receiptId)
     if (!receipt) return
-    const [{ data: payment }, { data: bill }, { data: tenant }, { data: property }] = await Promise.all([
+    const [{ data: payment }, { data: tenant }, { data: property }] = await Promise.all([
       supabase.from('payments').select('*').eq('id', receipt.payment_id).single(),
-      supabase.from('bills').select('*').eq('tenant_id', receipt.tenant_id).order('billing_month', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('tenants').select('*').eq('id', receipt.tenant_id).single(),
       supabase.from('properties').select('*').eq('id', receipt.property_id).single(),
     ])
+    // Fetched by payment.bill_id, not "the tenant's latest bill" — a receipt
+    // must reflect the bill it was actually generated against.
+    const { data: bill } = payment
+      ? await supabase.from('bills').select('*').eq('id', payment.bill_id).maybeSingle()
+      : { data: null }
     if (payment && bill && tenant && property) {
-      const [reading, { data: ownerProfile }] = await Promise.all([
+      const [reading, { data: ownerProfile }, { data: room }] = await Promise.all([
         getReadingForMonth(tenant.id, bill.billing_month).catch(() => null),
-        supabase.from('profiles').select('full_name, phone').eq('id', tenant.owner_id).maybeSingle(),
+        supabase.from('profiles').select('full_name, phone, email').eq('id', tenant.owner_id).maybeSingle(),
+        supabase.from('rooms').select('room_number').eq('id', bill.room_id).maybeSingle(),
       ])
       downloadReceiptPdf({
         receipt,
@@ -39,9 +44,11 @@ export function ReceiptsPage() {
         tenant,
         property,
         logoUrl,
+        roomNumber: (room as { room_number?: string } | null)?.room_number,
         reading,
         ownerName: (ownerProfile as { full_name?: string } | null)?.full_name,
         ownerPhone: (ownerProfile as { phone?: string } | null)?.phone,
+        ownerEmail: (ownerProfile as { email?: string } | null)?.email,
       })
     }
   }

@@ -182,11 +182,10 @@ export function TenantDetailPage() {
       const { data: property } = await supabase.from('properties').select('*').eq('id', tenant.property_id).single()
       if (!property) return
 
-      const { data: ownerProfileForReceipt } = await supabase
-        .from('profiles')
-        .select('logo_url, full_name, phone')
-        .eq('id', tenant.owner_id)
-        .maybeSingle()
+      const [{ data: ownerProfileForReceipt }, { data: roomForReceipt }] = await Promise.all([
+        supabase.from('profiles').select('logo_url, full_name, phone, email').eq('id', tenant.owner_id).maybeSingle(),
+        supabase.from('rooms').select('room_number').eq('id', bill.room_id).maybeSingle(),
+      ])
       const readingForReceipt = await getReadingForMonth(tenant.id, bill.billing_month).catch(() => null)
       const pdfBase64 = await receiptPdfBase64({
         receipt,
@@ -195,9 +194,11 @@ export function TenantDetailPage() {
         tenant,
         property,
         logoUrl: (ownerProfileForReceipt as { logo_url?: string } | null)?.logo_url,
+        roomNumber: (roomForReceipt as { room_number?: string } | null)?.room_number,
         reading: readingForReceipt,
         ownerName: (ownerProfileForReceipt as { full_name?: string } | null)?.full_name,
         ownerPhone: (ownerProfileForReceipt as { phone?: string } | null)?.phone,
+        ownerEmail: (ownerProfileForReceipt as { email?: string } | null)?.email,
       })
       const { data, error: fnError } = await supabase.functions.invoke('send-bill', {
         body: { billId: bill.id, mode: 'receipt', paymentId: payment.id, pdfBase64 },
@@ -310,9 +311,10 @@ export function TenantDetailPage() {
       const payment = payments?.find((p) => p.id === paymentId)
       const bill = bills?.find((b) => b.id === payment?.bill_id)
       if (payment && bill && tenant) {
-        const [{ data: property }, { data: ownerProfile }, readingForReceipt] = await Promise.all([
+        const [{ data: property }, { data: ownerProfile }, { data: room }, readingForReceipt] = await Promise.all([
           supabase.from('properties').select('*').eq('id', tenant.property_id).single(),
-          supabase.from('profiles').select('logo_url, full_name, phone').eq('id', tenant.owner_id).maybeSingle(),
+          supabase.from('profiles').select('logo_url, full_name, phone, email').eq('id', tenant.owner_id).maybeSingle(),
+          supabase.from('rooms').select('room_number').eq('id', bill.room_id).maybeSingle(),
           getReadingForMonth(tenant.id, bill.billing_month).catch(() => null),
         ])
         if (property)
@@ -323,9 +325,11 @@ export function TenantDetailPage() {
             tenant,
             property,
             logoUrl: (ownerProfile as { logo_url?: string } | null)?.logo_url,
+            roomNumber: (room as { room_number?: string } | null)?.room_number,
             reading: readingForReceipt,
             ownerName: (ownerProfile as { full_name?: string } | null)?.full_name,
             ownerPhone: (ownerProfile as { phone?: string } | null)?.phone,
+            ownerEmail: (ownerProfile as { email?: string } | null)?.email,
           })
       }
     } catch (err) {
@@ -359,7 +363,7 @@ export function TenantDetailPage() {
       const { data: property } = await supabase.from('properties').select('*').eq('id', tenant!.property_id).single()
       const { data: ownerProfile } = await supabase
         .from('profiles')
-        .select('upi_id, logo_url, full_name, phone')
+        .select('upi_id, logo_url, full_name, phone, email')
         .eq('id', tenant!.owner_id)
         .maybeSingle()
       const { data: room } = await supabase.from('rooms').select('room_number, upi_id_id').eq('id', bill.room_id).maybeSingle()
@@ -380,6 +384,7 @@ export function TenantDetailPage() {
           reading,
           ownerName: (ownerProfile as { full_name?: string } | null)?.full_name,
           ownerPhone: (ownerProfile as { phone?: string } | null)?.phone,
+          ownerEmail: (ownerProfile as { email?: string } | null)?.email,
         })
       }
     } catch (err) {
@@ -394,7 +399,7 @@ export function TenantDetailPage() {
       const { data: property } = await supabase.from('properties').select('*').eq('id', tenant!.property_id).single()
       const { data: ownerProfile } = await supabase
         .from('profiles')
-        .select('upi_id, logo_url, full_name, phone')
+        .select('upi_id, logo_url, full_name, phone, email')
         .eq('id', tenant!.owner_id)
         .maybeSingle()
       const { data: room } = await supabase.from('rooms').select('room_number, upi_id_id').eq('id', bill.room_id).maybeSingle()
@@ -416,6 +421,7 @@ export function TenantDetailPage() {
           reading,
           ownerName: (ownerProfile as { full_name?: string } | null)?.full_name,
           ownerPhone: (ownerProfile as { phone?: string } | null)?.phone,
+          ownerEmail: (ownerProfile as { email?: string } | null)?.email,
         })
       }
       const { data, error: fnError } = await supabase.functions.invoke('send-bill', {

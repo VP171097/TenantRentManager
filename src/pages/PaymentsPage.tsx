@@ -109,9 +109,10 @@ export function PaymentsPage() {
           supabase.from('properties').select('*').eq('id', bill.property_id).single(),
         ])
         if (tenant && property) {
-          const [reading, { data: ownerProfile }] = await Promise.all([
+          const [reading, { data: ownerProfile }, { data: room }] = await Promise.all([
             getReadingForMonth(tenant.id, bill.billing_month).catch(() => null),
-            supabase.from('profiles').select('full_name, phone').eq('id', tenant.owner_id).maybeSingle(),
+            supabase.from('profiles').select('full_name, phone, email').eq('id', tenant.owner_id).maybeSingle(),
+            supabase.from('rooms').select('room_number').eq('id', bill.room_id).maybeSingle(),
           ])
           downloadReceiptPdf({
             receipt,
@@ -120,9 +121,11 @@ export function PaymentsPage() {
             tenant,
             property,
             logoUrl,
+            roomNumber: (room as { room_number?: string } | null)?.room_number,
             reading,
             ownerName: (ownerProfile as { full_name?: string } | null)?.full_name,
             ownerPhone: (ownerProfile as { phone?: string } | null)?.phone,
+            ownerEmail: (ownerProfile as { email?: string } | null)?.email,
           })
         }
       }
