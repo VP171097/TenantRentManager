@@ -32,6 +32,7 @@ export const roomSchema = z.object({
   room_number: z.string().trim().min(1, 'Room number is required'),
   floor: z.string().trim().optional(),
   base_rent: z.coerce.number().min(0, 'Rent cannot be negative'),
+  electricity_enabled: z.boolean(),
   electricity_rate: z.coerce.number().min(0, 'Must be positive').optional(),
   notes: z.string().trim().optional(),
   upi_id_id: z.string().uuid().optional().or(z.literal('')),

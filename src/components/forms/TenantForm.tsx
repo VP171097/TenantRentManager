@@ -56,6 +56,19 @@ export function TenantForm({
     }
   }, [roomId, rooms, defaultValues, setValue])
 
+  const selectedRoom = rooms?.find((r) => r.id === roomId)
+  const roomChargesElectricity = selectedRoom ? selectedRoom.electricity_enabled : true
+
+  // This room doesn't charge electricity at all — there's nothing to
+  // configure, so hide the fields and keep the (still-required) values
+  // at 0 rather than leaving whatever was there from a previous room.
+  useEffect(() => {
+    if (!roomChargesElectricity) {
+      setValue('electricity_start_reading', 0, { shouldValidate: true })
+      setValue('electricity_rate', 0, { shouldValidate: true })
+    }
+  }, [roomChargesElectricity, setValue])
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <p className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-700 dark:bg-sky-950 dark:text-sky-300">
@@ -137,19 +150,25 @@ export function TenantForm({
       <Field label="Monthly rent (₹)" error={errors.initial_rent?.message}>
         <input type="number" step="0.01" min="0" {...register('initial_rent')} className="input" />
       </Field>
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Starting Electricity Unit" error={errors.electricity_start_reading?.message}>
-          <input type="number" step="1" min="0" {...register('electricity_start_reading')} className="input" />
-        </Field>
-        <Field label="Electricity Rate (₹/unit)" error={errors.electricity_rate?.message}>
-          <input type="number" step="0.01" min="0" {...register('electricity_rate')} className="input" />
-        </Field>
-      </div>
-      {roomId && rooms?.find((r) => r.id === roomId)?.electricity_rate ? (
-        <p className="-mt-2 text-xs text-slate-500 dark:text-slate-400">
-          Pre-filled from this room's electricity rate — change it only if this tenant pays a different rate.
-        </p>
-      ) : null}
+      {roomChargesElectricity ? (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Starting Electricity Unit" error={errors.electricity_start_reading?.message}>
+              <input type="number" step="1" min="0" {...register('electricity_start_reading')} className="input" />
+            </Field>
+            <Field label="Electricity Rate (₹/unit)" error={errors.electricity_rate?.message}>
+              <input type="number" step="0.01" min="0" {...register('electricity_rate')} className="input" />
+            </Field>
+          </div>
+          {selectedRoom?.electricity_rate ? (
+            <p className="-mt-2 text-xs text-slate-500 dark:text-slate-400">
+              Pre-filled from this room's electricity rate — change it only if this tenant pays a different rate.
+            </p>
+          ) : null}
+        </>
+      ) : (
+        <p className="text-xs text-slate-500 dark:text-slate-400">This room doesn't charge electricity.</p>
+      )}
       <button type="submit" disabled={isSubmitting} className="btn-primary w-full">
         {isSubmitting ? 'Saving…' : submitLabel}
       </button>

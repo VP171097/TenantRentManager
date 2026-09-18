@@ -52,6 +52,7 @@ export function BillingPage() {
   const isValid = useMemo(() => {
     if (!previewItems || previewItems.length === 0) return false
     for (const item of previewItems) {
+      if (!item.electricity_enabled) continue // Nothing to enter for a room with electricity off.
       const val = inputs[item.tenant_id]
       if (!val) return false // Nothing entered yet
       // The real meter reading is always required now (migration 032 —
@@ -65,6 +66,17 @@ export function BillingPage() {
   const handleGenerate = () => {
     if (!previewItems || !isValid || mutation.isPending || previewLoading) return
     const data: BillGenerationInput[] = previewItems.map((item) => {
+      if (!item.electricity_enabled) {
+        return {
+          tenant_id: item.tenant_id,
+          room_id: item.room_id,
+          last_reading: 0,
+          current_reading: 0,
+          rate_per_unit: 0,
+          skip_electricity: true,
+          electricity_enabled: false,
+        }
+      }
       const val = inputs[item.tenant_id]!
       return {
         tenant_id: item.tenant_id,
@@ -73,6 +85,7 @@ export function BillingPage() {
         current_reading: Number(val.current),
         rate_per_unit: item.rate_per_unit,
         skip_electricity: val.skip,
+        electricity_enabled: true,
       }
     })
     mutation.mutate(data)
@@ -129,8 +142,14 @@ export function BillingPage() {
             const val = inputs[item.tenant_id] ?? { current: '' as const, skip: false }
             return <article data-testid={`billing-tenant-${item.tenant_id}`} key={item.tenant_id} className="card !p-5">
               <div className="mb-4 flex justify-between gap-3"><h2 data-testid={`billing-tenant-name-${item.tenant_id}`} className="text-lg">{item.full_name}</h2><span data-testid={`billing-room-${item.tenant_id}`} className="rounded-full bg-slate-100 px-3 py-1 text-xs dark:bg-slate-800">Room {item.room_number}</span></div>
-              <QuickMeterDial id={`billing-meter-${item.tenant_id}`} previous={item.last_reading} current={val.current} rate={item.rate_per_unit} deferred={val.skip} disabled={mutation.isPending} onChange={current => setInputs(prev => ({ ...prev, [item.tenant_id]: { ...val, current } }))} />
-              <label data-testid={`billing-defer-label-${item.tenant_id}`} className="mt-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300"><input data-testid={`billing-defer-${item.tenant_id}`} type="checkbox" disabled={mutation.isPending} checked={val.skip} onChange={e => setInputs(prev => ({ ...prev, [item.tenant_id]: { ...val, skip: e.target.checked } }))} />Record reading, carry charge to next bill</label>
+              {item.electricity_enabled ? (
+                <>
+                  <QuickMeterDial id={`billing-meter-${item.tenant_id}`} previous={item.last_reading} current={val.current} rate={item.rate_per_unit} deferred={val.skip} disabled={mutation.isPending} onChange={current => setInputs(prev => ({ ...prev, [item.tenant_id]: { ...val, current } }))} />
+                  <label data-testid={`billing-defer-label-${item.tenant_id}`} className="mt-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300"><input data-testid={`billing-defer-${item.tenant_id}`} type="checkbox" disabled={mutation.isPending} checked={val.skip} onChange={e => setInputs(prev => ({ ...prev, [item.tenant_id]: { ...val, skip: e.target.checked } }))} />Record reading, carry charge to next bill</label>
+                </>
+              ) : (
+                <p data-testid={`billing-no-electricity-${item.tenant_id}`} className="text-sm text-slate-500 dark:text-slate-400">This room doesn't charge electricity — the bill will only cover rent.</p>
+              )}
             </article>
           })}</div>
           <div className="card flex flex-wrap items-center justify-between gap-4">

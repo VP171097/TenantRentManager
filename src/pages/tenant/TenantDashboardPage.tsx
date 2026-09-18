@@ -467,10 +467,12 @@ export function TenantDashboardPage() {
                     <span className="text-slate-500">Base Rent</span>
                     <span className="font-semibold">{formatINR(data.room.base_rent)}/mo</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Electricity Rate</span>
-                    <span className="font-semibold">₹{data.room.electricity_rate}/unit</span>
-                  </div>
+                  {data.room.electricity_enabled && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Electricity Rate</span>
+                      <span className="font-semibold">₹{data.room.electricity_rate}/unit</span>
+                    </div>
+                  )}
                 </>
               )}
               {data.latestReading != null && (
