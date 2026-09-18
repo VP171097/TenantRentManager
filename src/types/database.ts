@@ -39,6 +39,7 @@ export interface Room {
   base_rent: number
   status: RoomStatus
   electricity_rate: number
+  electricity_enabled: boolean
   notes: string | null
   upi_id_id: string | null
   created_at: string

@@ -95,13 +95,16 @@ export async function buildReceiptPdf({
     ? `${billPrevReading} to ${billCurrReading} (${bill.electricity_units} units)`
     : `${bill.electricity_units} units`
   const rateLabel = reading ? formatINR(reading.rate_per_unit) : '—'
+  // A room with electricity turned off never has a reading and never
+  // charges for it — omit the row entirely rather than showing a ₹0 line.
+  const hasElectricity = billPrevReading != null || billCurrReading != null || bill.electricity_charge > 0
 
   autoTable(doc, {
     startY: tableStartY,
     head: [['Description', 'Reading', 'Rate', 'Amount']],
     body: [
       ['Rent', '—', '—', formatINR(bill.rent_amount)],
-      ['Electricity', readingLabel, rateLabel, formatINR(bill.electricity_charge)],
+      ...(hasElectricity ? [['Electricity', readingLabel, rateLabel, formatINR(bill.electricity_charge)]] : []),
       ['Other charges', '—', '—', formatINR(bill.other_charges)],
       ['Late fee', '—', '—', formatINR(bill.late_fee)],
     ],

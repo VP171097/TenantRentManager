@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { from, rpc, upsert, existing } = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), upsert: vi.fn(), existing: [{ id: 'bill-kept', tenant_id: 'tenant-1', total_due: 5000 }] }))
 vi.mock('../lib/supabase', () => ({ supabase: { from, rpc } }))
 import { generateBillsForProperty } from './billing'
-const input = { tenant_id: 'tenant-1', room_id: 'room-1', last_reading: 100, current_reading: 200, rate_per_unit: 9, skip_electricity: false }
+const input = { tenant_id: 'tenant-1', room_id: 'room-1', last_reading: 100, current_reading: 200, rate_per_unit: 9, skip_electricity: false, electricity_enabled: true }
 beforeEach(() => {
   vi.clearAllMocks()
   const query = { select: vi.fn(), eq: vi.fn(), in: vi.fn().mockResolvedValue({ data: existing, error: null }), upsert }

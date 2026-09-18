@@ -20,6 +20,7 @@ export async function createRoom(input: {
   room_number: string
   floor?: string
   base_rent: number
+  electricity_enabled?: boolean
   electricity_rate?: number
   notes?: string
   upi_id_id?: string | null

@@ -18,8 +18,13 @@ export function RoomForm({
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<RoomFormValues>({ resolver: zodResolver(roomSchema), defaultValues })
+  } = useForm<RoomFormValues>({
+    resolver: zodResolver(roomSchema),
+    defaultValues: { electricity_enabled: true, ...defaultValues },
+  })
+  const electricityEnabled = watch('electricity_enabled')
 
   const { profile } = useAuth()
   const ownerId = profile?.role === 'owner' ? profile.id : profile?.owner_id
@@ -40,9 +45,17 @@ export function RoomForm({
       <Field label="Base rent (₹/month)" error={errors.base_rent?.message}>
         <input type="number" step="0.01" min="0" {...register('base_rent')} className="input" />
       </Field>
-      <Field label="Electricity Rate (₹/unit)" error={errors.electricity_rate?.message}>
-        <input type="number" step="0.01" min="0" {...register('electricity_rate')} className="input" />
-      </Field>
+      <div className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+        <input type="checkbox" id="roomElectricityEnabled" {...register('electricity_enabled')} className="h-4 w-4 rounded border-slate-300" />
+        <label htmlFor="roomElectricityEnabled" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+          This room charges tenants for electricity
+        </label>
+      </div>
+      {electricityEnabled && (
+        <Field label="Electricity Rate (₹/unit)" error={errors.electricity_rate?.message}>
+          <input type="number" step="0.01" min="0" {...register('electricity_rate')} className="input" />
+        </Field>
+      )}
       <Field label="Notes" error={errors.notes?.message}>
         <textarea {...register('notes')} className="input" rows={3} />
       </Field>

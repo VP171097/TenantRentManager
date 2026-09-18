@@ -38,32 +38,40 @@ export interface BillingPreviewItem {
   room_number: string
   last_reading: number
   rate_per_unit: number
+  /** False when the tenant's room has electricity turned off (migration
+   * 039) — no reading is required or recorded for them; their bill's
+   * electricity charge is simply 0. */
+  electricity_enabled: boolean
 }
 
 export async function getBillingPreview(propertyId: string, billingMonth: string): Promise<BillingPreviewItem[]> {
   const { data: tenants, error: tErr } = await supabase
     .from('tenants')
-    .select('id, full_name, room_id, electricity_start_reading, electricity_rate, rooms(room_number, electricity_rate)')
+    .select('id, full_name, room_id, electricity_start_reading, electricity_rate, rooms(room_number, electricity_rate, electricity_enabled)')
     .eq('property_id', propertyId)
     .eq('status', 'active')
   if (tErr) throw tErr
 
   const results: BillingPreviewItem[] = []
   for (const t of tenants ?? []) {
+    const room = t.rooms as any
+    const electricityEnabled = room?.electricity_enabled !== false
     // "Previous Unit" should always carry forward from the last CHARGED
     // bill, never silently reset to 0 — including skipping over any
     // "Skip / Carry Forward" months, which contribute 0 electricity units
     // and no reading snapshot. See resolveLastElectricityReading's doc
-    // comment for the full fallback chain.
-    const lastReading = await resolveLastElectricityReading(t.id, billingMonth)
+    // comment for the full fallback chain. Skipped entirely for a room
+    // with electricity turned off — there's nothing to resolve.
+    const lastReading = electricityEnabled ? await resolveLastElectricityReading(t.id, billingMonth) : 0
 
     results.push({
       tenant_id: t.id,
       room_id: t.room_id!,
       full_name: t.full_name,
-      room_number: (t.rooms as any)?.room_number ?? '',
+      room_number: room?.room_number ?? '',
       last_reading: lastReading,
-      rate_per_unit: t.electricity_rate || (t.rooms as any)?.electricity_rate || 0,
+      rate_per_unit: t.electricity_rate || room?.electricity_rate || 0,
+      electricity_enabled: electricityEnabled,
     })
   }
   return results
@@ -76,6 +84,9 @@ export interface BillGenerationInput {
   current_reading: number
   rate_per_unit: number
   skip_electricity: boolean
+  /** False when the room has electricity turned off — no
+   * electricity_readings row is written at all for this tenant/month. */
+  electricity_enabled: boolean
 }
 
 /** Bulk-generates bills for active tenants. Always records an
@@ -88,8 +99,10 @@ export async function generateBillsForProperty(propertyId: string, billingMonth:
   const results: Bill[] = []
   if (!inputs.length) return results
   // Validate the entire batch before the first write. Keep existing bills
-  // AND their readings unchanged when a user repeats generation.
+  // AND their readings unchanged when a user repeats generation. Rooms
+  // with electricity turned off never had a reading to validate.
   for (const input of inputs) {
+    if (!input.electricity_enabled) continue
     if (![input.current_reading, input.last_reading, input.rate_per_unit].every(Number.isFinite) || input.last_reading < 0 || input.current_reading < input.last_reading || input.rate_per_unit < 0) {
       throw new Error('Check meter readings and rates before generating bills.')
     }
@@ -101,22 +114,27 @@ export async function generateBillsForProperty(propertyId: string, billingMonth:
   for (const input of inputs) {
     const alreadyGenerated = existingByTenant.get(input.tenant_id)
     if (alreadyGenerated) { results.push(alreadyGenerated); continue }
-    const { error: elecErr } = await supabase
-      .from('electricity_readings')
-      .upsert(
-        {
-          tenant_id: input.tenant_id,
-          room_id: input.room_id,
-          billing_month: billingMonth,
-          previous_reading: input.last_reading,
-          current_reading: input.current_reading,
-          rate_per_unit: input.rate_per_unit,
-          is_meter_reset: false,
-          is_billed: !input.skip_electricity,
-        },
-        { onConflict: 'tenant_id, billing_month' }
-      )
-    if (elecErr) throw elecErr
+    // No electricity for this room — skip the reading entirely rather
+    // than writing a 0/0 row; fn_generate_bill already produces a
+    // correct ₹0 electricity charge when no reading row exists.
+    if (input.electricity_enabled) {
+      const { error: elecErr } = await supabase
+        .from('electricity_readings')
+        .upsert(
+          {
+            tenant_id: input.tenant_id,
+            room_id: input.room_id,
+            billing_month: billingMonth,
+            previous_reading: input.last_reading,
+            current_reading: input.current_reading,
+            rate_per_unit: input.rate_per_unit,
+            is_meter_reset: false,
+            is_billed: !input.skip_electricity,
+          },
+          { onConflict: 'tenant_id, billing_month' }
+        )
+      if (elecErr) throw elecErr
+    }
 
     results.push(await generateBill(input.tenant_id, billingMonth))
   }

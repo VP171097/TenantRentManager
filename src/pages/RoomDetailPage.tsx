@@ -111,6 +111,7 @@ export function RoomDetailPage() {
             room_number: room.room_number,
             floor: room.floor ?? '',
             base_rent: room.base_rent,
+            electricity_enabled: room.electricity_enabled,
             electricity_rate: room.electricity_rate,
             notes: room.notes ?? '',
             upi_id_id: room.upi_id_id ?? '',
