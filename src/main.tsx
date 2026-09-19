@@ -6,7 +6,10 @@ import App from './App.tsx'
 import { AuthProvider } from './hooks/useAuth.tsx'
 import { applyTheme } from './hooks/useTheme'
 import { migrateLegacyRoute } from './utils/routes'
+import { initSentry } from './utils/sentry'
+import { AppErrorBoundary } from './components/AppErrorBoundary'
 
+initSentry()
 migrateLegacyRoute()
 
 const queryClient = new QueryClient({
@@ -31,11 +34,13 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </QueryClientProvider>
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
   </StrictMode>
 )
 
