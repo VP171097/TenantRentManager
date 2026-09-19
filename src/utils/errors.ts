@@ -1,3 +1,5 @@
+import { Sentry } from './sentry'
+
 /** supabase-js's `functions.invoke()` throws a `FunctionsHttpError` whose
  * `.message` is always the generic "Edge Function returned a non-2xx
  * status code" — it does NOT read the function's actual JSON error body
@@ -64,6 +66,7 @@ export function friendlyError(error: unknown): string {
   // meant to be read as-is and passes through unchanged below.
   if (code && /constraint|relation "|column "|violates|syntax error/i.test(message)) {
     console.error('Unrecognized database error:', message)
+    Sentry.captureMessage(`Unrecognized database error: ${message}`, { level: 'warning', tags: { code } })
     return 'Something went wrong saving this. Please try again, or contact support if this continues.'
   }
 
