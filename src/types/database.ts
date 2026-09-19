@@ -223,6 +223,22 @@ export interface Expense {
   created_at: string
 }
 
+/** An expense charge queued for a tenant who has no bill yet to attach
+ * it to — folded into other_charges automatically by fn_generate_bill
+ * (or immediately via fn_apply_pending_charges_now if a current-month
+ * bill already exists) the next time one is generated for them. */
+export interface PendingTenantCharge {
+  id: string
+  owner_id: string
+  property_id: string
+  tenant_id: string
+  expense_id: string | null
+  amount: number
+  description: string | null
+  applied_bill_id: string | null
+  created_at: string
+}
+
 export type MaintenanceStatus = 'open' | 'in_progress' | 'resolved'
 
 export interface MaintenanceRequest {
