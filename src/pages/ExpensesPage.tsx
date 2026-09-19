@@ -62,9 +62,13 @@ export function ExpensesPage() {
       queryClient.invalidateQueries({ queryKey: ['bills'] })
       setShowForm(false)
       setFormError(null)
-      if (result.skippedCount > 0) {
+      if (result.queuedCount > 0 && result.chargedCount > 0) {
         setChargeNotice(
-          `Expense saved. Charged ${result.chargedCount} tenant(s) — ${result.skippedCount} skipped because they don't have a bill yet (generate their bill first, then add this expense again, or add it as an "other charge" when editing their bill).`
+          `Expense saved. Charged ${result.chargedCount} tenant(s) immediately — ${result.queuedCount} queued because they don't have a bill yet; it'll be added automatically to their next generated bill.`
+        )
+      } else if (result.queuedCount > 0) {
+        setChargeNotice(
+          `Expense saved and queued for ${result.queuedCount} tenant(s) — they don't have a bill yet, so it'll be added automatically to their next generated bill.`
         )
       } else if (result.chargedCount > 0) {
         setChargeNotice(`Expense saved and charged to ${result.chargedCount} tenant(s).`)
