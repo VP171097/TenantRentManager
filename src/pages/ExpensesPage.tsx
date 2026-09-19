@@ -13,6 +13,8 @@ import { DashboardCard } from '../components/DashboardCard'
 import { friendlyError } from '../utils/errors'
 import { formatINR } from '../utils/money'
 import { downloadCsv, toCsv } from '../utils/csv'
+import { Pagination } from '../components/Pagination'
+import { usePagination } from '../hooks/usePagination'
 import type { Expense } from '../types/database'
 import type { ExpenseFormValues } from '../utils/validation'
 import { Wallet, Download, Plus, X, Pencil, Trash2, Tag } from 'lucide-react'
@@ -121,6 +123,7 @@ export function ExpensesPage() {
   }
 
   const total = (expenses ?? []).reduce((s, e) => s + e.amount, 0)
+  const { page, setPage, pageCount, pageItems, totalItems, pageSize } = usePagination(expenses ?? [], 20)
 
   return (
     <div className="space-y-6 page-fade-in">
@@ -217,8 +220,9 @@ export function ExpensesPage() {
       )}
 
       {expenses && expenses.length > 0 && (
+        <>
         <div className="space-y-2">
-          {expenses.map((e) => (
+          {pageItems.map((e) => (
             <div key={e.id} className="card flex items-center justify-between gap-3 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
@@ -248,6 +252,8 @@ export function ExpensesPage() {
             </div>
           ))}
         </div>
+        <Pagination page={page} pageCount={pageCount} totalItems={totalItems} pageSize={pageSize} onChange={setPage} />
+        </>
       )}
 
       <ConfirmDialog
