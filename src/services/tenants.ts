@@ -1,8 +1,9 @@
 import { supabase } from '../lib/supabase'
+import { LIST_QUERY_LIMIT } from '../utils/query'
 import type { Tenant } from '../types/database'
 
 export async function listTenants(propertyId?: string): Promise<Tenant[]> {
-  let query = supabase.from('tenants').select('*').order('full_name')
+  let query = supabase.from('tenants').select('*').order('full_name').limit(LIST_QUERY_LIMIT)
   if (propertyId) query = query.eq('property_id', propertyId)
   const { data, error } = await query
   if (error) throw error

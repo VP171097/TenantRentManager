@@ -1,8 +1,9 @@
 import { supabase } from '../lib/supabase'
+import { LIST_QUERY_LIMIT } from '../utils/query'
 import type { Property } from '../types/database'
 
 export async function listProperties(): Promise<Property[]> {
-  const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false }).limit(LIST_QUERY_LIMIT)
   if (error) throw error
   return data as Property[]
 }

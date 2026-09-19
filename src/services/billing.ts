@@ -1,9 +1,10 @@
 import { supabase } from '../lib/supabase'
 import { resolveLastElectricityReading } from './electricity'
+import { LIST_QUERY_LIMIT } from '../utils/query'
 import type { Bill, RentRevision } from '../types/database'
 
 export async function listBills(filters: { tenantId?: string; propertyId?: string } = {}): Promise<Bill[]> {
-  let query = supabase.from('bills').select('*').order('billing_month', { ascending: false })
+  let query = supabase.from('bills').select('*').order('billing_month', { ascending: false }).limit(LIST_QUERY_LIMIT)
   if (filters.tenantId) query = query.eq('tenant_id', filters.tenantId)
   if (filters.propertyId) query = query.eq('property_id', filters.propertyId)
   const { data, error } = await query
@@ -52,17 +53,30 @@ export async function getBillingPreview(propertyId: string, billingMonth: string
     .eq('status', 'active')
   if (tErr) throw tErr
 
+  // Resolve every tenant's last reading concurrently rather than one
+  // sequential round trip per tenant — for a property with N active
+  // tenants this turns N serialized DB calls into N calls in flight at
+  // once, which is the difference between this screen loading instantly
+  // and loading in N * (round-trip time) for a large property.
+  const lastReadings = await Promise.all(
+    (tenants ?? []).map((t) => {
+      const room = t.rooms as any
+      const electricityEnabled = room?.electricity_enabled !== false
+      // "Previous Unit" should always carry forward from the last CHARGED
+      // bill, never silently reset to 0 — including skipping over any
+      // "Skip / Carry Forward" months, which contribute 0 electricity units
+      // and no reading snapshot. See resolveLastElectricityReading's doc
+      // comment for the full fallback chain. Skipped entirely for a room
+      // with electricity turned off — there's nothing to resolve.
+      return electricityEnabled ? resolveLastElectricityReading(t.id, billingMonth) : Promise.resolve(0)
+    })
+  )
+
   const results: BillingPreviewItem[] = []
-  for (const t of tenants ?? []) {
+  ;(tenants ?? []).forEach((t, i) => {
     const room = t.rooms as any
     const electricityEnabled = room?.electricity_enabled !== false
-    // "Previous Unit" should always carry forward from the last CHARGED
-    // bill, never silently reset to 0 — including skipping over any
-    // "Skip / Carry Forward" months, which contribute 0 electricity units
-    // and no reading snapshot. See resolveLastElectricityReading's doc
-    // comment for the full fallback chain. Skipped entirely for a room
-    // with electricity turned off — there's nothing to resolve.
-    const lastReading = electricityEnabled ? await resolveLastElectricityReading(t.id, billingMonth) : 0
+    const lastReading = lastReadings[i]
 
     results.push({
       tenant_id: t.id,
@@ -73,7 +87,7 @@ export async function getBillingPreview(propertyId: string, billingMonth: string
       rate_per_unit: t.electricity_rate || room?.electricity_rate || 0,
       electricity_enabled: electricityEnabled,
     })
-  }
+  })
   return results
 }
 

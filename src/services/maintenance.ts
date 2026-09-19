@@ -1,8 +1,9 @@
 import { supabase } from '../lib/supabase'
+import { LIST_QUERY_LIMIT } from '../utils/query'
 import type { MaintenanceRequest, MaintenanceStatus } from '../types/database'
 
 export async function listMaintenanceRequests(filters?: { propertyId?: string; tenantId?: string }): Promise<MaintenanceRequest[]> {
-  let query = supabase.from('maintenance_requests').select('*').order('created_at', { ascending: false })
+  let query = supabase.from('maintenance_requests').select('*').order('created_at', { ascending: false }).limit(LIST_QUERY_LIMIT)
   if (filters?.propertyId) query = query.eq('property_id', filters.propertyId)
   if (filters?.tenantId) query = query.eq('tenant_id', filters.tenantId)
   const { data, error } = await query
