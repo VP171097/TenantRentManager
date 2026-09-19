@@ -1,8 +1,9 @@
 import { supabase } from '../lib/supabase'
+import { LIST_QUERY_LIMIT } from '../utils/query'
 import type { Payment, Receipt } from '../types/database'
 
 export async function listPayments(filters: { tenantId?: string; billId?: string } = {}): Promise<Payment[]> {
-  let query = supabase.from('payments').select('*').order('payment_date', { ascending: false })
+  let query = supabase.from('payments').select('*').order('payment_date', { ascending: false }).limit(LIST_QUERY_LIMIT)
   if (filters.tenantId) query = query.eq('tenant_id', filters.tenantId)
   if (filters.billId) query = query.eq('bill_id', filters.billId)
   const { data, error } = await query
@@ -45,7 +46,7 @@ export async function generateReceipt(paymentId: string): Promise<Receipt> {
 }
 
 export async function listReceipts(filters: { tenantId?: string; propertyId?: string } = {}): Promise<Receipt[]> {
-  let query = supabase.from('receipts').select('*').order('generated_at', { ascending: false })
+  let query = supabase.from('receipts').select('*').order('generated_at', { ascending: false }).limit(LIST_QUERY_LIMIT)
   if (filters.tenantId) query = query.eq('tenant_id', filters.tenantId)
   if (filters.propertyId) query = query.eq('property_id', filters.propertyId)
   const { data, error } = await query

@@ -1,9 +1,10 @@
 import { supabase } from '../lib/supabase'
 import { currentBillingMonth } from '../utils/dashboard'
+import { LIST_QUERY_LIMIT } from '../utils/query'
 import type { Expense } from '../types/database'
 
 export async function listExpenses(filters?: { propertyId?: string }): Promise<Expense[]> {
-  let query = supabase.from('expenses').select('*').order('expense_date', { ascending: false })
+  let query = supabase.from('expenses').select('*').order('expense_date', { ascending: false }).limit(LIST_QUERY_LIMIT)
   if (filters?.propertyId) query = query.eq('property_id', filters.propertyId)
   const { data, error } = await query
   if (error) throw error
