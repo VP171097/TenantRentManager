@@ -38,6 +38,7 @@ export function ExpensesPage() {
   const [editing, setEditing] = useState<Expense | null>(null)
   const [deleting, setDeleting] = useState<Expense | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
+  const [chargeNotice, setChargeNotice] = useState<string | null>(null)
 
   const { data: expenses, isLoading, error, refetch } = useQuery({ queryKey: ['expenses'], queryFn: () => listExpenses() })
   const { data: properties } = useQuery({ queryKey: ['properties'], queryFn: listProperties })
@@ -56,7 +57,21 @@ export function ExpensesPage() {
         charge_to_tenant: values.charge_to_tenant ?? false,
         created_by: profile?.id,
       }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['expenses'] }); setShowForm(false); setFormError(null) },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      queryClient.invalidateQueries({ queryKey: ['bills'] })
+      setShowForm(false)
+      setFormError(null)
+      if (result.skippedCount > 0) {
+        setChargeNotice(
+          `Expense saved. Charged ${result.chargedCount} tenant(s) — ${result.skippedCount} skipped because they don't have a bill yet (generate their bill first, then add this expense again, or add it as an "other charge" when editing their bill).`
+        )
+      } else if (result.chargedCount > 0) {
+        setChargeNotice(`Expense saved and charged to ${result.chargedCount} tenant(s).`)
+      } else {
+        setChargeNotice(null)
+      }
+    },
     onError: (err) => setFormError(friendlyError(err)),
   })
 
@@ -105,6 +120,14 @@ export function ExpensesPage() {
 
   return (
     <div className="space-y-6 page-fade-in">
+      {chargeNotice && (
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+          <span>{chargeNotice}</span>
+          <button onClick={() => setChargeNotice(null)} className="shrink-0 text-amber-600 hover:text-amber-800 dark:text-amber-400">
+            <X size={15} />
+          </button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
