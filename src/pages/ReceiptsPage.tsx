@@ -6,6 +6,8 @@ import { ErrorState, EmptyState } from '../components/States'
 import { Skeleton, SkeletonList } from '../components/Skeleton'
 import { ReceiptEmptyIcon } from '../components/EmptyIcons'
 import { SearchBar } from '../components/SearchFilterBar'
+import { Pagination } from '../components/Pagination'
+import { usePagination } from '../hooks/usePagination'
 import { useState } from 'react'
 import { downloadReceiptPdf } from '../services/receiptPdf'
 import { useOwnerLogoUrl } from '../hooks/useOwnerBranding'
@@ -59,6 +61,7 @@ export function ReceiptsPage() {
       r.receipt_number.toLowerCase().includes(search.toLowerCase()) ||
       tenants?.find((t) => t.id === r.tenant_id)?.full_name.toLowerCase().includes(search.toLowerCase())
   )
+  const { page, setPage, pageCount, pageItems, totalItems, pageSize } = usePagination(filtered, 20, search)
 
   if (isLoading) {
     return (
@@ -95,22 +98,25 @@ export function ReceiptsPage() {
       {filtered.length === 0 ? (
         <EmptyState title="No receipts yet" description="Generate a receipt after recording a payment." icon={<ReceiptEmptyIcon className="h-full w-full" />} />
       ) : (
-        <div className="space-y-2">
-          {filtered.map((r) => (
-            <div key={r.id} className="card flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-slate-900 dark:text-slate-100">{r.receipt_number}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {tenants?.find((t) => t.id === r.tenant_id)?.full_name} ·{' '}
-                  {new Date(r.generated_at).toLocaleDateString('en-IN')}
-                </p>
+        <>
+          <div className="space-y-2">
+            {pageItems.map((r) => (
+              <div key={r.id} className="card flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-slate-100">{r.receipt_number}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {tenants?.find((t) => t.id === r.tenant_id)?.full_name} ·{' '}
+                    {new Date(r.generated_at).toLocaleDateString('en-IN')}
+                  </p>
+                </div>
+                <button onClick={() => handleDownload(r.id)} className="btn-secondary px-4">
+                  Download
+                </button>
               </div>
-              <button onClick={() => handleDownload(r.id)} className="btn-secondary px-4">
-                Download
-              </button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <Pagination page={page} pageCount={pageCount} totalItems={totalItems} pageSize={pageSize} onChange={setPage} />
+        </>
       )}
     </div>
   )

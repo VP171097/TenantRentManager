@@ -7,11 +7,17 @@ import { SkeletonCardGrid } from '../components/Skeleton'
 import { RoomEmptyIcon } from '../components/EmptyIcons'
 import { useState } from 'react'
 import { FilterBar } from '../components/SearchFilterBar'
+import { Pagination } from '../components/Pagination'
+import { usePagination } from '../hooks/usePagination'
 
 export function RoomsPage() {
   const { data: rooms, isLoading, error, refetch } = useQuery({ queryKey: ['rooms'], queryFn: () => listRooms() })
   const { data: properties } = useQuery({ queryKey: ['properties'], queryFn: listProperties })
   const [filter, setFilter] = useState<'all' | 'vacant' | 'occupied'>('all')
+
+  const filtered = (rooms ?? []).filter((r) => filter === 'all' || r.status === filter)
+  const propertyNameFor = (id: string) => properties?.find((p) => p.id === id)?.name
+  const { page, setPage, pageCount, pageItems, totalItems, pageSize } = usePagination(filtered, 24, filter)
 
   if (isLoading) {
     return (
@@ -22,9 +28,6 @@ export function RoomsPage() {
     )
   }
   if (error) return <ErrorState message="Could not load rooms." onRetry={() => refetch()} />
-
-  const filtered = (rooms ?? []).filter((r) => filter === 'all' || r.status === filter)
-  const propertyNameFor = (id: string) => properties?.find((p) => p.id === id)?.name
 
   return (
     <div className="space-y-6 page-fade-in">
@@ -41,14 +44,17 @@ export function RoomsPage() {
       {filtered.length === 0 ? (
         <EmptyState title="No rooms found" icon={<RoomEmptyIcon className="h-full w-full" />} />
       ) : (
-        <div className="stagger-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((r) => (
-            <div key={r.id}>
-              <p className="mb-1 text-xs font-semibold uppercase text-slate-400 dark:text-slate-500">{propertyNameFor(r.property_id)}</p>
-              <RoomCard room={r} />
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="stagger-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pageItems.map((r) => (
+              <div key={r.id}>
+                <p className="mb-1 text-xs font-semibold uppercase text-slate-400 dark:text-slate-500">{propertyNameFor(r.property_id)}</p>
+                <RoomCard room={r} />
+              </div>
+            ))}
+          </div>
+          <Pagination page={page} pageCount={pageCount} totalItems={totalItems} pageSize={pageSize} onChange={setPage} />
+        </>
       )}
     </div>
   )

@@ -8,6 +8,8 @@ import { SkeletonCardGrid } from '../components/Skeleton'
 import { TenantEmptyIcon } from '../components/EmptyIcons'
 import { TenantForm } from '../components/forms/TenantForm'
 import { SearchBar, FilterBar } from '../components/SearchFilterBar'
+import { Pagination } from '../components/Pagination'
+import { usePagination } from '../hooks/usePagination'
 import { friendlyError } from '../utils/errors'
 import { downloadCsv, toCsv } from '../utils/csv'
 import type { TenantFormValues } from '../utils/validation'
@@ -53,6 +55,8 @@ export function TenantsPage() {
       .filter((t) => filter === 'all' || t.status === filter)
       .filter((t) => !search || t.full_name.toLowerCase().includes(search.toLowerCase()) || (t.phone ?? '').includes(search))
   }, [data, filter, search])
+
+  const { page, setPage, pageCount, pageItems, totalItems, pageSize } = usePagination(filtered, 24, `${filter}|${search}`)
 
   // Counts per filter for badges
   const counts = useMemo(() => ({
@@ -151,11 +155,14 @@ export function TenantsPage() {
         />
       )}
       {filtered.length > 0 && (
-        <div className="stagger-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((t) => (
-            <TenantCard key={t.id} tenant={t} />
-          ))}
-        </div>
+        <>
+          <div className="stagger-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pageItems.map((t) => (
+              <TenantCard key={t.id} tenant={t} />
+            ))}
+          </div>
+          <Pagination page={page} pageCount={pageCount} totalItems={totalItems} pageSize={pageSize} onChange={setPage} />
+        </>
       )}
     </div>
   )

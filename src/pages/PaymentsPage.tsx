@@ -8,6 +8,8 @@ import { useAuth } from '../hooks/useAuth'
 import { PaymentForm } from '../components/forms/PaymentForm'
 import { ErrorState, EmptyState } from '../components/States'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Pagination } from '../components/Pagination'
+import { usePagination } from '../hooks/usePagination'
 import { Skeleton, SkeletonList } from '../components/Skeleton'
 import { PaymentEmptyIcon } from '../components/EmptyIcons'
 import { friendlyError } from '../utils/errors'
@@ -50,6 +52,19 @@ export function PaymentsPage() {
   const logoUrl = useOwnerLogoUrl()
 
   const outstanding = useMemo(() => (bills ?? []).filter((b) => b.balance > 0), [bills])
+  const pendingPayments = useMemo(() => (payments ?? []).filter((p) => !p.is_approved), [payments])
+  const displayPayments = activeTab === 'pending' ? pendingPayments : (payments ?? [])
+  const sortedPayments = useMemo(
+    () =>
+      [...displayPayments].sort((a, b) => {
+        const factor = sortDir === 'asc' ? 1 : -1
+        if (sortKey === 'amount') return factor * (a.amount - b.amount)
+        return factor * (new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime())
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [displayPayments, sortKey, sortDir]
+  )
+  const { page, setPage, pageCount, pageItems: pagedPayments, totalItems, pageSize } = usePagination(sortedPayments, 25, `${activeTab}|${sortKey}|${sortDir}`)
   const tenantName = (tid: string) => tenants?.find((t) => t.id === tid)?.full_name ?? '—'
   // Tenant "I've Paid" self-reports — a separate mechanism from
   // manager-submitted payments awaiting owner approval (payments.
@@ -152,15 +167,6 @@ export function PaymentsPage() {
     )
   }
   if (loadError) return <ErrorState message="Could not load bills." onRetry={() => refetch()} />
-
-  const pendingPayments = (payments ?? []).filter((p) => !p.is_approved)
-  const displayPayments = activeTab === 'pending' ? pendingPayments : (payments ?? [])
-
-  const sortedPayments = [...displayPayments].sort((a, b) => {
-    const factor = sortDir === 'asc' ? 1 : -1
-    if (sortKey === 'amount') return factor * (a.amount - b.amount)
-    return factor * (new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime())
-  })
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -297,7 +303,7 @@ export function PaymentsPage() {
                 </div>
               </div>
             ))}
-          {sortedPayments.slice(0, 25).map((p) => (
+          {pagedPayments.map((p) => (
             <div key={p.id} className="card flex items-center justify-between gap-3 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
@@ -352,6 +358,7 @@ export function PaymentsPage() {
             <EmptyState title="No payments recorded yet" icon={<PaymentEmptyIcon className="h-full w-full" />} />
           )}
         </div>
+        <Pagination page={page} pageCount={pageCount} totalItems={totalItems} pageSize={pageSize} onChange={setPage} />
       </section>
 
       <ConfirmDialog

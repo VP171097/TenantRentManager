@@ -9,6 +9,8 @@ import { PropertyEmptyIcon } from '../components/EmptyIcons'
 import { PropertyForm } from '../components/forms/PropertyForm'
 import { friendlyError } from '../utils/errors'
 import { downloadCsv, toCsv } from '../utils/csv'
+import { Pagination } from '../components/Pagination'
+import { usePagination } from '../hooks/usePagination'
 import type { PropertyFormValues } from '../utils/validation'
 
 export function PropertiesPage() {
@@ -18,6 +20,7 @@ export function PropertiesPage() {
   const [formError, setFormError] = useState<string | null>(null)
 
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['properties'], queryFn: listProperties })
+  const { page, setPage, pageCount, pageItems, totalItems, pageSize } = usePagination(data ?? [], 24)
 
   const createMutation = useMutation({
     mutationFn: (values: PropertyFormValues) => createProperty(values, profile!.id),
@@ -70,11 +73,14 @@ export function PropertiesPage() {
         />
       )}
       {data && data.length > 0 && (
-        <div className="stagger-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map((p) => (
-            <PropertyCard key={p.id} property={p} />
-          ))}
-        </div>
+        <>
+          <div className="stagger-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pageItems.map((p) => (
+              <PropertyCard key={p.id} property={p} />
+            ))}
+          </div>
+          <Pagination page={page} pageCount={pageCount} totalItems={totalItems} pageSize={pageSize} onChange={setPage} />
+        </>
       )}
     </div>
   )
