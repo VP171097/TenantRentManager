@@ -54,5 +54,18 @@ export function friendlyError(error: unknown): string {
   if (/rate limit/i.test(message)) return 'Too many attempts. Please wait a moment and try again.'
   if (/phone logins are disabled/i.test(message)) return 'Phone sign-in is not enabled in your Supabase project. Please enable the Phone provider in Supabase Auth settings.'
 
+  // A raw Postgres/PostgREST error that slipped past every pattern above
+  // (e.g. a constraint added by a later migration whose name/wording
+  // isn't recognized yet) — never show that technical text directly to
+  // the user. Detected by its telltale vocabulary, since these errors
+  // always carry a SQLSTATE `code` and this phrasing; anything else
+  // (deliberately-authored messages from `raise exception` in a SQL
+  // function, or a plain `throw new Error(...)` in app code) is already
+  // meant to be read as-is and passes through unchanged below.
+  if (code && /constraint|relation "|column "|violates|syntax error/i.test(message)) {
+    console.error('Unrecognized database error:', message)
+    return 'Something went wrong saving this. Please try again, or contact support if this continues.'
+  }
+
   return message || 'Something went wrong. Please try again, or contact support if this continues.'
 }

@@ -1,5 +1,29 @@
 import { z } from 'zod'
 
+// Generous upper bound on money fields — catches an accidental extra zero
+// (₹95,000 typed as ₹950,000) without being restrictive for legitimate
+// large commercial rent/deposits/expenses. Not a business rule, just a
+// sanity ceiling.
+const MAX_REASONABLE_AMOUNT = 1_00_00_000 // ₹1 crore
+const moneySchema = (message = 'Amount cannot be negative') =>
+  z.coerce.number().min(0, message).max(MAX_REASONABLE_AMOUNT, 'That amount looks unusually high — please double-check it')
+
+// A date field shouldn't be able to drift decades away from "now" by a
+// typo (e.g. a move-in date of 1901 from a mistyped year). Generous
+// window: 10 years back (covers long-standing tenancies/history entry)
+// to 1 year forward (covers planned future move-ins).
+const REASONABLE_DATE_MIN = '2000-01-01'
+function reasonableDateMax(): string {
+  const d = new Date()
+  d.setFullYear(d.getFullYear() + 1)
+  return d.toISOString().slice(0, 10)
+}
+const reasonableDateSchema = (message: string) =>
+  z.string().min(1, message).refine(
+    (v) => v >= REASONABLE_DATE_MIN && v <= reasonableDateMax(),
+    'Please check this date — it looks out of range'
+  )
+
 export const phoneSchema = z
   .string()
   .trim()
@@ -31,9 +55,9 @@ export type PropertyFormValues = z.infer<typeof propertySchema>
 export const roomSchema = z.object({
   room_number: z.string().trim().min(1, 'Room number is required'),
   floor: z.string().trim().optional(),
-  base_rent: z.coerce.number().min(0, 'Rent cannot be negative'),
+  base_rent: moneySchema('Rent cannot be negative'),
   electricity_enabled: z.boolean(),
-  electricity_rate: z.coerce.number().min(0, 'Must be positive').optional(),
+  electricity_rate: z.coerce.number().min(0, 'Must be positive').max(1000, 'That rate looks unusually high — please double-check it').optional(),
   notes: z.string().trim().optional(),
   upi_id_id: z.string().uuid().optional().or(z.literal('')),
 })
@@ -46,29 +70,34 @@ export const tenantSchema = z.object({
   avatar_url: z.string().url().optional().or(z.literal('')),
   property_id: z.string().uuid('Select a property'),
   room_id: z.string().uuid('Select a room'),
-  move_in_date: z.string().min(1, 'Move-in date is required'),
-  security_deposit: z.coerce.number().min(0, 'Deposit cannot be negative'),
-  initial_rent: z.coerce.number().min(0, 'Rent cannot be negative'),
+  move_in_date: reasonableDateSchema('Move-in date is required'),
+  security_deposit: moneySchema('Deposit cannot be negative'),
+  initial_rent: moneySchema('Rent cannot be negative'),
   electricity_start_reading: z.coerce.number().min(0, 'Must be positive'),
-  electricity_rate: z.coerce.number().min(0, 'Must be positive'),
+  electricity_rate: z.coerce.number().min(0, 'Must be positive').max(1000, 'That rate looks unusually high — please double-check it'),
 })
 export type TenantFormValues = z.infer<typeof tenantSchema>
 
 export const paymentSchema = z.object({
   bill_id: z.string().uuid('Select a bill'),
-  amount: z.coerce.number().positive('Amount must be greater than zero'),
-  payment_date: z.string().min(1, 'Payment date is required'),
+  amount: z.coerce.number().positive('Amount must be greater than zero').max(MAX_REASONABLE_AMOUNT, 'That amount looks unusually high — please double-check it'),
+  payment_date: reasonableDateSchema('Payment date is required'),
   method: z.enum(['cash', 'upi', 'bank_transfer', 'cheque', 'other']),
   reference: z.string().trim().optional(),
 })
 export type PaymentFormValues = z.infer<typeof paymentSchema>
 
-export const rentRevisionSchema = z.object({
-  tenant_id: z.string().uuid(),
-  effective_date: z.string().min(1, 'Effective date is required'),
-  change_type: z.enum(['fixed', 'percentage']),
-  change_value: z.coerce.number().positive('Enter a positive amount or percentage'),
-})
+export const rentRevisionSchema = z
+  .object({
+    tenant_id: z.string().uuid(),
+    effective_date: reasonableDateSchema('Effective date is required'),
+    change_type: z.enum(['fixed', 'percentage']),
+    change_value: z.coerce.number().positive('Enter a positive amount or percentage'),
+  })
+  .refine(
+    (v) => (v.change_type === 'percentage' ? v.change_value <= 500 : v.change_value <= MAX_REASONABLE_AMOUNT),
+    { message: 'That change looks unusually high — please double-check it', path: ['change_value'] }
+  )
 export type RentRevisionFormValues = z.infer<typeof rentRevisionSchema>
 
 export const generateBillSchema = z
@@ -105,8 +134,8 @@ export const expenseSchema = z.object({
   room_id: z.string().uuid().optional().or(z.literal('')),
   category: z.enum(['maintenance', 'repair', 'utility', 'tax', 'insurance', 'other', 'cleaning']),
   description: z.string().trim().optional(),
-  amount: z.coerce.number().min(0, 'Amount cannot be negative'),
-  expense_date: z.string().min(1, 'Date is required'),
+  amount: moneySchema('Amount cannot be negative'),
+  expense_date: reasonableDateSchema('Date is required'),
   charge_to_tenant: z.boolean().optional(),
 })
 export type ExpenseFormValues = z.infer<typeof expenseSchema>

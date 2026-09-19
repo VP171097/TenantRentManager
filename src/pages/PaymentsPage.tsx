@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { PaymentForm } from '../components/forms/PaymentForm'
 import { ErrorState, EmptyState } from '../components/States'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Skeleton, SkeletonList } from '../components/Skeleton'
 import { PaymentEmptyIcon } from '../components/EmptyIcons'
 import { friendlyError } from '../utils/errors'
@@ -16,6 +17,7 @@ import { useOwnerLogoUrl } from '../hooks/useOwnerBranding'
 import { downloadCsv, toCsv } from '../utils/csv'
 import { getReadingForMonth } from '../services/electricity'
 import { CreditCard, Download, FileDown, ArrowUpDown } from 'lucide-react'
+import type { Payment } from '../types/database'
 
 type SortKey = 'date' | 'amount'
 
@@ -39,6 +41,7 @@ export function PaymentsPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all')
   const [prefillBillId, setPrefillBillId] = useState<string | undefined>(undefined)
+  const [reverting, setReverting] = useState<Payment | null>(null)
   const recordPaymentRef = useRef<HTMLDivElement>(null)
 
   const { data: bills, isLoading, error: loadError, refetch } = useQuery({ queryKey: ['bills'], queryFn: () => listBills() })
@@ -94,6 +97,7 @@ export function PaymentsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] })
       queryClient.invalidateQueries({ queryKey: ['bills'] })
+      setReverting(null)
     },
     onError: (err) => setError(friendlyError(err)),
   })
@@ -323,11 +327,7 @@ export function PaymentsPage() {
                       Approve
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm('Are you sure you want to revert this payment?')) {
-                          deleteMutation.mutate(p.id)
-                        }
-                      }}
+                      onClick={() => setReverting(p)}
                       disabled={deleteMutation.isPending}
                       className="rounded-lg bg-red-100 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60"
                     >
@@ -353,6 +353,20 @@ export function PaymentsPage() {
           )}
         </div>
       </section>
+
+      <ConfirmDialog
+        open={!!reverting}
+        title="Revert this payment?"
+        message={
+          reverting
+            ? `This permanently deletes the ${formatINR(reverting.amount)} payment record dated ${new Date(reverting.payment_date).toLocaleDateString('en-IN')} and recalculates the tenant's outstanding balance to reflect it never happened. This cannot be undone.`
+            : ''
+        }
+        confirmLabel="Revert Payment"
+        danger
+        onCancel={() => setReverting(null)}
+        onConfirm={() => reverting && deleteMutation.mutate(reverting.id)}
+      />
     </div>
   )
 }
