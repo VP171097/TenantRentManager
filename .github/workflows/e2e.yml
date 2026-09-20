@@ -32,6 +32,26 @@ jobs:
       - name: Install dependencies
         run: yarn install --no-lockfile
 
+      - name: Build application for E2E
+        run: yarn build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SITE_URL: https://vp171097.github.io/TenantRentManager/
+          VITE_BASE_PATH: /TenantRentManager/
+
+      - name: Start local preview server
+        run: |
+          yarn vite preview --host 127.0.0.1 --port 4173 > /tmp/rentslate-vite.log 2>&1 &
+          for i in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:4173/TenantRentManager/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/rentslate-vite.log
+          exit 1
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
@@ -42,7 +62,7 @@ jobs:
         run: npm run test:e2e -- --project=chromium
         env:
           CI: true
-          E2E_BASE_URL: https://vp171097.github.io/TenantRentManager/
+          E2E_BASE_URL: http://127.0.0.1:4173/TenantRentManager/
           E2E_OWNER_EMAIL: ${{ secrets.E2E_OWNER_EMAIL }}
           E2E_OWNER_PASSWORD: ${{ secrets.E2E_OWNER_PASSWORD }}
           E2E_TENANT_EMAIL: ${{ secrets.E2E_TENANT_EMAIL }}
