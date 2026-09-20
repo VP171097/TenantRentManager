@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 
 const enabled = process.env.E2E_DEEP_TESTS === 'true'
 const ownerEmail = process.env.E2E_OWNER_EMAIL
