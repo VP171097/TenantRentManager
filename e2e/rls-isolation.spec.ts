@@ -27,10 +27,10 @@ async function assertCrossOwnerHidden(
   ownerAColumn: string,
   idColumn = 'id',
 ) {
-  const { data: aRows, error: aError } = await ownerA.from(table).select(idColumn).limit(1)
+  const { data: aRows, error: aError } = await ownerA.from(table).select(idColumn).limit(1) as { data: Array<Record<string, unknown>> | null; error: unknown }
   expect(aError, `${table}: owner A baseline query`).toBeNull()
 
-  const { data: bRows, error: bError } = await ownerB.from(table).select(idColumn).limit(1)
+  const { data: bRows, error: bError } = await ownerB.from(table).select(idColumn).limit(1) as { data: Array<Record<string, unknown>> | null; error: unknown }
   expect(bError, `${table}: owner B baseline query`).toBeNull()
 
   if (!bRows?.length || !aRows?.length) return
