@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getTenant, moveOutTenant, updateTenant, deleteTenant } from '../services/tenants'
+import { getTenant, moveOutTenant, updateTenant, deleteTenant, listTenantDocuments } from '../services/tenants'
 import {
   listBills,
   generateBill,
@@ -31,7 +31,7 @@ import { EditBillModal } from '../components/forms/EditBillModal'
 import { PaymentForm } from '../components/forms/PaymentForm'
 import { TenantForm } from '../components/forms/TenantForm'
 import { Field } from '../components/forms/PropertyForm'
-import { DocumentUploader } from '../components/DocumentUploader'
+import { DocumentUploader, getSignedDocumentUrl } from '../components/DocumentUploader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { extractFunctionErrorMessage, friendlyError } from '../utils/errors'
 import { applicableRent } from '../utils/billing'
@@ -42,7 +42,7 @@ import { downloadLeasePdf } from '../services/leasePdf'
 import { CreateTenantLoginForm } from '../components/CreateTenantLoginForm'
 import { OwnerResetPasswordForm } from '../components/OwnerResetPasswordForm'
 import { InviteTenantForm } from '../components/InviteTenantForm'
-import type { TenantDocument, Bill } from '../types/database'
+import type { Bill } from '../types/database'
 import type { TenantFormValues } from '../utils/validation'
 
 export function TenantDetailPage() {
@@ -54,7 +54,6 @@ export function TenantDetailPage() {
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [showMoveOut, setShowMoveOut] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [docs, setDocs] = useState<TenantDocument[]>([])
   const [sendingBillId, setSendingBillId] = useState<string | null>(null)
   const [sendStatus, setSendStatus] = useState<string | null>(null)
   const [reminderBillId, setReminderBillId] = useState<string | null>(null)
@@ -73,6 +72,11 @@ export function TenantDetailPage() {
   const { data: bills } = useQuery({ queryKey: ['bills', id], queryFn: () => listBills({ tenantId: id }), enabled: !!id })
   const { data: revisions } = useQuery({ queryKey: ['rent-revisions', id], queryFn: () => listRentRevisions(id!), enabled: !!id })
   const { data: payments } = useQuery({ queryKey: ['payments', id], queryFn: () => listPayments({ tenantId: id }), enabled: !!id })
+  const { data: docs = [], refetch: refetchDocs } = useQuery({
+    queryKey: ['tenant-documents', id],
+    queryFn: () => listTenantDocuments(id!),
+    enabled: !!id,
+  })
   const { data: latestReading } = useQuery({
     queryKey: ['latest-reading', id],
     queryFn: () => getLatestReading(id!),
@@ -698,15 +702,21 @@ export function TenantDetailPage() {
             ownerId={tenant.owner_id}
             propertyId={tenant.property_id}
             tenantId={tenant.id}
-            onUploaded={(doc) => setDocs((d) => [...d, doc])}
+            onUploaded={() => refetchDocs()}
           />
         )}
         <ul className="mt-3 space-y-1">
           {docs.map((d) => (
-            <li key={d.id} className="text-sm text-slate-600 dark:text-slate-300">
-              {d.file_name}
+            <li key={d.id}>
+              <button
+                onClick={() => getSignedDocumentUrl(d.file_path).then((url) => window.open(url, '_blank'))}
+                className="text-sm text-brand-700 dark:text-brand-400 hover:underline"
+              >
+                {d.file_name}
+              </button>
             </li>
           ))}
+          {docs.length === 0 && <p className="text-sm text-slate-400 dark:text-slate-500">No documents uploaded yet.</p>}
         </ul>
       </section>
 

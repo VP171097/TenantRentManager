@@ -4,11 +4,11 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { ErrorState } from '../../components/States'
 import { SkeletonCardGrid } from '../../components/Skeleton'
-import { DocumentUploader } from '../../components/DocumentUploader'
+import { DocumentUploader, getSignedDocumentUrl } from '../../components/DocumentUploader'
 import { ImageUploader } from '../../components/ImageUploader'
-import { updateOwnTenantProfile } from '../../services/tenants'
+import { updateOwnTenantProfile, listTenantDocuments } from '../../services/tenants'
 import { friendlyError } from '../../utils/errors'
-import type { Tenant, TenantDocument } from '../../types/database'
+import type { Tenant } from '../../types/database'
 
 async function loadMyTenant(profileId: string): Promise<Tenant> {
   const { data, error } = await supabase.from('tenants').select('*').eq('profile_id', profileId).single()
@@ -23,12 +23,17 @@ export function TenantProfilePage() {
   const [email, setEmail] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [docs, setDocs] = useState<TenantDocument[]>([])
 
   const { data: tenant, isLoading, error, refetch } = useQuery({
     queryKey: ['my-tenant-profile', profile?.id],
     queryFn: () => loadMyTenant(profile!.id),
     enabled: !!profile,
+  })
+
+  const { data: docs = [], refetch: refetchDocs } = useQuery({
+    queryKey: ['tenant-documents', tenant?.id],
+    queryFn: () => listTenantDocuments(tenant!.id),
+    enabled: !!tenant,
   })
 
   useEffect(() => {
@@ -96,14 +101,20 @@ export function TenantProfilePage() {
           ownerId={tenant.owner_id}
           propertyId={tenant.property_id}
           tenantId={tenant.id}
-          onUploaded={(doc) => setDocs((d) => [...d, doc])}
+          onUploaded={() => refetchDocs()}
         />
         <ul className="space-y-1">
           {docs.map((d) => (
-            <li key={d.id} className="text-sm text-slate-600 dark:text-slate-300">
-              {d.file_name}
+            <li key={d.id}>
+              <button
+                onClick={() => getSignedDocumentUrl(d.file_path).then((url) => window.open(url, '_blank'))}
+                className="text-sm text-brand-700 dark:text-brand-400 hover:underline"
+              >
+                {d.file_name}
+              </button>
             </li>
           ))}
+          {docs.length === 0 && <p className="text-sm text-slate-400 dark:text-slate-500">No documents uploaded yet.</p>}
         </ul>
       </div>
     </div>

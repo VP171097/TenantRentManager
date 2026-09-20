@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { LIST_QUERY_LIMIT } from '../utils/query'
-import type { Tenant } from '../types/database'
+import type { Tenant, TenantDocument } from '../types/database'
 
 export async function listTenants(propertyId?: string): Promise<Tenant[]> {
   let query = supabase.from('tenants').select('*').order('full_name').limit(LIST_QUERY_LIMIT)
@@ -14,6 +14,16 @@ export async function getTenant(id: string): Promise<Tenant> {
   const { data, error } = await supabase.from('tenants').select('*').eq('id', id).single()
   if (error) throw error
   return data as Tenant
+}
+
+export async function listTenantDocuments(tenantId: string): Promise<TenantDocument[]> {
+  const { data, error } = await supabase
+    .from('tenant_documents')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .order('uploaded_at', { ascending: false })
+  if (error) throw error
+  return data as TenantDocument[]
 }
 
 export interface NewTenantInput {
