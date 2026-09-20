@@ -14,6 +14,8 @@ const publicRoutes = [
   '/join',
 ]
 
+const appPath = (route: string) => route === '/' ? './' : route.slice(1)
+
 test.describe('public route smoke tests', () => {
   for (const route of publicRoutes) {
     test(`loads ${route} without application errors`, async ({ page }) => {
@@ -27,7 +29,7 @@ test.describe('public route smoke tests', () => {
         failedRequests.push(`${request.method()} ${request.url()} — ${request.failure()?.errorText ?? 'failed'}`)
       })
 
-      const response = await page.goto(route, { waitUntil: 'domcontentloaded' })
+      const response = await page.goto(appPath(route), { waitUntil: 'domcontentloaded' })
       expect(response?.status(), `HTTP status for ${route}`).toBeLessThan(400)
 
       await expect(page.locator('body')).toBeVisible()
@@ -39,7 +41,7 @@ test.describe('public route smoke tests', () => {
   }
 
   test('unknown route renders the application 404 page', async ({ page }) => {
-    await page.goto('/this-route-should-not-exist', { waitUntil: 'domcontentloaded' })
+    await page.goto('this-route-should-not-exist', { waitUntil: 'domcontentloaded' })
 
     await expect(page.getByTestId('not-found-code')).toContainText('404')
     await expect(page.getByTestId('not-found-title')).toBeVisible()
@@ -48,18 +50,18 @@ test.describe('public route smoke tests', () => {
   })
 
   test('home page internal links do not point to obviously broken routes', async ({ page, request, baseURL }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded' })
+    await page.goto('./', { waitUntil: 'domcontentloaded' })
 
     const hrefs = await page.locator('a[href]').evaluateAll(links =>
       links
         .map(link => (link as { getAttribute: (name: string) => string | null }).getAttribute('href'))
-        .filter((href): href is string => !!href && href.startsWith('/'))
-        .filter(href => !href.startsWith('//'))
+        .filter((href): href is string => !!href && !href.startsWith('//'))
+        .filter(href => href.startsWith('/') || href.startsWith('./') || href.startsWith('../'))
     )
 
     const uniqueRoutes = [...new Set(hrefs)]
     for (const route of uniqueRoutes) {
-      const response = await request.get(new URL(route.replace(/^\//, ''), baseURL).toString())
+      const response = await request.get(new URL(route, baseURL).toString())
       expect(response.status(), `linked route ${route}`).toBeLessThan(400)
     }
   })
