@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test'
 
+const loginPath = 'login'
+
 test.describe('login UI smoke tests', () => {
   test('supports owner sign-in, password visibility, and forgot-password modes', async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' })
+    await page.goto(loginPath, { waitUntil: 'domcontentloaded' })
 
     await expect(page.getByTestId('login-title')).toContainText('Sign in to RentSlate')
     await expect(page.getByTestId('login-audience-owner')).toBeVisible()
@@ -23,7 +25,7 @@ test.describe('login UI smoke tests', () => {
   })
 
   test('supports tenant entry mode', async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' })
+    await page.goto(loginPath, { waitUntil: 'domcontentloaded' })
     await page.getByTestId('login-audience-tenant').click()
 
     await expect(page.getByTestId('login-form')).toBeVisible()
