@@ -23,6 +23,10 @@ describe('electricity calculation', () => {
     expect(calcElectricityCharge({ previousReading: 100, currentReading: 150, ratePerUnit: 8 })).toBe(400)
   })
 
+  it('returns zero charge for an unchanged meter', () => {
+    expect(calcElectricityCharge({ previousReading: 150, currentReading: 150, ratePerUnit: 8 })).toBe(0)
+  })
+
   it('throws on negative units without meter reset flag', () => {
     expect(() => calcElectricityUnits({ previousReading: 500, currentReading: 100, ratePerUnit: 8 })).toThrow(
       NegativeUnitsError
@@ -33,6 +37,16 @@ describe('electricity calculation', () => {
     expect(
       calcElectricityUnits({ previousReading: 500, currentReading: 100, ratePerUnit: 8, isMeterReset: true })
     ).toBe(0)
+  })
+
+  it('does not charge units created by a meter reset', () => {
+    expect(
+      calcElectricityCharge({ previousReading: 500, currentReading: 100, ratePerUnit: 8, isMeterReset: true })
+    ).toBe(0)
+  })
+
+  it('handles fractional electricity rates using money rounding', () => {
+    expect(calcElectricityCharge({ previousReading: 0, currentReading: 7, ratePerUnit: 2.35 })).toBe(16.45)
   })
 })
 
@@ -50,6 +64,10 @@ describe('rent revisions', () => {
     expect(applicableRent(revisions, '2026-02-01')).toBe(6000)
   })
 
+  it('works when revisions are supplied out of chronological order', () => {
+    expect(applicableRent([revisions[2], revisions[0], revisions[1]], '2025-12-31')).toBe(5500)
+  })
+
   it('throws if no revision applies yet', () => {
     expect(() => applicableRent(revisions, '2024-01-01')).toThrow()
   })
@@ -60,6 +78,10 @@ describe('rent revisions', () => {
 
   it('computes a percentage increase', () => {
     expect(computeRevisedRent(5000, 'percentage', 10)).toBe(5500)
+  })
+
+  it('rounds percentage revisions to currency precision', () => {
+    expect(computeRevisedRent(999.99, 'percentage', 2.5)).toBe(1024.99)
   })
 })
 
@@ -100,11 +122,19 @@ describe('total due & balance carry-forward', () => {
   it('zero balance carries nothing forward', () => {
     expect(splitCarryForward(0)).toEqual({ previousBalance: 0, previousCredit: 0 })
   })
+
+  it('never carries a negative outstanding balance as previous_balance', () => {
+    expect(splitCarryForward(-0.01)).toEqual({ previousBalance: 0, previousCredit: 0.01 })
+  })
 })
 
 describe('multiple payments summing', () => {
   it('sums several partial payments without float drift', () => {
     expect(sumPayments([1000.5, 200.25, 99.25])).toBe(1300)
+  })
+
+  it('preserves paise when payments do not divide evenly', () => {
+    expect(sumPayments([3.33, 3.33, 3.34])).toBe(10)
   })
 })
 
@@ -113,12 +143,15 @@ describe('bill status', () => {
     expect(calcBillStatus(5000, 5000, false)).toBe('paid')
     expect(calcBillStatus(5000, 5200, false)).toBe('paid')
   })
+
   it('partial when some paid but balance remains', () => {
     expect(calcBillStatus(5000, 2000, false)).toBe('partial')
   })
+
   it('unpaid when nothing paid and not overdue', () => {
     expect(calcBillStatus(5000, 0, false)).toBe('unpaid')
   })
+
   it('overdue when nothing paid and due date passed', () => {
     expect(calcBillStatus(5000, 0, true)).toBe('overdue')
   })
@@ -130,10 +163,14 @@ describe('duplicate bill prevention (idempotent generation)', () => {
     expect(billingMonthKey(2025, 12)).toBe('2025-12-01')
   })
 
-  it('generating the same (tenant, month) key twice yields an identical key, which the DB unique constraint rejects on the second insert', () => {
+  it('generating the same (tenant, month) key twice yields an identical key, which the DB unique constraint can enforce', () => {
     const keyA = billingMonthKey(2025, 6)
     const keyB = billingMonthKey(2025, 6)
     expect(keyA).toBe(keyB)
+  })
+
+  it('keeps adjacent months distinct', () => {
+    expect(billingMonthKey(2025, 6)).not.toBe(billingMonthKey(2025, 7))
   })
 })
 
@@ -145,5 +182,10 @@ describe('receipt numbering', () => {
   it('produces unique numbers for increasing sequence values', () => {
     const numbers = new Set([1, 2, 3, 4].map((seq) => formatReceiptNumber('KR', 2025, 1, seq)))
     expect(numbers.size).toBe(4)
+  })
+
+  it('pads sequence numbers consistently', () => {
+    expect(formatReceiptNumber('rent', 2026, 9, 1)).toBe('RENT-2026-09-00001')
+    expect(formatReceiptNumber('rent', 2026, 9, 12345)).toBe('RENT-2026-09-12345')
   })
 })
