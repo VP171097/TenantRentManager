@@ -52,7 +52,7 @@ test.describe('public route smoke tests', () => {
 
     const hrefs = await page.locator('a[href]').evaluateAll(links =>
       links
-        .map(link => (link as HTMLAnchorElement).getAttribute('href'))
+        .map(link => (link as { getAttribute: (name: string) => string | null }).getAttribute('href'))
         .filter((href): href is string => !!href && href.startsWith('/'))
         .filter(href => !href.startsWith('//'))
     )
