@@ -8,6 +8,11 @@ async function login(page: import('@playwright/test').Page, audience: 'owner' | 
   await page.getByTestId('login-email').fill(email)
   await page.getByTestId('login-password').fill(password)
   await page.getByTestId('login-submit').click()
+  await expect(page).toHaveURL(
+    audience === 'tenant'
+      ? /\/tenant\/dashboard(?:[/?#]|$)/
+      : /\/dashboard(?:[/?#]|$)/
+  )
 }
 
 test.describe('owner business workflow smoke tests', () => {
@@ -44,7 +49,9 @@ test.describe('owner business workflow smoke tests', () => {
 
     await login(page, 'owner', email!, password!)
     await page.goto(appPath('/properties'), { waitUntil: 'domcontentloaded' })
-    await page.getByRole('button', { name: /add property/i }).click()
+    const addPropertyButton = page.getByRole('button', { name: /add property/i })
+    await expect(addPropertyButton).toBeVisible()
+    await addPropertyButton.click()
 
     const form = page.locator('form').last()
     await expect(form).toBeVisible()
