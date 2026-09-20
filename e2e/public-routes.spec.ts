@@ -10,6 +10,7 @@ const publicRoutes = [
   '/privacy',
   '/sitemap',
   '/login',
+  '/reset-password',
   '/join',
 ]
 
