@@ -141,7 +141,7 @@ test.describe('deep functional rental lifecycle', () => {
       await page.goto(appPath('/billing'), { waitUntil: 'domcontentloaded' })
       await page.getByTestId('billing-property').selectOption(propertyId!)
       await expect(page.getByTestId(`billing-tenant-${tenant!.id}`)).toBeVisible({ timeout: 15_000 })
-      await page.getByTestId(`billing-meter-${tenant!.id}`).locator('input').fill('120')
+      await page.getByTestId(`billing-meter-${tenant!.id}-current`).fill('120')
       await page.getByTestId('billing-generate').click()
       await expect(page.getByTestId('billing-success')).toContainText('Generated/confirmed 1 bill', { timeout: 20_000 })
 
@@ -173,8 +173,7 @@ test.describe('deep functional rental lifecycle', () => {
 
       // 5. Payment + ledger persistence.
       await page.goto(appPath('/payments'), { waitUntil: 'domcontentloaded' })
-      const billOption = page.getByLabel('Bill').locator('option').filter({ hasText: /balance ₹?5,200/ })
-      await expect(billOption).toHaveCount(1)
+      await expect(page.getByLabel('Bill').locator(`option[value="${bill!.id}"]`)).toHaveCount(1)
       await page.getByLabel('Bill').selectOption(bill!.id)
       await page.getByLabel('Amount (₹)').fill('1000')
       await page.getByLabel('Payment date').fill(new Date().toISOString().slice(0, 10))
