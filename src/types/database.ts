@@ -74,6 +74,7 @@ export interface TenantDocument {
   owner_id: string
   file_path: string
   file_name: string
+  doc_type: string | null
   uploaded_at: string
   expires_at: string | null
 }

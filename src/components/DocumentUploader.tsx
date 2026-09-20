@@ -3,6 +3,23 @@ import { supabase } from '../lib/supabase'
 import { friendlyError } from '../utils/errors'
 import type { TenantDocument } from '../types/database'
 
+// Accepted by the input picker and the storage bucket's allowed_mime_types
+// (see migration 042) — images for ID-proof photos/scans, plus PDF for
+// scanned/exported documents.
+export const ACCEPTED_DOCUMENT_TYPES = '.png,.jpg,.jpeg,.webp,.heic,.pdf'
+export const ACCEPTED_DOCUMENT_TYPES_LABEL = 'PNG, JPG, WEBP, HEIC or PDF, up to 10 MB'
+
+const DOC_TYPE_PRESETS = [
+  'Aadhaar Card',
+  'PAN Card',
+  'Passport',
+  'Voter ID',
+  'Driving License',
+  'Rent Agreement',
+  'Police Verification',
+  'Other',
+]
+
 export function DocumentUploader({
   ownerId,
   propertyId,
@@ -14,12 +31,22 @@ export function DocumentUploader({
   tenantId: string
   onUploaded: (doc: TenantDocument) => void
 }) {
+  const [docType, setDocType] = useState(DOC_TYPE_PRESETS[0])
+  const [customDocType, setCustomDocType] = useState('')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const resolvedDocType = docType === 'Other' ? customDocType.trim() : docType
+  const canUpload = resolvedDocType.length > 0
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (!resolvedDocType) {
+      setError('Please choose what this document is before uploading.')
+      e.target.value = ''
+      return
+    }
     setUploading(true)
     setError(null)
     try {
@@ -29,12 +56,13 @@ export function DocumentUploader({
 
       const { data, error: dbErr } = await supabase
         .from('tenant_documents')
-        .insert({ tenant_id: tenantId, owner_id: ownerId, file_path: path, file_name: file.name })
+        .insert({ tenant_id: tenantId, owner_id: ownerId, file_path: path, file_name: file.name, doc_type: resolvedDocType })
         .select()
         .single()
       if (dbErr) throw dbErr
 
       onUploaded(data as TenantDocument)
+      setCustomDocType('')
     } catch (err) {
       setError(friendlyError(err))
     } finally {
@@ -44,12 +72,45 @@ export function DocumentUploader({
   }
 
   return (
-    <div>
-      <label className="btn-secondary inline-flex cursor-pointer items-center justify-center px-4">
-        {uploading ? 'Uploading…' : 'Upload document'}
-        <input type="file" className="hidden" onChange={handleFile} disabled={uploading} />
-      </label>
-      {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
+    <div className="space-y-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <select
+          value={docType}
+          onChange={(e) => setDocType(e.target.value)}
+          className="input sm:max-w-[200px]"
+          disabled={uploading}
+        >
+          {DOC_TYPE_PRESETS.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+        {docType === 'Other' && (
+          <input
+            type="text"
+            value={customDocType}
+            onChange={(e) => setCustomDocType(e.target.value)}
+            placeholder="e.g. Electricity Bill"
+            className="input sm:max-w-[200px]"
+            disabled={uploading}
+          />
+        )}
+        <label
+          className={`btn-secondary inline-flex items-center justify-center px-4 ${canUpload && !uploading ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+        >
+          {uploading ? 'Uploading…' : 'Upload document'}
+          <input
+            type="file"
+            accept={ACCEPTED_DOCUMENT_TYPES}
+            className="hidden"
+            onChange={handleFile}
+            disabled={uploading || !canUpload}
+          />
+        </label>
+      </div>
+      <p className="text-xs text-slate-400 dark:text-slate-500">Accepted formats: {ACCEPTED_DOCUMENT_TYPES_LABEL}.</p>
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
     </div>
   )
 }
@@ -107,8 +168,9 @@ export function DocumentList({ docs }: { docs: TenantDocument[] }) {
           >
             <DocumentThumbnail doc={d} />
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">{d.file_name}</p>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
+              <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">{d.doc_type ?? d.file_name}</p>
+              <p className="truncate text-xs text-slate-400 dark:text-slate-500">
+                {d.doc_type ? `${d.file_name} · ` : ''}
                 {new Date(d.uploaded_at).toLocaleDateString('en-IN')}
               </p>
             </div>
