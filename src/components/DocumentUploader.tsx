@@ -35,6 +35,7 @@ export function DocumentUploader({
   const [customDocType, setCustomDocType] = useState('')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   const resolvedDocType = docType === 'Other' ? customDocType.trim() : docType
   const canUpload = resolvedDocType.length > 0
@@ -49,6 +50,7 @@ export function DocumentUploader({
     }
     setUploading(true)
     setError(null)
+    setSuccess(null)
     try {
       const path = `${ownerId}/${propertyId}/${tenantId}/${Date.now()}-${file.name}`
       const { error: uploadErr } = await supabase.storage.from('tenant-documents').upload(path, file)
@@ -63,7 +65,9 @@ export function DocumentUploader({
 
       onUploaded(data as TenantDocument)
       setCustomDocType('')
+      setSuccess(`"${resolvedDocType}" uploaded successfully.`)
     } catch (err) {
+      console.error('Document upload failed:', err)
       setError(friendlyError(err))
     } finally {
       setUploading(false)
@@ -110,7 +114,16 @@ export function DocumentUploader({
         </label>
       </div>
       <p className="text-xs text-slate-400 dark:text-slate-500">Accepted formats: {ACCEPTED_DOCUMENT_TYPES_LABEL}.</p>
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400">
+          {error}
+        </p>
+      )}
+      {success && !error && (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-400">
+          {success}
+        </p>
+      )}
     </div>
   )
 }

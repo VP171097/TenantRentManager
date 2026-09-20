@@ -7,6 +7,7 @@ import { SkeletonStatGrid } from '../../components/Skeleton'
 import { BillSummary } from '../../components/BillSummary'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ImageUploader } from '../../components/ImageUploader'
+import { DocumentList } from '../../components/DocumentUploader'
 import { markBillAsPaidByTenant } from '../../services/billing'
 import { createMaintenanceRequest } from '../../services/maintenance'
 import { friendlyError } from '../../utils/errors'
@@ -510,33 +511,7 @@ export function TenantDashboardPage() {
             </div>
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">My Documents</h3>
           </div>
-          {data.documents.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-              {data.documents.map((doc: any) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <FileText size={20} className="text-slate-400 shrink-0" />
-                    <div className="min-w-0 pr-2">
-                      <p className="truncate text-sm font-semibold text-slate-700 dark:text-slate-300">{doc.file_name}</p>
-                      <p className="text-xs text-slate-500">{new Date(doc.uploaded_at).toLocaleDateString('en-IN')}</p>
-                    </div>
-                  </div>
-                  <a
-                    href={doc.file_path}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 rounded-lg bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-brand-600 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    View
-                  </a>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
-              No documents have been shared with you yet.
-            </div>
-          )}
+          <DocumentList docs={data.documents} />
         </div>
       </div>
 
