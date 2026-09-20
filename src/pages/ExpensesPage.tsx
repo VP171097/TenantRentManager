@@ -262,6 +262,7 @@ export function ExpensesPage() {
         message="This will permanently delete this expense record. This cannot be undone."
         confirmLabel="Delete"
         danger
+        pending={deleteMutation.isPending}
         onCancel={() => setDeleting(null)}
         onConfirm={() => deleteMutation.mutate()}
       />

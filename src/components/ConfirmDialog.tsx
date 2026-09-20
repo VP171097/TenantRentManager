@@ -8,6 +8,10 @@ interface ConfirmDialogProps {
   message: string
   confirmLabel?: string
   danger?: boolean
+  /** True while the confirmed action is in flight — disables both
+   * buttons so a slow network / double-tap can't fire the (often
+   * destructive) action twice. */
+  pending?: boolean
   onConfirm: () => void
   onCancel: () => void
   children?: ReactNode
@@ -19,6 +23,7 @@ export function ConfirmDialog({
   message,
   confirmLabel = 'Confirm',
   danger,
+  pending,
   onConfirm,
   onCancel,
   children,
@@ -38,7 +43,8 @@ export function ConfirmDialog({
         {/* Close button */}
         <button
           onClick={onCancel}
-          className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          disabled={pending}
+          className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
           aria-label="Close"
         >
           <X size={14} />
@@ -60,13 +66,15 @@ export function ConfirmDialog({
           <div className="mt-6 flex gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors active:scale-[0.97]"
+              disabled={pending}
+              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors active:scale-[0.97] disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
-              className={`flex-1 rounded-xl py-3 text-sm font-semibold text-white shadow-sm transition-all active:scale-[0.97] ${
+              disabled={pending}
+              className={`flex-1 rounded-xl py-3 text-sm font-semibold text-white shadow-sm transition-all active:scale-[0.97] disabled:opacity-60 disabled:active:scale-100 ${
                 danger
                   ? 'bg-red-600 hover:bg-red-700 shadow-red-600/20'
                   : 'bg-brand-600 hover:bg-brand-700 shadow-brand-600/20'

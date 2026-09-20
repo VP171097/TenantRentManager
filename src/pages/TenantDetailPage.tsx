@@ -750,6 +750,7 @@ export function TenantDetailPage() {
         message="This will permanently delete this bill and any payments/receipts recorded against it. This cannot be undone."
         confirmLabel="Delete Bill"
         danger
+        pending={deleteBillMutation.isPending}
         onCancel={() => setDeletingBill(null)}
         onConfirm={() => deleteBillMutation.mutate()}
       />
@@ -760,6 +761,7 @@ export function TenantDetailPage() {
         message="This will permanently delete this tenant AND all their bills, payments, and history. This cannot be undone. Consider using 'Move Out' instead if you just want to mark them inactive."
         confirmLabel="Delete Tenant"
         danger
+        pending={deleteTenantMutation.isPending}
         onCancel={() => setShowDeleteTenant(false)}
         onConfirm={() => deleteTenantMutation.mutate()}
       />
@@ -795,6 +797,7 @@ function MoveOutDialog({
   const [deduction, setDeduction] = useState(0)
   const [reason, setReason] = useState('')
   const [whatToBill, setWhatToBill] = useState<'both' | 'rent_only' | 'electricity_only'>('both')
+  const [submitting, setSubmitting] = useState(false)
 
   // defaultPreviousReading resolves asynchronously and may still be
   // undefined on first render — sync it in once it arrives, but only if
@@ -816,8 +819,10 @@ function MoveOutDialog({
       message="This will settle the tenant's final bill, apply the deposit refund/deduction, and mark them as moved out."
       confirmLabel="Confirm Move-out"
       danger
+      pending={submitting}
       onCancel={onCancel}
-      onConfirm={() =>
+      onConfirm={() => {
+        setSubmitting(true)
         onConfirm({
           move_out_date: moveOutDate,
           previous_reading: previousReading,
@@ -826,8 +831,8 @@ function MoveOutDialog({
           deduction_reason: reason,
           bill_rent: whatToBill !== 'electricity_only',
           bill_electricity: whatToBill !== 'rent_only',
-        }).then(() => {})
-      }
+        }).finally(() => setSubmitting(false))
+      }}
     >
       <div className="mt-3 space-y-3 text-left">
         <Field label="Move-out date">

@@ -161,6 +161,7 @@ export function ManagersPage() {
         message="This revokes their access to all properties (their login itself is not deleted, just their manager profile and permissions). This cannot be undone."
         confirmLabel="Remove"
         danger
+        pending={removeMutation.isPending}
         onCancel={() => setToRemove(null)}
         onConfirm={() => toRemove && removeMutation.mutate(toRemove)}
       />

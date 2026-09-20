@@ -172,6 +172,7 @@ export function PropertyDetailPage() {
         message="This will permanently delete this property and everything in it: all rooms, tenants, bills, and payment history. This cannot be undone."
         confirmLabel="Delete Property"
         danger
+        pending={deletePropertyMutation.isPending}
         onCancel={() => setShowDelete(false)}
         onConfirm={() => deletePropertyMutation.mutate()}
       />

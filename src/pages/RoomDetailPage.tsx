@@ -156,6 +156,7 @@ export function RoomDetailPage() {
         }
         confirmLabel="Delete Room"
         danger
+        pending={deleteMutation.isPending}
         onCancel={() => setShowDelete(false)}
         onConfirm={() => deleteMutation.mutate()}
       />

@@ -94,11 +94,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { data, error } = await supabase.from('profiles').select('*').eq('id', next.user.id).single()
         if (!mounted || request !== version) return
-        const nextProfile = error ? null : (data as Profile)
+        if (error || !data) {
+          // A same-user re-validation (tab refocus, token refresh) that
+          // transiently fails to refetch the profile shouldn't blank out
+          // an already-loaded profile — that would trip ProtectedRoute's
+          // "!profile" branch and unmount the whole page just as badly as
+          // the loading-flag bug this replaced. Only treat it as a real
+          // error on first load / an actual user switch.
+          if (!isSameUser) {
+            setProfile(null)
+            setProfileError('Your account profile could not be loaded. Sign out and try again, or contact your property owner.')
+          }
+          return
+        }
+        const nextProfile = data as Profile
         setProfile(nextProfile)
-        setProfileError(error || !data ? 'Your account profile could not be loaded. Sign out and try again, or contact your property owner.' : null)
-        if (nextProfile?.role === 'owner') attachPendingOwnerPhone(next)
-        if (nextProfile?.role === 'manager') {
+        setProfileError(null)
+        if (nextProfile.role === 'owner') attachPendingOwnerPhone(next)
+        if (nextProfile.role === 'manager') {
           const { data: managerRow } = await supabase
             .from('managers')
             .select('is_co_owner')
@@ -109,7 +122,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsCoOwner(false)
         }
       } catch {
-        if (mounted && request === version) setProfileError('Connection interrupted while loading your profile. Please sign out and try again.')
+        if (mounted && request === version && !isSameUser) {
+          setProfileError('Connection interrupted while loading your profile. Please sign out and try again.')
+        }
       } finally {
         if (mounted && request === version) setLoading(false)
       }
