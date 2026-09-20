@@ -371,6 +371,7 @@ export function PaymentsPage() {
         }
         confirmLabel="Revert Payment"
         danger
+        pending={deleteMutation.isPending}
         onCancel={() => setReverting(null)}
         onConfirm={() => reverting && deleteMutation.mutate(reverting.id)}
       />

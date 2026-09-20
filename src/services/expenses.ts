@@ -59,7 +59,14 @@ export async function createExpense(input: {
       if (tenantsError) throw tenantsError
 
       if (tenants && tenants.length > 0) {
-        const splitAmount = Number((input.amount / tenants.length).toFixed(2))
+        // Split in whole paise so the shares sum to exactly input.amount —
+        // naive (amount / n).toFixed(2) drops fractional paise on splits
+        // that don't divide evenly (e.g. ₹10 / 3 -> ₹3.33 x 3 = ₹9.99),
+        // silently undercharging tenants by a paisa or few. Distribute the
+        // leftover paise one-by-one across the first tenants instead.
+        const totalPaise = Math.round(input.amount * 100)
+        const baseSharePaise = Math.floor(totalPaise / tenants.length)
+        const leftoverPaise = totalPaise - baseSharePaise * tenants.length
         const billingMonth = `${currentBillingMonth()}-01`
 
         // 3. Queue the split charge for every tenant, then try to fold it
@@ -67,7 +74,9 @@ export async function createExpense(input: {
         // exists. If not, it stays queued — fn_generate_bill picks up
         // any still-unapplied charge automatically the next time a bill
         // is generated for that tenant, whenever that happens.
-        for (const t of tenants) {
+        for (let i = 0; i < tenants.length; i++) {
+          const t = tenants[i]
+          const splitAmount = (baseSharePaise + (i < leftoverPaise ? 1 : 0)) / 100
           const { error: queueError } = await supabase.from('pending_tenant_charges').insert({
             owner_id: input.owner_id,
             property_id: input.property_id,

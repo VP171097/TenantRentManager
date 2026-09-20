@@ -521,6 +521,7 @@ export function TenantDashboardPage() {
         title="Tell your landlord you've paid"
         message="This lets your landlord know you believe this bill is paid. They will confirm it once they see the payment."
         confirmLabel={markPaidMutation.isPending ? 'Sending…' : "Yes, I've Paid"}
+        pending={markPaidMutation.isPending}
         onCancel={() => setShowMarkPaid(false)}
         onConfirm={() => latestBill && markPaidMutation.mutate(latestBill.id)}
       >

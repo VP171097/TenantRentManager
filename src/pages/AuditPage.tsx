@@ -115,6 +115,7 @@ export function AuditPage() {
         message={`Are you sure you want to revert this ${revertingLog?.action} on ${revertingLog?.table_name}? This action cannot be undone and will create a new log entry.`}
         confirmLabel={revertMutation.isPending ? "Reverting..." : "Yes, Revert"}
         danger
+        pending={revertMutation.isPending}
         onCancel={() => setRevertingLog(null)}
         onConfirm={() => revertingLog && revertMutation.mutate(revertingLog.id)}
       />

@@ -144,9 +144,13 @@ function DocumentThumbnail({ doc }: { doc: TenantDocument }) {
   useEffect(() => {
     if (!isImageFile(doc.file_name)) return
     let cancelled = false
-    getSignedDocumentUrl(doc.file_path).then((signedUrl) => {
-      if (!cancelled) setUrl(signedUrl)
-    })
+    getSignedDocumentUrl(doc.file_path)
+      .then((signedUrl) => {
+        if (!cancelled) setUrl(signedUrl)
+      })
+      .catch(() => {
+        // Best-effort preview — the plain file icon fallback below covers this.
+      })
     return () => {
       cancelled = true
     }
@@ -167,16 +171,33 @@ function DocumentThumbnail({ doc }: { doc: TenantDocument }) {
 }
 
 export function DocumentList({ docs }: { docs: TenantDocument[] }) {
+  const [openError, setOpenError] = useState<string | null>(null)
+
   if (docs.length === 0) {
     return <p className="text-sm text-slate-400 dark:text-slate-500">No documents uploaded yet.</p>
   }
 
+  async function open(path: string) {
+    setOpenError(null)
+    try {
+      const url = await getSignedDocumentUrl(path)
+      window.open(url, '_blank')
+    } catch (err) {
+      setOpenError(friendlyError(err))
+    }
+  }
+
   return (
     <ul className="space-y-2">
+      {openError && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400">
+          {openError}
+        </p>
+      )}
       {docs.map((d) => (
         <li key={d.id}>
           <button
-            onClick={() => getSignedDocumentUrl(d.file_path).then((url) => window.open(url, '_blank'))}
+            onClick={() => open(d.file_path)}
             className="flex w-full items-center gap-3 rounded-lg border border-slate-200 p-2 text-left hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900"
           >
             <DocumentThumbnail doc={d} />

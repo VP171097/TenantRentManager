@@ -40,13 +40,14 @@ export async function updateRoom(id: string, input: Partial<Room>): Promise<Room
   if (oldRoom && input.base_rent !== undefined && input.base_rent !== oldRoom.base_rent) {
     const { data: tenant } = await supabase.from('tenants').select('id').eq('room_id', id).eq('status', 'active').maybeSingle()
     if (tenant) {
-      await supabase.from('rent_revisions').insert({
+      const { error: revisionErr } = await supabase.from('rent_revisions').insert({
         tenant_id: tenant.id,
         effective_date: new Date().toISOString().slice(0, 10),
         rent_amount: input.base_rent,
         change_type: 'fixed',
         change_value: input.base_rent - oldRoom.base_rent,
       })
+      if (revisionErr) throw revisionErr
     }
   }
 
@@ -79,7 +80,9 @@ export async function transferTenantRoom(tenantId: string, fromRoomId: string | 
   if (tenantErr) throw tenantErr
 
   if (fromRoomId) {
-    await supabase.from('rooms').update({ status: 'vacant' }).eq('id', fromRoomId)
+    const { error: fromErr } = await supabase.from('rooms').update({ status: 'vacant' }).eq('id', fromRoomId)
+    if (fromErr) throw fromErr
   }
-  await supabase.from('rooms').update({ status: 'occupied' }).eq('id', toRoomId)
+  const { error: toErr } = await supabase.from('rooms').update({ status: 'occupied' }).eq('id', toRoomId)
+  if (toErr) throw toErr
 }
