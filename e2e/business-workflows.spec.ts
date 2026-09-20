@@ -80,3 +80,13 @@ test.describe('tenant business workflow smoke tests', () => {
     await expect(page).toHaveURL(/\/tenant\/dashboard(?:[/?#]|$)/)
   })
 })
+  test('owner cannot enter tenant portal routes', async ({ page }) => {
+    const email = process.env.E2E_OWNER_EMAIL
+    const password = process.env.E2E_OWNER_PASSWORD
+    test.skip(!email || !password, 'Configure dedicated E2E owner credentials')
+
+    await login(page, 'owner', email!, password!)
+    await page.goto('/tenant/dashboard', { waitUntil: 'domcontentloaded' })
+    await expect(page).toHaveURL(/\/dashboard(?:[/?#]|$)/)
+  })
+
