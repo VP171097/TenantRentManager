@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../types/database'
@@ -64,20 +64,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(data as Profile)
   }
 
+  // Tracks the currently-loaded user id outside React state so a stale
+  // effect closure can't miss it — used to tell "the same user's session
+  // just got silently re-validated" (Supabase re-checks on tab focus/
+  // visibility, e.g. returning from a native file picker) apart from an
+  // actual sign-in/sign-out/user-switch, so we don't drop `loading` back
+  // to true for the former. Toggling `loading` unmounts everything under
+  // ProtectedRoute, which was wiping out in-flight page state (like a
+  // document upload) for no reason any time the tab regained focus.
+  const currentUserIdRef = useRef<string | null>(null)
+
   useEffect(() => {
     let mounted = true
     let version = 0
     const applySession = async (next: Session | null) => {
       const request = ++version
+      const isSameUser = !!next && currentUserIdRef.current === next.user.id
       setSession(next)
-      setLoading(true)
+      if (!isSameUser) setLoading(true)
       if (!next) {
+        currentUserIdRef.current = null
         setProfile(null)
         setIsCoOwner(false)
         setProfileError(null)
         setLoading(false)
         return
       }
+      currentUserIdRef.current = next.user.id
       try {
         const { data, error } = await supabase.from('profiles').select('*').eq('id', next.user.id).single()
         if (!mounted || request !== version) return
