@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test'
 
+const appPath = (route: string) => route === '/' ? './' : route.slice(1)
+
 async function login(page: import('@playwright/test').Page, audience: 'owner' | 'tenant', email: string, password: string) {
-  await page.goto('/login', { waitUntil: 'domcontentloaded' })
+  await page.goto(appPath('/login'), { waitUntil: 'domcontentloaded' })
   await page.getByTestId(audience === 'owner' ? 'login-audience-owner' : 'login-audience-tenant').click()
   await page.getByTestId('login-email').fill(email)
   await page.getByTestId('login-password').fill(password)
@@ -29,7 +31,7 @@ test.describe('owner business workflow smoke tests', () => {
     ] as const
 
     for (const [route, heading] of routes) {
-      await page.goto(route, { waitUntil: 'domcontentloaded' })
+      await page.goto(appPath(route), { waitUntil: 'domcontentloaded' })
       await expect(page.locator('body')).toContainText(heading)
       await expect(page.locator('body')).not.toContainText(/Application error|Unhandled Runtime Error/i)
     }
@@ -41,7 +43,7 @@ test.describe('owner business workflow smoke tests', () => {
     test.skip(!email || !password, 'Configure dedicated E2E owner credentials')
 
     await login(page, 'owner', email!, password!)
-    await page.goto('/properties', { waitUntil: 'domcontentloaded' })
+    await page.goto(appPath('/properties'), { waitUntil: 'domcontentloaded' })
     await page.getByRole('button', { name: /add property/i }).click()
 
     const form = page.locator('form').last()
@@ -76,17 +78,17 @@ test.describe('tenant business workflow smoke tests', () => {
     test.skip(!email || !password, 'Configure dedicated E2E tenant credentials')
 
     await login(page, 'tenant', email!, password!)
-    await page.goto('/properties', { waitUntil: 'domcontentloaded' })
+    await page.goto(appPath('/properties'), { waitUntil: 'domcontentloaded' })
     await expect(page).toHaveURL(/\/tenant\/dashboard(?:[/?#]|$)/)
   })
-})
+
   test('owner cannot enter tenant portal routes', async ({ page }) => {
     const email = process.env.E2E_OWNER_EMAIL
     const password = process.env.E2E_OWNER_PASSWORD
     test.skip(!email || !password, 'Configure dedicated E2E owner credentials')
 
     await login(page, 'owner', email!, password!)
-    await page.goto('/tenant/dashboard', { waitUntil: 'domcontentloaded' })
+    await page.goto(appPath('/tenant/dashboard'), { waitUntil: 'domcontentloaded' })
     await expect(page).toHaveURL(/\/dashboard(?:[/?#]|$)/)
   })
-
+})
