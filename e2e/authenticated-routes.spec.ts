@@ -10,8 +10,10 @@ const tenantRoutes = [
   '/tenant/dashboard', '/tenant/ledger', '/tenant/receipts', '/tenant/profile',
 ]
 
+const appPath = (route: string) => route === '/' ? './' : route.slice(1)
+
 async function signIn(page: import('@playwright/test').Page, audience: 'owner' | 'tenant', email: string, password: string) {
-  await page.goto('/login', { waitUntil: 'domcontentloaded' })
+  await page.goto(appPath('/login'), { waitUntil: 'domcontentloaded' })
   await page.getByTestId(audience === 'owner' ? 'login-audience-owner' : 'login-audience-tenant').click()
   await page.getByTestId('login-email').fill(email)
   await page.getByTestId('login-password').fill(password)
@@ -34,7 +36,7 @@ async function checkRoutes(page: import('@playwright/test').Page, routes: string
     page.on('requestfailed', onRequestFailed)
 
     try {
-      await page.goto(route, { waitUntil: 'domcontentloaded' })
+      await page.goto(appPath(route), { waitUntil: 'domcontentloaded' })
       await expect(page.locator('body')).toBeVisible()
       await expect(page.locator('body')).not.toContainText(/Application error|Unhandled Runtime Error/i)
       expect(page.url(), 'navigation for ' + route).toContain(route)
