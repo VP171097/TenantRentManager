@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { ErrorState } from '../../components/States'
 import { SkeletonCardGrid } from '../../components/Skeleton'
-import { DocumentUploader, getSignedDocumentUrl } from '../../components/DocumentUploader'
+import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 import { ImageUploader } from '../../components/ImageUploader'
 import { updateOwnTenantProfile, listTenantDocuments } from '../../services/tenants'
 import { friendlyError } from '../../utils/errors'
@@ -103,19 +103,7 @@ export function TenantProfilePage() {
           tenantId={tenant.id}
           onUploaded={() => refetchDocs()}
         />
-        <ul className="space-y-1">
-          {docs.map((d) => (
-            <li key={d.id}>
-              <button
-                onClick={() => getSignedDocumentUrl(d.file_path).then((url) => window.open(url, '_blank'))}
-                className="text-sm text-brand-700 dark:text-brand-400 hover:underline"
-              >
-                {d.file_name}
-              </button>
-            </li>
-          ))}
-          {docs.length === 0 && <p className="text-sm text-slate-400 dark:text-slate-500">No documents uploaded yet.</p>}
-        </ul>
+        <DocumentList docs={docs} />
       </div>
     </div>
   )

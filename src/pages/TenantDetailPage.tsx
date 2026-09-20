@@ -31,7 +31,7 @@ import { EditBillModal } from '../components/forms/EditBillModal'
 import { PaymentForm } from '../components/forms/PaymentForm'
 import { TenantForm } from '../components/forms/TenantForm'
 import { Field } from '../components/forms/PropertyForm'
-import { DocumentUploader, getSignedDocumentUrl } from '../components/DocumentUploader'
+import { DocumentUploader, DocumentList } from '../components/DocumentUploader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { extractFunctionErrorMessage, friendlyError } from '../utils/errors'
 import { applicableRent } from '../utils/billing'
@@ -705,19 +705,9 @@ export function TenantDetailPage() {
             onUploaded={() => refetchDocs()}
           />
         )}
-        <ul className="mt-3 space-y-1">
-          {docs.map((d) => (
-            <li key={d.id}>
-              <button
-                onClick={() => getSignedDocumentUrl(d.file_path).then((url) => window.open(url, '_blank'))}
-                className="text-sm text-brand-700 dark:text-brand-400 hover:underline"
-              >
-                {d.file_name}
-              </button>
-            </li>
-          ))}
-          {docs.length === 0 && <p className="text-sm text-slate-400 dark:text-slate-500">No documents uploaded yet.</p>}
-        </ul>
+        <div className="mt-3">
+          <DocumentList docs={docs} />
+        </div>
       </section>
 
       <RentRevisionModal
