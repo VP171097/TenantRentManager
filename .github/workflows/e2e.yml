@@ -16,6 +16,10 @@ jobs:
   playwright:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, mobile-chrome]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,7 +63,7 @@ jobs:
         run: npm run typecheck:e2e
 
       - name: Run E2E tests
-        run: npm run test:e2e -- --project=chromium
+        run: npm run test:e2e -- --project=${{ matrix.project }}
         env:
           CI: true
           E2E_BASE_URL: http://127.0.0.1:4173/
@@ -72,7 +76,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.project }}
           path: playwright-report/
           retention-days: 14
 
@@ -80,6 +84,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-test-results
+          name: playwright-test-results-${{ matrix.project }}
           path: test-results/
           retention-days: 14
