@@ -5,7 +5,7 @@ import { friendlyError } from '../utils/errors'
 import { isValidUpiId } from '../utils/upi'
 import { Trash2, Plus, QrCode } from 'lucide-react'
 
-export function UpiManager({ ownerId }: { ownerId: string }) {
+export function UpiManager({ ownerId, onDraftChange }: { ownerId: string; onDraftChange?: (hasDraft: boolean) => void }) {
   const queryClient = useQueryClient()
   const { data: upiIds, isLoading } = useQuery({
     queryKey: ['upi-ids', ownerId],
@@ -15,6 +15,15 @@ export function UpiManager({ ownerId }: { ownerId: string }) {
   const [label, setLabel] = useState('')
   const [upiId, setUpiId] = useState('')
   const [error, setError] = useState<string | null>(null)
+
+  function updateLabel(v: string) {
+    setLabel(v)
+    onDraftChange?.(v.trim().length > 0 || upiId.trim().length > 0)
+  }
+  function updateUpiId(v: string) {
+    setUpiId(v)
+    onDraftChange?.(label.trim().length > 0 || v.trim().length > 0)
+  }
 
   const addMutation = useMutation({
     mutationFn: async () => {
@@ -27,6 +36,7 @@ export function UpiManager({ ownerId }: { ownerId: string }) {
       setLabel('')
       setUpiId('')
       setError(null)
+      onDraftChange?.(false)
     },
     onError: (err) => setError(friendlyError(err)),
   })
@@ -36,14 +46,21 @@ export function UpiManager({ ownerId }: { ownerId: string }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['upi-ids', ownerId] }),
   })
 
+  function submitAdd() {
+    if (!addMutation.isPending) addMutation.mutate()
+  }
+
   return (
-    <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-6">
+    <div className="mt-6 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 p-4">
       <h3 className="mb-1 text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
         <QrCode size={16} className="text-slate-400" />
         Additional UPI IDs (Room-Specific)
       </h3>
       <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
-        If you want specific rooms to pay to a different bank account, add those UPI IDs here, then assign them in Room settings.
+        If you want specific rooms to pay to a different bank account, add those UPI IDs here, then tap{' '}
+        <span className="font-semibold text-slate-700 dark:text-slate-300">+ Add</span> below — this is saved
+        separately from the "Save Changes" button at the bottom of this page, which only saves your name/phone/main
+        UPI ID above.
       </p>
 
       <div className="space-y-3 mb-4">
@@ -74,7 +91,8 @@ export function UpiManager({ ownerId }: { ownerId: string }) {
           <input
             placeholder="Label (e.g. Ground Floor)"
             value={label}
-            onChange={(e) => setLabel(e.target.value)}
+            onChange={(e) => updateLabel(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submitAdd()}
             className="input text-sm"
           />
         </div>
@@ -82,16 +100,17 @@ export function UpiManager({ ownerId }: { ownerId: string }) {
           <input
             placeholder="UPI ID"
             value={upiId}
-            onChange={(e) => setUpiId(e.target.value)}
+            onChange={(e) => updateUpiId(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submitAdd()}
             className="input text-sm"
           />
         </div>
         <button
-          onClick={() => addMutation.mutate()}
+          onClick={submitAdd}
           disabled={addMutation.isPending}
-          className="btn-secondary whitespace-nowrap"
+          className="btn-primary whitespace-nowrap"
         >
-          <Plus size={16} /> Add
+          <Plus size={16} /> {addMutation.isPending ? 'Adding…' : 'Add'}
         </button>
       </div>
       {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
