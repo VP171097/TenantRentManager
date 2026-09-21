@@ -16,6 +16,7 @@ export function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [upiDraftPending, setUpiDraftPending] = useState(false)
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -130,10 +131,16 @@ export function ProfilePage() {
                 Shown as a QR code on bills so tenants can pay via any UPI app.
               </p>
             </div>
-            <UpiManager ownerId={profile.id} />
+            <UpiManager ownerId={profile.id} onDraftChange={setUpiDraftPending} />
           </>
         )}
 
+        {upiDraftPending && (
+          <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+            You've typed an additional UPI ID but haven't tapped its "+ Add" button yet — "Save Changes" below won't
+            save it.
+          </div>
+        )}
         {message && (
           <div className="flex items-center gap-2 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             <CheckCircle size={15} />
