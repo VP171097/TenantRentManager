@@ -9,7 +9,7 @@ import { UpiManager } from '../components/UpiManager'
 import { User, Phone, Shield, Wallet, CheckCircle, Save } from 'lucide-react'
 
 export function ProfilePage() {
-  const { profile, refreshProfile } = useAuth()
+  const { profile, isCoOwner, refreshProfile } = useAuth()
   const [fullName, setFullName] = useState(profile?.full_name ?? '')
   const [phone, setPhone] = useState(profile?.phone ?? '')
   const [upiId, setUpiId] = useState(profile?.upi_id ?? '')
@@ -116,23 +116,32 @@ export function ProfilePage() {
         </div>
 
         {profile.role === 'owner' && (
-          <>
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                <Wallet size={14} className="text-slate-400" /> UPI ID
-              </label>
-              <input
-                value={upiId}
-                onChange={(e) => setUpiId(e.target.value)}
-                placeholder="yourname@okhdfcbank"
-                className="input"
-              />
-              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-                Shown as a QR code on bills so tenants can pay via any UPI app.
-              </p>
-            </div>
-            <UpiManager ownerId={profile.id} onDraftChange={setUpiDraftPending} />
-          </>
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <Wallet size={14} className="text-slate-400" /> UPI ID
+            </label>
+            <input
+              value={upiId}
+              onChange={(e) => setUpiId(e.target.value)}
+              placeholder="yourname@okhdfcbank"
+              className="input"
+            />
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+              Shown as a QR code on bills so tenants can pay via any UPI app.
+            </p>
+          </div>
+        )}
+
+        {/* Additional (room-specific) UPI IDs: owner always; a manager
+         * only when flagged as a co-owner — a regular manager has no
+         * write access to upi_ids (RLS-enforced), so hide the controls
+         * for them entirely rather than showing a form that will just
+         * error on submit. */}
+        {(profile.role === 'owner' || isCoOwner) && (
+          <UpiManager
+            ownerId={profile.role === 'owner' ? profile.id : profile.owner_id!}
+            onDraftChange={setUpiDraftPending}
+          />
         )}
 
         {upiDraftPending && (
