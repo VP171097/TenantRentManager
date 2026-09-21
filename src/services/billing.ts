@@ -185,10 +185,11 @@ export async function updateBillCharges(input: {
 /** Tenant self-service: flags a bill as "I've paid" (does not touch real
  * financial fields) via a SECURITY DEFINER RPC that verifies the caller
  * owns this bill's tenant record. */
-export async function markBillAsPaidByTenant(billId: string, note?: string): Promise<Bill> {
+export async function markBillAsPaidByTenant(billId: string, note?: string, method?: string): Promise<Bill> {
   const { data, error } = await supabase.rpc('fn_tenant_mark_paid', {
     p_bill_id: billId,
     p_note: note ?? null,
+    p_method: method ?? null,
   })
   if (error) throw error
   return data as Bill

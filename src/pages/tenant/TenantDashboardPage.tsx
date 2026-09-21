@@ -13,7 +13,7 @@ import { createMaintenanceRequest } from '../../services/maintenance'
 import { friendlyError } from '../../utils/errors'
 import { formatINR } from '../../utils/money'
 import { buildUpiLink } from '../../utils/upi'
-import type { Bill, Property, Tenant } from '../../types/database'
+import type { Bill, PaymentMethod, Property, Tenant } from '../../types/database'
 import QRCode from 'qrcode'
 import { useEffect } from 'react'
 import {
@@ -103,6 +103,7 @@ export function TenantDashboardPage() {
   const [showPay, setShowPay] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [showMarkPaid, setShowMarkPaid] = useState(false)
+  const [paidMethod, setPaidMethod] = useState<PaymentMethod>('upi')
   const [paidNote, setPaidNote] = useState('')
   const [markPaidError, setMarkPaidError] = useState<string | null>(null)
   const [markPaidDone, setMarkPaidDone] = useState(false)
@@ -121,7 +122,7 @@ export function TenantDashboardPage() {
   })
 
   const markPaidMutation = useMutation({
-    mutationFn: (billId: string) => markBillAsPaidByTenant(billId, paidNote.trim() || undefined),
+    mutationFn: (billId: string) => markBillAsPaidByTenant(billId, paidNote.trim() || undefined, paidMethod),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-data', profile?.id] })
       setShowMarkPaid(false)
@@ -525,7 +526,34 @@ export function TenantDashboardPage() {
         onCancel={() => setShowMarkPaid(false)}
         onConfirm={() => latestBill && markPaidMutation.mutate(latestBill.id)}
       >
-        <div className="mt-3 space-y-2 text-left">
+        <div className="mt-3 space-y-3 text-left">
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">How did you pay?</p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {(
+                [
+                  { value: 'upi', label: 'UPI' },
+                  { value: 'cash', label: 'Cash' },
+                  { value: 'bank_transfer', label: 'Bank Transfer' },
+                  { value: 'cheque', label: 'Cheque' },
+                  { value: 'other', label: 'Other' },
+                ] as { value: PaymentMethod; label: string }[]
+              ).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setPaidMethod(opt.value)}
+                  className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                    paidMethod === opt.value
+                      ? 'border-brand-600 bg-brand-600 text-white'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <input
             type="text"
             placeholder="Reference / UTR number (optional)"
