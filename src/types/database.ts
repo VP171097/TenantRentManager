@@ -141,6 +141,7 @@ export interface Bill {
   tenant_marked_paid: boolean
   tenant_marked_paid_at: string | null
   tenant_marked_paid_note: string | null
+  tenant_marked_paid_method: PaymentMethod | null
 }
 
 export type PaymentMethod = 'cash' | 'upi' | 'bank_transfer' | 'cheque' | 'other'
